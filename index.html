@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>L7ssab.ma</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f0;color:#111}
+button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
+.hidden{display:none!important}
+.hdr{background:#1a7a4a;color:#fff;height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;position:sticky;top:0;z-index:98;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr-title{font-size:16px;font-weight:700;flex:1}
+.hdr-right{display:flex;gap:8px;align-items:center;position:relative}
+.hdr-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:5px 10px;font-size:13px}
+.hdr-av{width:36px;height:36px;border-radius:50%;background:#fff;color:#1a7a4a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;cursor:pointer;border:2px solid rgba(255,255,255,.6)}
+.av-menu{position:absolute;top:46px;right:0;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);overflow:hidden;width:190px;display:none;z-index:300}
+.av-menu.show{display:block}
+.av-menu .av-head{padding:12px 16px;border-bottom:.5px solid #eee;background:#f8fdf9}
+.av-menu .av-head .n{font-size:14px;font-weight:600;color:#111}
+.av-menu .av-head .r{font-size:11px;color:#666}
+.av-menu button{display:block;width:100%;padding:12px 16px;font-size:14px;background:transparent;border:none;text-align:left;color:#111;cursor:pointer;border-bottom:.5px solid #f0f0f0}
+.av-menu button:last-child{border-bottom:none;color:#d63031}
+.av-menu button:hover{background:#f5f5f5}
+.tabbar{display:flex;background:#fff;border-bottom:.5px solid #e0e0e0;position:sticky;top:54px;z-index:90}
+.tabbar button{flex:1;padding:13px;font-size:14px;font-weight:600;background:transparent;border:none;color:#666;border-bottom:3px solid transparent}
+.tabbar button.active{color:#1a7a4a;border-bottom-color:#1a7a4a}
+.page{display:none;min-height:calc(100vh - 54px);background:#f0f4f0;padding-bottom:60px}
+.page.active{display:block}
+.content{padding:12px;max-width:720px;margin:0 auto}
+.card{background:#fff;border:.5px solid #e0e0e0;border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-title{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px}
+.inp{width:100%;padding:11px 13px;font-size:15px;border-radius:12px;border:.5px solid #ccc;background:#f5f5f5;color:#111;margin-bottom:8px;display:block}
+.inp:focus{outline:none;border-color:#1a7a4a;box-shadow:0 0 0 2px rgba(26,122,74,.15)}
+.btn-p{width:100%;padding:12px;font-size:15px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:12px;margin-top:2px}
+.btn-g{padding:12px;font-size:14px;background:#f5f5f5;color:#111;border:.5px solid #ccc;border-radius:12px}
+.btn-r{padding:7px 11px;font-size:13px;background:#ffeaea;color:#d63031;border:none;border-radius:8px;cursor:pointer}
+.btn-b{padding:7px 11px;font-size:13px;background:#e8f0ff;color:#2563eb;border:none;border-radius:8px;cursor:pointer}
+.btn-grn{padding:7px 11px;font-size:13px;background:#e8f5ee;color:#0f5132;border:none;border-radius:8px;cursor:pointer}
+.nav-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+#login-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:#f0faf5;position:relative}
+.logo-box{width:72px;height:72px;border-radius:20px;background:#1a7a4a;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:36px;box-shadow:0 4px 16px rgba(26,122,74,.35)}
+.login-card{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:400px;box-shadow:0 4px 32px rgba(0,0,0,.1)}
+.user-circles{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end}
+.ucw{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.uc{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;border:3px solid transparent;transition:all .2s}
+.uc.sel{border-color:#1a7a4a;box-shadow:0 0 0 3px rgba(26,122,74,.3)}
+.uc-name{font-size:11px;font-weight:500;color:#666;max-width:60px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.add-uc{width:52px;height:52px;border-radius:50%;background:#f0faf5;border:2px dashed #1a7a4a;display:flex;align-items:center;justify-content:center;font-size:26px;color:#1a7a4a;cursor:pointer}
+#add-user-form{background:#f0faf5;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #c8e6d4;display:none}
+.pin-dots{display:flex;gap:11px;justify-content:center;margin:14px 0}
+.pin-dot{width:18px;height:18px;border-radius:50%;background:#ccc;transition:all .2s}
+.pin-dot.filled{background:#1a7a4a;transform:scale(1.1)}
+.pin-dot.error{background:#d63031}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
+.pin-key{padding:17px;font-size:22px;font-weight:600;background:#fff;border:.5px solid #ddd;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);transition:all .15s}
+.pin-key:active{background:#e8f5ee;transform:scale(.95)}
+.pin-del{background:#ffeaea;color:#d63031}
+.pin-ph{background:transparent;border-color:transparent;box-shadow:none;pointer-events:none}
+#np-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:999}
+.np-panel{background:#fff;border-radius:20px 20px 0 0;padding:18px;width:100%;max-width:420px}
+.np-disp{background:#f5f5f5;border-radius:12px;padding:14px 16px;font-size:32px;font-weight:700;text-align:right;margin-bottom:12px;min-height:58px;letter-spacing:1px;border:.5px solid #e0e0e0;color:#111}
+.np-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.nk{padding:16px;font-size:20px;font-weight:600;background:#f5f5f5;border:.5px solid #e0e0e0;border-radius:12px;color:#111}
+.nk:active{background:#e8f5ee}
+.nk-c{background:#ffeaea;color:#d63031}
+.np-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.num-field{background:#f5f5f5;border:.5px solid #ccc;border-radius:12px;padding:10px 13px;cursor:pointer;min-height:54px;margin-bottom:8px;display:block}
+.nf-label{font-size:11px;color:#666;display:block;margin-bottom:3px}
+.nf-val{font-size:19px;font-weight:700;color:#111;display:block}
+.nf-ph{font-size:14px;color:#bbb;display:block}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.b-admin{background:#e8f5ee;color:#0f5132}
+.b-user{background:#f5f5f5;color:#666;border:.5px solid #ccc}
+.b-ok{background:#e8f5ee;color:#0f5132}
+.b-off{background:#f5f5f5;color:#666;border:.5px solid #ccc}
+.sc-card{border-radius:12px;padding:12px 14px;border:1.5px solid #e0e0e0;background:#f5f5f5;margin-bottom:10px}
+.sc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sc-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
+.rtbl{width:100%;border-collapse:collapse;font-size:13px}
+.rtbl thead tr{background:#1a7a4a;color:#fff}
+.rtbl thead th{padding:9px 7px;font-weight:600;font-size:11px;text-align:left}
+.rtbl tbody tr:nth-child(even){background:#f5f5f5}
+.rtbl tbody td{padding:8px 7px;border-bottom:.5px solid #e0e0e0}
+.rtbl tfoot td{padding:9px 7px;font-weight:700;background:#e8f5ee;border-top:2px solid #1a7a4a;color:#0f5132}
+.utbl{width:100%;border-collapse:collapse}
+.utbl th{padding:9px 8px;font-size:11px;font-weight:700;color:#666;text-align:left;text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid #e0e0e0}
+.utbl td{padding:10px 8px;font-size:13px;border-bottom:.5px solid #e0e0e0}
+.grand-box{background:#1a7a4a;border-radius:14px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.tbar{padding:12px 16px;background:#1a7a4a;border-radius:12px;display:flex;justify-content:space-between;color:#fff;font-size:15px;font-weight:600;margin-bottom:10px}
+.proj-row{display:flex;align-items:flex-start;padding:10px 0;border-bottom:.5px solid #e0e0e0;gap:8px}
+.proj-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.smsg{padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px}
+.adj-item{margin-bottom:10px;padding:12px;background:#f5f5f5;border-radius:12px;border:.5px solid #e0e0e0}
+.adj-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.adj-sign{width:42px;height:42px;border-radius:9px;font-size:22px;font-weight:700;border:none;flex-shrink:0;cursor:pointer}
+.srow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:.5px solid #e0e0e0}
+.db-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.db-stat{background:#f5f5f5;border-radius:10px;padding:12px;text-align:center}
+.db-val{font-size:24px;font-weight:700;color:#1a7a4a}
+.db-lbl{font-size:11px;color:#666;margin-top:2px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2e22;color:#e8f5ee;padding:12px 22px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap}
+[dir=rtl] .hdr,[dir=rtl] .tbar,[dir=rtl] .grand-box,[dir=rtl] .sc-row,[dir=rtl] .srow{flex-direction:row-reverse}
+[dir=rtl] .adj-row,[dir=rtl] .proj-row{flex-direction:row-reverse}
+[dir=rtl] .rtbl thead th,[dir=rtl] .rtbl tbody td,[dir=rtl] .rtbl tfoot td,[dir=rtl] .utbl th,[dir=rtl] .utbl td{text-align:right}
+[dir=rtl] .hdr-right{flex-direction:row-reverse}
+[dir=rtl] .nav-row{direction:rtl}
+[dir=rtl] .num-field{text-align:right}
+[dir=rtl] .proj-btns{flex-direction:row-reverse}
+[dir=rtl] .card-title{text-align:right}
+[dir=rtl] .inp{direction:rtl;text-align:right}
+[dir=rtl] .av-menu{right:auto;left:0}
+[dir=rtl] .av-menu button{text-align:right}
+/* full RTL flip */
+[dir=rtl] body,[dir=rtl] .content,[dir=rtl] .card,[dir=rtl] .page{text-align:right;direction:rtl}
+[dir=rtl] .card p,[dir=rtl] .card div,[dir=rtl] .card span,[dir=rtl] .card label{text-align:right}
+[dir=rtl] .sc-name,[dir=rtl] .sc-row{flex-direction:row-reverse}
+[dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px}
+[dir=rtl] select.inp{direction:rtl;text-align:right;background-position:left 12px center}
+[dir=rtl] .tabbar{flex-direction:row-reverse}
+[dir=rtl] .db-stats{direction:rtl}
+[dir=rtl] .adj-item{text-align:right}
+[dir=rtl] .toast{direction:rtl}
+[dir=rtl] .smsg{text-align:right}
+[dir=rtl] .pin-grid,[dir=rtl] .np-grid{direction:ltr}
+[dir=rtl] .np-disp{text-align:left;direction:ltr}
+[dir=rtl] .user-circles{direction:rtl}
+[dir=rtl] .hdr-title{text-align:right}
+</style>
+</head>
+<body>
+<div id="login-page">
+  <div style="position:absolute;top:14px;right:14px">
+    <button onclick="toggleLang()" id="lang-login-btn" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">🇫🇷 FR</button>
+  </div>
+  <div style="text-align:center;margin-bottom:18px">
+    <div class="logo-box">📦</div>
+    <h1 style="font-size:24px;font-weight:700;color:#1a7a4a">L7ssab.ma</h1>
+    <p id="t-sel" style="font-size:13px;color:#666;margin-top:4px">Sélectionnez votre compte</p>
+  </div>
+  <div class="login-card">
+    <div id="add-user-form">
+      <p style="font-size:13px;font-weight:600;color:#1a7a4a;margin-bottom:10px" id="t-newacc">Nouveau compte</p>
+      <input class="inp" type="text" id="nacc-name" placeholder="Nom d'utilisateur"/>
+      <input class="inp" type="password" id="nacc-pin" placeholder="PIN (6 chiffres)" maxlength="6"/>
+      <select class="inp" id="nacc-role"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn-g" onclick="hideAddU()">Annuler</button>
+        <button class="btn-p" style="margin-top:0" onclick="doAddLoginU()">Créer</button>
+      </div>
+    </div>
+    <div class="user-circles" id="ucircles"></div>
+    <p id="t-pin" style="font-size:13px;color:#666;text-align:center;margin-bottom:4px">Entrez votre PIN</p>
+    <div class="pin-dots" id="pdots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div><div class="pin-dot" id="pd4"></div><div class="pin-dot" id="pd5"></div>
+    </div>
+    <div class="pin-grid" id="pkeys"></div>
+    <p id="t-hint" style="font-size:11px;color:#bbb;text-align:center;margin-top:12px">PIN admin: 123456</p>
+  </div>
+</div>
+<div id="main-app" class="hidden">
+  <div class="hdr">
+    <span class="hdr-title" id="hdr-title">L7ssab.ma</span>
+    <div class="hdr-right">
+      <button class="hdr-btn" onclick="toggleLang()" id="lang-app-btn">🇫🇷</button>
+      <div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">?</div>
+      <div class="av-menu" id="av-menu">
+        <div class="av-head"><div class="n" id="av-name">—</div><div class="r" id="av-role">—</div></div>
+        <button onclick="goProf()">👤 <span id="t-myprof">Mon profil</span></button>
+        <button onclick="doLogout()">🚪 <span id="t-logout2">Déconnexion</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar hidden" id="admin-tabs">
+    <button id="tab-database" class="active" onclick="showPage('database')">🗄️ <span id="t-tabdb">Database</span></button>
+    <button id="tab-users" onclick="showPage('users')">👥 <span id="t-tabusers">Users</span></button>
+  </div>
+  <div id="pg-inventory" class="page active"><div class="content">
+    <div class="card">
+      <div class="card-title" id="t-newproj">Nouveau projet</div>
+      <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…"/>
+      <button class="btn-p" onclick="createProj()" id="t-createproj">Créer le projet →</button>
+    </div>
+    <div class="card"><div class="card-title" id="t-savedproj">Projets sauvegardés</div><div id="proj-list"></div></div>
+  </div></div>
+  <div id="pg-products" class="page"><div class="content">
+    <div class="card">
+      <div class="card-title" id="t-addprod">Ajouter un produit</div>
+      <div class="sc-card" id="bt-mini">
+        <div class="sc-row">
+          <span class="sc-name"><span class="sc-dot" id="bt-mini-dot" style="background:#ccc"></span><span id="bt-mini-lbl">Scanner BT</span></span>
+          <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 10px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">BT</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();doScan();}"/>
+        <button onclick="doScan()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
+      </div>
+      <div id="scan-msg" class="smsg hidden"></div>
+      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+        <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price">Prix (DH)</span><span id="nf-dp" class="nf-ph">Appuyer</span></div>
+        <div class="num-field" onclick="openNP('dQ','Quantite',false)"><span class="nf-label" id="t-qty">Quantité</span><span id="nf-dq" class="nf-ph">Appuyer</span></div>
+      </div>
+      <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
+    </div>
+    <div class="card hidden" id="edit-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0" id="edit-title">Produit</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="prevP()" style="padding:8px 14px;background:#f5f5f5;border:.5px solid #ccc;border-radius:8px">◀</button>
+          <button onclick="nextP()" style="padding:8px 14px;background:#f5f5f5;border:.5px solid #ccc;border-radius:8px">▶</button>
+        </div>
+      </div>
+      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" oninput="filterP(this.value)" style="margin-bottom:10px"/>
+      <div id="psearch-res" class="hidden"></div>
+      <div id="edit-form">
+        <input class="inp" type="text" id="edit-name"/>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+          <div class="num-field" onclick="openNP('eP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="nf-ep" class="nf-ph">—</span></div>
+          <div class="num-field" onclick="openNP('eQ','Quantite',false)"><span class="nf-label">Quantité</span><span id="nf-eq" class="nf-ph">—</span></div>
+        </div>
+        <div id="edit-sub" class="hidden" style="padding:10px 12px;background:#f5f5f5;border-radius:10px;font-size:14px;display:flex;justify-content:space-between;margin-bottom:10px">
+          <span style="color:#666">Sous-total</span><strong id="edit-sub-val"></strong>
+        </div>
+        <button class="btn-r" style="width:100%" onclick="delP()">🗑 Supprimer</button>
+      </div>
+    </div>
+    <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
+    <div class="nav-row">
+      <button class="btn-g" onclick="showPage('inventory')" id="t-back1">← Retour</button>
+      <button class="btn-p" style="margin-top:0" onclick="showPage('adjustments')" id="t-next1">Suivant →</button>
+    </div>
+  </div></div>
+  <div id="pg-adjustments" class="page"><div class="content">
+    <div class="card">
+      <p style="font-size:14px;color:#666;margin-bottom:14px" id="t-adjdesc">Ajoutez frais, remises ou corrections.</p>
+      <div id="adj-list"></div>
+      <button class="btn-p" style="background:transparent;color:#1a7a4a;border:1.5px dashed #1a7a4a" onclick="addAdj()" id="t-addline">+ Ajouter une ligne</button>
+    </div>
+    <div class="nav-row">
+      <button class="btn-g" onclick="showPage('products')" id="t-back2">← Retour</button>
+      <button class="btn-p" style="margin-top:0" onclick="showPage('recap')" id="t-next2">Suivant →</button>
+    </div>
+  </div></div>
+  <div id="pg-recap" class="page"><div class="content">
+    <div class="card">
+      <div class="card-title" id="t-prods-title">Produits</div>
+      <table class="rtbl"><thead><tr><th style="width:30px">N°</th><th>Produit</th><th style="text-align:right;width:70px">Prix</th><th style="text-align:center;width:38px">Qté</th><th style="text-align:right;width:85px">Total</th></tr></thead><tbody id="recap-ptbody"></tbody><tfoot><tr><td colspan="4" style="text-align:right;font-weight:700" id="t-totalp">Total produits</td><td style="text-align:right;font-weight:700" id="recap-totalp"></td></tr></tfoot></table>
+    </div>
+    <div class="card hidden" id="recap-acard">
+      <div class="card-title" id="t-adjs-title">Ajustements</div>
+      <table class="rtbl"><thead><tr><th>Description</th><th style="text-align:center;width:50px">Type</th><th style="text-align:right;width:100px">Montant</th></tr></thead><tbody id="recap-atbody"></tbody><tfoot><tr><td colspan="2" style="text-align:right;font-weight:700" id="t-totala">Total ajustements</td><td style="text-align:right;font-weight:700" id="recap-totala"></td></tr></tfoot></table>
+    </div>
+    <div class="card">
+      <div class="srow"><span style="font-size:15px;color:#666" id="t-summp">Total produits</span><span style="font-size:15px;font-weight:600" id="summ-p"></span></div>
+      <div class="srow hidden" id="summ-arow"><span style="font-size:15px;color:#666" id="t-summa">Total ajustements</span><span style="font-size:15px;font-weight:600" id="summ-a"></span></div>
+      <div class="grand-box"><span style="color:rgba(255,255,255,.85);font-size:15px;font-weight:600" id="t-grand">TOTAL GÉNÉRAL</span><span style="color:#fff;font-size:28px;font-weight:700" id="grand-val"></span></div>
+    </div>
+    <button class="btn-p" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%" onclick="genPDF()"><span style="font-size:20px">📄</span><span id="t-dlpdf">Télécharger PDF</span></button>
+    <div class="nav-row">
+      <button class="btn-g" onclick="showPage('adjustments')" id="t-back3">← Retour</button>
+      <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" id="t-newinv">🔄 Nouvel inventaire</button>
+    </div>
+  </div></div>
+  <div id="pg-users" class="page"><div class="content">
+    <div class="card">
+      <div class="card-title" id="t-createuser">Create a user</div>
+      <input class="inp" type="text" id="new-uname" placeholder="Username"/>
+      <input class="inp" type="password" id="new-upin" placeholder="PIN (6 digits)" maxlength="6"/>
+      <select class="inp" id="new-urole"><option value="user">User</option><option value="admin">Administrator</option></select>
+      <p class="hidden" id="user-err" style="color:#d63031;font-size:13px;margin-bottom:8px"></p>
+      <button class="btn-p" onclick="doCreateUser()" id="t-createbtn">Create</button>
+    </div>
+    <div class="card"><div class="card-title" id="t-userslist">Users</div>
+      <table class="utbl"><thead><tr><th id="th-name">Name</th><th id="th-role">Role</th><th>PIN</th><th id="th-act">Actions</th></tr></thead><tbody id="users-tbody"></tbody></table>
+    </div>
+  </div></div>
+  <div id="pg-database" class="page"><div class="content">
+    <div class="card"><div class="card-title" id="t-statistics">Statistics</div>
+      <div class="db-stats">
+        <div class="db-stat"><div class="db-val" id="db-pc">0</div><div class="db-lbl" id="t-lbl-prod">Products</div></div>
+        <div class="db-stat"><div class="db-val" id="db-prc">0</div><div class="db-lbl" id="t-lbl-proj">Projects</div></div>
+        <div class="db-stat"><div class="db-val" id="db-uc">0</div><div class="db-lbl" id="t-lbl-usr">Users</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title" id="t-search-edit">Search / edit a product</div>
+      <input class="inp" type="text" id="db-search" placeholder="Name or barcode…" oninput="dbSearch(this.value)"/>
+      <div id="db-results"></div>
+    </div>
+    <div class="card"><div class="card-title" id="t-all-prods">All products</div>
+      <div style="max-height:420px;overflow-y:auto">
+        <table class="rtbl"><thead><tr><th style="width:120px" id="th-code">Code-barres</th><th id="th-pname">Name</th><th style="text-align:right;width:80px" id="th-pprice">Price</th><th style="width:70px"></th></tr></thead><tbody id="db-all-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="card"><div class="card-title" id="t-add-prod-db">Add a product</div>
+      <input class="inp" type="text" id="db-bc" placeholder="Code-barres (laisser vide = code 6 chiffres auto)"/>
+      <input class="inp" type="text" id="db-nm" placeholder="Product name"/>
+      <input class="inp" type="number" id="db-pr" placeholder="Price (DH)"/>
+      <button class="btn-p" onclick="dbAddProd()" id="t-add-prod-btn">+ Add product</button>
+    </div>
+  </div></div>
+  <div id="pg-profile" class="page"><div class="content">
+    <div class="card" style="text-align:center">
+      <div id="prof-av" style="width:72px;height:72px;border-radius:50%;background:#1a7a4a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 10px">?</div>
+      <p style="font-size:17px;font-weight:600;margin-bottom:6px" id="prof-name">—</p>
+      <span class="badge" id="prof-badge">—</span>
+    </div>
+    <div class="card"><div class="card-title" id="t-chgname">Changer le nom</div>
+      <input class="inp" type="text" id="prof-newname"/>
+      <button class="btn-p" onclick="updateProf('name')" id="t-update1">Mettre à jour</button>
+    </div>
+    <div class="card"><div class="card-title" id="t-chgpin">Changer le PIN</div>
+      <input class="inp" type="password" id="prof-newpin" placeholder="Nouveau PIN (6 chiffres)" maxlength="6"/>
+      <input class="inp" type="password" id="prof-confpin" placeholder="Confirmer le PIN" maxlength="6"/>
+      <button class="btn-p" onclick="updateProf('pin')" id="t-update2">Mettre à jour</button>
+    </div>
+    <div class="card hidden" id="back-to-app-card">
+      <button class="btn-g" style="width:100%" onclick="backToApp()" id="t-backapp">← Retour</button>
+    </div>
+  </div></div>
+</div>
+<div id="np-ov" class="hidden" onclick="if(event.target===this)closeNP()">
+  <div class="np-panel">
+    <p id="np-lbl" style="font-size:13px;color:#666;margin-bottom:8px;text-align:center"></p>
+    <div class="np-disp" id="np-disp">0</div>
+    <div class="np-grid" id="np-grid"></div>
+    <button id="np-dot-btn" onclick="npDot()" style="width:100%;padding:13px;font-size:20px;background:#f5f5f5;border:.5px solid #e0e0e0;border-radius:12px;margin-bottom:8px">.</button>
+    <div class="np-acts">
+      <button class="btn-g" onclick="closeNP()" id="t-cancel">Annuler</button>
+      <button class="btn-p" style="margin-top:0" onclick="confirmNP()" id="t-ok">Confirmer ✓</button>
+    </div>
+  </div>
+</div>
+<script>
+var LS={get:function(k,d){try{var v=localStorage.getItem('l7_'+k);return v!=null?JSON.parse(v):d;}catch(e){return d;}},set:function(k,v){try{localStorage.setItem('l7_'+k,JSON.stringify(v));}catch(e){}}};
+var G=function(id){return document.getElementById(id);};
+function setText(id,v){var e=G(id);if(e)e.textContent=v;}
+function show(id){var e=G(id);if(e)e.classList.remove('hidden');}
+function hide(id){var e=G(id);if(e)e.classList.add('hidden');}
+function showToast(msg,ms){ms=ms||2500;var el=document.createElement('div');el.className='toast';el.textContent=msg;document.body.appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},ms);}
+function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function uid(){return Math.random().toString(36).slice(2,10);}
+function fmt(n){return (parseFloat(n)||0).toFixed(2)+' DH';}
+var PRODS=[
+{id:'p1',barcode:'6111024006018',name:'Lait Centrale Danone 1L',price:8.50},
+{id:'p2',barcode:'6111024006025',name:'Lait Centrale Danone 0.5L',price:4.50},
+{id:'p3',barcode:'6111024006032',name:'Lait Centrale Danone 2L',price:16.50},
+{id:'p4',barcode:'6111015001012',name:'Lait Jibal 1L',price:8.00},
+{id:'p5',barcode:'6111015001029',name:'Lait Jibal 0.5L',price:4.00},
+{id:'p6',barcode:'6111015002019',name:'Lait Salam 1L',price:7.50},
+{id:'p7',barcode:'6111024010091',name:'Fromage Vache Qui Rit x8',price:18.00},
+{id:'p8',barcode:'6111024010107',name:'Fromage Vache Qui Rit x16',price:34.00},
+{id:'p9',barcode:'6111016001011',name:'Fromage Kiri x8',price:19.00},
+{id:'p10',barcode:'6111016002018',name:'Fromage Jaouda 200g',price:16.00},
+{id:'p11',barcode:'6111018001013',name:'Yaourt Danone Nature x4',price:12.00},
+{id:'p12',barcode:'6111018001020',name:'Yaourt Danone Fraise x4',price:13.00},
+{id:'p13',barcode:'6111018001037',name:'Yaourt Danone Peche x4',price:13.00},
+{id:'p14',barcode:'6111018002010',name:'Yaourt Centrale 0% x4',price:11.00},
+{id:'p15',barcode:'6111019001012',name:'Creme fraiche Centrale 20cl',price:7.00},
+{id:'p16',barcode:'6111051390018',name:'Beurre Centrale 200g',price:19.00},
+{id:'p17',barcode:'6111051390025',name:'Beurre Centrale 500g',price:46.00},
+{id:'p18',barcode:'6111052001015',name:'Beurre President 250g',price:27.00},
+{id:'p19',barcode:'6111020001014',name:'Raibi Jamila Fraise 500ml',price:7.50},
+{id:'p20',barcode:'6111020001021',name:'Raibi Jamila Nature 500ml',price:7.00},
+{id:'p21',barcode:'6111021001016',name:'Lben Centrale 1L',price:6.50},
+{id:'p22',barcode:'6111021002013',name:'Lben Jibal 1L',price:6.00},
+{id:'p23',barcode:'6111071590013',name:'Eau Sidi Ali 1.5L',price:4.00},
+{id:'p24',barcode:'6111071590020',name:'Eau Sidi Ali 0.5L',price:2.00},
+{id:'p25',barcode:'6111071590037',name:'Eau Sidi Ali 5L',price:10.00},
+{id:'p26',barcode:'6111007001011',name:'Eau Ain Atlas 1.5L',price:3.50},
+{id:'p27',barcode:'6111007001028',name:'Eau Ain Atlas 0.5L',price:2.00},
+{id:'p28',barcode:'6111007001035',name:'Eau Ain Atlas 5L',price:9.00},
+{id:'p29',barcode:'6111008001012',name:'Eau Bonaqua 1.5L',price:4.00},
+{id:'p30',barcode:'6111008001029',name:'Eau Bonaqua 0.5L',price:2.50},
+{id:'p31',barcode:'6111009001013',name:'Eau Oulmes 1L',price:5.50},
+{id:'p32',barcode:'6111009001020',name:'Eau Oulmes 0.33L',price:3.00},
+{id:'p33',barcode:'6111009002010',name:'Eau Ain Saiss 1.5L',price:3.50},
+{id:'p34',barcode:'6111009003017',name:'Eau Tarik 1.5L',price:3.00},
+{id:'p35',barcode:'6111010001014',name:'Coca-Cola 1L',price:10.00},
+{id:'p36',barcode:'6111010001021',name:'Coca-Cola 0.33L',price:5.50},
+{id:'p37',barcode:'6111010001038',name:'Coca-Cola 2L',price:18.00},
+{id:'p38',barcode:'6111011001015',name:'Pepsi 1L',price:9.00},
+{id:'p39',barcode:'6111011001022',name:'Pepsi 0.33L',price:5.00},
+{id:'p40',barcode:'6111012001016',name:'Fanta Orange 1L',price:9.00},
+{id:'p41',barcode:'6111012001023',name:'Fanta Orange 0.33L',price:5.00},
+{id:'p42',barcode:'6111013001017',name:'Sprite 1L',price:9.00},
+{id:'p43',barcode:'6111014001018',name:'7UP 1L',price:9.00},
+{id:'p44',barcode:'6111014002015',name:'Hawai Punch 1L',price:8.00},
+{id:'p45',barcode:'6111031001011',name:'Jus Bimo Orange 1L',price:9.00},
+{id:'p46',barcode:'6111031001028',name:'Jus Bimo Mangue 1L',price:9.00},
+{id:'p47',barcode:'6111031001035',name:'Jus Bimo Pomme 1L',price:9.00},
+{id:'p48',barcode:'6111031001042',name:'Jus Bimo Ananas 1L',price:9.00},
+{id:'p49',barcode:'6111032001012',name:'Jus Marrakech Peche 1L',price:8.50},
+{id:'p50',barcode:'6111032001029',name:'Jus Marrakech Orange 1L',price:8.50},
+{id:'p51',barcode:'6111033001013',name:'Jus Poms 0.33L',price:4.50},
+{id:'p52',barcode:'6111080020038',name:'The Lipton 25 sachets',price:14.00},
+{id:'p53',barcode:'6111080020045',name:'The Lipton 50 sachets',price:26.00},
+{id:'p54',barcode:'6111081001011',name:'The Attai Vert 500g',price:45.00},
+{id:'p55',barcode:'6111081001028',name:'The Attai Vert 200g',price:20.00},
+{id:'p56',barcode:'6111082001012',name:'The Doha 100g',price:18.00},
+{id:'p57',barcode:'6111082001029',name:'The Twinings Earl Grey x20',price:32.00},
+{id:'p58',barcode:'6111090010015',name:'Cafe Nescafe 200g',price:38.00},
+{id:'p59',barcode:'6111090010022',name:'Cafe Nescafe 100g',price:21.00},
+{id:'p60',barcode:'6111090010039',name:'Cafe Nescafe Gold 200g',price:65.00},
+{id:'p61',barcode:'6111091001013',name:'Cafe Direct 250g',price:35.00},
+{id:'p62',barcode:'6111092001014',name:'Cacao Van Houten 250g',price:28.00},
+{id:'p63',barcode:'6111092001021',name:'Cacao Benco 500g',price:42.00},
+{id:'p64',barcode:'6111050000178',name:'Farine Tamine 1kg',price:7.50},
+{id:'p65',barcode:'6111050000185',name:'Farine Tamine 5kg',price:36.00},
+{id:'p66',barcode:'6111050001014',name:'Farine Fouhal 1kg',price:7.00},
+{id:'p67',barcode:'6111050001021',name:'Farine Fouhal 5kg',price:33.00},
+{id:'p68',barcode:'6111050002011',name:'Farine Boulangerie 25kg',price:145.00},
+{id:'p69',barcode:'6111070011053',name:'Sucre Raffine 1kg',price:8.00},
+{id:'p70',barcode:'6111070011060',name:'Sucre Raffine 2kg',price:15.50},
+{id:'p71',barcode:'6111070011077',name:'Sucre Raffine 5kg',price:38.00},
+{id:'p72',barcode:'6111070012012',name:'Sucre Morceaux 750g',price:9.00},
+{id:'p73',barcode:'6111253010022',name:'Huile Cristal 1L',price:22.00},
+{id:'p74',barcode:'6111253010039',name:'Huile Cristal 2L',price:42.00},
+{id:'p75',barcode:'6111253010046',name:'Huile Cristal 5L',price:100.00},
+{id:'p76',barcode:'6111254001011',name:'Huile Olive Oulive 0.5L',price:55.00},
+{id:'p77',barcode:'6111254001028',name:'Huile Olive Oulive 1L',price:105.00},
+{id:'p78',barcode:'6111255001012',name:'Huile Argan 100ml',price:95.00},
+{id:'p79',barcode:'6111070021151',name:'Couscous Tamine 500g',price:9.50},
+{id:'p80',barcode:'6111070021168',name:'Couscous Tamine 1kg',price:18.00},
+{id:'p81',barcode:'6111070021175',name:'Couscous Tamine 5kg',price:85.00},
+{id:'p82',barcode:'6111070022018',name:'Couscous Saf-Saf 1kg',price:17.00},
+{id:'p83',barcode:'6111025001011',name:'Pates Barilla Spaghetti 500g',price:11.00},
+{id:'p84',barcode:'6111025001028',name:'Pates Barilla Penne 500g',price:11.00},
+{id:'p85',barcode:'6111025002018',name:'Pates Safita 500g',price:7.00},
+{id:'p86',barcode:'6111025002025',name:'Pates Safita 1kg',price:13.00},
+{id:'p87',barcode:'6111025003015',name:'Vermicelles 500g',price:6.50},
+{id:'p88',barcode:'6111026001012',name:'Riz Extra Long 1kg',price:13.00},
+{id:'p89',barcode:'6111026001029',name:'Riz Extra Long 5kg',price:62.00},
+{id:'p90',barcode:'6111026002019',name:'Riz Americain 1kg',price:11.00},
+{id:'p91',barcode:'6111026003016',name:'Riz Basmati 1kg',price:18.00},
+{id:'p92',barcode:'6111027001013',name:'Lentilles Vertes 500g',price:8.00},
+{id:'p93',barcode:'6111027001020',name:'Lentilles Rouges 500g',price:9.00},
+{id:'p94',barcode:'6111028001014',name:'Pois Chiches 500g',price:8.50},
+{id:'p95',barcode:'6111028001021',name:'Pois Chiches 1kg',price:16.00},
+{id:'p96',barcode:'6111029001015',name:'Haricots Blancs 500g',price:7.00},
+{id:'p97',barcode:'6111029002012',name:'Feves Seches 500g',price:7.50},
+{id:'p98',barcode:'6111001001011',name:'Sel de Table 1kg',price:3.50},
+{id:'p99',barcode:'6111001001028',name:'Sel de Table 500g',price:2.00},
+{id:'p100',barcode:'6111002001012',name:'Poivre Noir Moulu 50g',price:8.00},
+{id:'p101',barcode:'6111003001013',name:'Cumin Moulu 50g',price:6.00},
+{id:'p102',barcode:'6111004001014',name:'Paprika 50g',price:6.00},
+{id:'p103',barcode:'6111005001015',name:'Gingembre Poudre 50g',price:7.00},
+{id:'p104',barcode:'6111006001016',name:'Ras El Hanout 50g',price:8.50},
+{id:'p105',barcode:'6111006001023',name:'Safran 1g',price:12.00},
+{id:'p106',barcode:'6111006001030',name:'Cannelle Moulue 50g',price:6.00},
+{id:'p107',barcode:'6111006001047',name:'Coriandre Moulue 50g',price:5.00},
+{id:'p108',barcode:'6111006001054',name:'Curcuma 50g',price:6.00},
+{id:'p109',barcode:'6111006001061',name:'Harissa Poudre 50g',price:5.50},
+{id:'p110',barcode:'6111006001078',name:'Carvi Kamoun 50g',price:5.00},
+{id:'p111',barcode:'6111006001085',name:'Anis Habba Hlawa 50g',price:5.50},
+{id:'p112',barcode:'6111090001011',name:'Miel Naturel 500g',price:45.00},
+{id:'p113',barcode:'6111090001028',name:'Miel Fleurs 250g',price:28.00},
+{id:'p114',barcode:'6111090001035',name:'Miel Thym 250g',price:55.00},
+{id:'p115',barcode:'6111051001015',name:'Levure Boulangere 11g',price:3.50},
+{id:'p116',barcode:'6111052002012',name:'Bicarbonate 200g',price:5.00},
+{id:'p117',barcode:'6111056060089',name:'Harissa Aicha 135g',price:6.50},
+{id:'p118',barcode:'6111056060096',name:'Harissa Aicha 70g',price:4.00},
+{id:'p119',barcode:'6111056060102',name:'Harissa Aicha 380g',price:16.00},
+{id:'p120',barcode:'6111067070011',name:'Concentre Tomate Aicha 135g',price:5.50},
+{id:'p121',barcode:'6111067070028',name:'Concentre Tomate Aicha 70g',price:3.50},
+{id:'p122',barcode:'6111067070035',name:'Concentre Tomate Aicha 400g',price:14.00},
+{id:'p123',barcode:'6111030001027',name:'Tomates Pelees Aicha 400g',price:9.00},
+{id:'p124',barcode:'6111031001028b',name:'Mais Doux Bonduelle 285g',price:11.00},
+{id:'p125',barcode:'6111032001019',name:'Petits Pois Bonduelle 400g',price:10.00},
+{id:'p126',barcode:'6111045001011',name:'Sardines Cabo',price:7.00},
+{id:'p127',barcode:'6111045001028',name:'Sardines Cabo x2',price:13.00},
+{id:'p128',barcode:'6111045002018',name:'Sardines Sidi Daoud',price:7.50},
+{id:'p129',barcode:'6111045003015',name:'Sardines Huile El Manar',price:8.00},
+{id:'p130',barcode:'6111046001012',name:'Thon Saupiquet 160g',price:18.00},
+{id:'p131',barcode:'6111046001029',name:'Thon Aicha 160g',price:15.00},
+{id:'p132',barcode:'6111046001036',name:'Thon Rio Mare 160g',price:22.00},
+{id:'p133',barcode:'6111047001013',name:'Mackerel Cabo 125g',price:8.00},
+{id:'p134',barcode:'6111078080033',name:'Confiture Aicha Fraise 400g',price:13.00},
+{id:'p135',barcode:'6111078080040',name:'Confiture Aicha Abricot 400g',price:13.00},
+{id:'p136',barcode:'6111078080057',name:'Confiture Aicha Orange 400g',price:13.00},
+{id:'p137',barcode:'6111078080064',name:'Confiture Aicha Figue 400g',price:14.00},
+{id:'p138',barcode:'6111079001011',name:'Nutella 400g',price:55.00},
+{id:'p139',barcode:'6111079001028',name:'Nutella 200g',price:30.00},
+{id:'p140',barcode:'6111079001035',name:'Nutella 750g',price:95.00},
+{id:'p141',barcode:'6111089090055',name:'Mayonnaise Aicha 250g',price:12.00},
+{id:'p142',barcode:'6111089090062',name:'Mayonnaise Aicha 500g',price:22.00},
+{id:'p143',barcode:'6111088001012',name:'Ketchup Aicha 340g',price:14.00},
+{id:'p144',barcode:'6111088001029',name:'Ketchup Heinz 342g',price:22.00},
+{id:'p145',barcode:'6111087001013',name:'Moutarde Amora 200g',price:15.00},
+{id:'p146',barcode:'6111086001014',name:'Olives Vertes 200g',price:12.00},
+{id:'p147',barcode:'6111086001021',name:'Olives Noires 200g',price:12.00},
+{id:'p148',barcode:'6111086001038',name:'Olives Vertes Farcies 200g',price:15.00},
+{id:'p149',barcode:'6111085001015',name:'Cornichons Amora 400g',price:18.00},
+{id:'p150',barcode:'6111022001012',name:'Chocolat Nestle 100g',price:10.00},
+{id:'p151',barcode:'6111022001029',name:'Chocolat Milka 100g',price:16.00},
+{id:'p152',barcode:'6111022001036',name:'Chocolat Kitkat 41g',price:8.00},
+{id:'p153',barcode:'6111022001043',name:'Kinder Bueno',price:10.00},
+{id:'p154',barcode:'6111022001050',name:'Snickers 50g',price:9.00},
+{id:'p155',barcode:'6111023001013',name:'Biscuits Oreo 154g',price:12.00},
+{id:'p156',barcode:'6111023001020',name:'Biscuits Petibeurre 200g',price:9.00},
+{id:'p157',barcode:'6111023001037',name:'Biscuits Digestive McVitie 250g',price:18.00},
+{id:'p158',barcode:'6111024001014',name:'Crackers Prince 300g',price:16.00},
+{id:'p159',barcode:'6111024002011',name:'Biscuits Belvi 175g',price:15.00},
+{id:'p160',barcode:'6111024003018',name:'Gateau Bimo 150g',price:8.00},
+{id:'p161',barcode:'6111024004015',name:'Barquette Lu Fraise 120g',price:9.00},
+{id:'p162',barcode:'6111024005012',name:'Palmier Bisco 150g',price:10.00},
+{id:'p163',barcode:'6111021001023',name:'Chips Lays Nature 150g',price:14.00},
+{id:'p164',barcode:'6111021001030',name:'Chips Lays Fromage 150g',price:14.00},
+{id:'p165',barcode:'6111021001047',name:'Chips Chipsy 50g',price:5.00},
+{id:'p166',barcode:'6111021001054',name:'Chips Pringles 165g',price:28.00},
+{id:'p167',barcode:'6111021002020',name:'Twistos 150g',price:14.00},
+{id:'p168',barcode:'6111021003017',name:'Cacahuetes Grillees 200g',price:9.00},
+{id:'p169',barcode:'6111021004014',name:'Pop-Corn Micro-ondes 100g',price:12.00},
+{id:'p170',barcode:'6111021005011',name:'Chipsons Bimo 50g',price:5.00},
+{id:'p171',barcode:'6111019001029',name:'Pain de Mie Harrys 500g',price:12.00},
+{id:'p172',barcode:'6111019001036',name:'Pain de Mie Belge 400g',price:10.00},
+{id:'p173',barcode:'6111020001031',name:'Biscottes Jacquet x30',price:15.00},
+{id:'p174',barcode:'6111035001011',name:'Savon Lux 100g',price:7.00},
+{id:'p175',barcode:'6111035001028',name:'Savon Palmolive 90g',price:6.00},
+{id:'p176',barcode:'6111035001035',name:'Savon Zouina 100g',price:3.50},
+{id:'p177',barcode:'6111035001042',name:'Savon Dove 100g',price:12.00},
+{id:'p178',barcode:'6111035002018',name:'Savon Liquide Dettol 250ml',price:25.00},
+{id:'p179',barcode:'6111035002025',name:'Savon Liquide Lifebuoy 500ml',price:28.00},
+{id:'p180',barcode:'6111036001012',name:'Shampoing Head Shoulders 200ml',price:28.00},
+{id:'p181',barcode:'6111036001029',name:'Shampoing Pantene 200ml',price:26.00},
+{id:'p182',barcode:'6111036001036',name:'Shampoing Elseve 200ml',price:28.00},
+{id:'p183',barcode:'6111036001043',name:'Shampoing Garnier 250ml',price:24.00},
+{id:'p184',barcode:'6111036002019',name:'Apres-Shampoing Pantene 200ml',price:28.00},
+{id:'p185',barcode:'6111037001013',name:'Dentifrice Colgate 75ml',price:16.00},
+{id:'p186',barcode:'6111037001020',name:'Dentifrice Colgate 125ml',price:24.00},
+{id:'p187',barcode:'6111037002010',name:'Dentifrice Signal 75ml',price:14.00},
+{id:'p188',barcode:'6111037002027',name:'Dentifrice Aquafresh 75ml',price:18.00},
+{id:'p189',barcode:'6111037003017',name:'Brosse a dents Colgate',price:12.00},
+{id:'p190',barcode:'6111038001014',name:'Deodorant Rexona 150ml',price:32.00},
+{id:'p191',barcode:'6111038001021',name:'Deodorant Dove 150ml',price:35.00},
+{id:'p192',barcode:'6111038002011',name:'Deodorant Nivea 150ml',price:30.00},
+{id:'p193',barcode:'6111038002028',name:'Deodorant Axe 150ml',price:34.00},
+{id:'p194',barcode:'6111060001011',name:'Rasoir Gillette x3',price:18.00},
+{id:'p195',barcode:'6111060001028',name:'Mousse a raser Gillette 200ml',price:32.00},
+{id:'p196',barcode:'6111061001012',name:'Coton Hydrophile 100g',price:8.00},
+{id:'p197',barcode:'6111062001013',name:'Serviettes Always x10',price:22.00},
+{id:'p198',barcode:'6111062001020',name:'Serviettes Nana x10',price:20.00},
+{id:'p199',barcode:'6111063001014',name:'Couches Pampers T3 x22',price:55.00},
+{id:'p200',barcode:'6111063001021',name:'Couches Pampers T4 x20',price:55.00},
+{id:'p201',barcode:'6111063002011',name:'Couches Huggies T3 x22',price:52.00},
+{id:'p202',barcode:'6111064001015',name:'Lingettes Bebe Pampers x72',price:28.00},
+{id:'p203',barcode:'6111064001022',name:'Lingettes Bebe Huggies x64',price:25.00},
+{id:'p204',barcode:'6111065001016',name:'Creme Nivea 150ml',price:22.00},
+{id:'p205',barcode:'6111065001023',name:'Creme Vaseline 200ml',price:18.00},
+{id:'p206',barcode:'6111065001030',name:'Creme Nivea Homme 75ml',price:32.00},
+{id:'p207',barcode:'6111066001011',name:'Talc Bebe Johnson 200g',price:22.00},
+{id:'p208',barcode:'6111039490055',name:'Lessive Tide 2kg',price:48.00},
+{id:'p209',barcode:'6111039490062',name:'Lessive Tide 5kg',price:115.00},
+{id:'p210',barcode:'6111040001011',name:'Lessive Ariel 2kg',price:52.00},
+{id:'p211',barcode:'6111040001028',name:'Lessive Ariel 5kg',price:125.00},
+{id:'p212',barcode:'6111040002018',name:'Lessive OMO 2kg',price:42.00},
+{id:'p213',barcode:'6111040003015',name:'Lessive Bonux 2kg',price:35.00},
+{id:'p214',barcode:'6111040004012',name:'Lessive Persil 2kg',price:45.00},
+{id:'p215',barcode:'6111040005019',name:'Lessive Surf 2kg',price:32.00},
+{id:'p216',barcode:'6111041001012',name:'Liquide Vaisselle Paic 500ml',price:14.00},
+{id:'p217',barcode:'6111041001029',name:'Liquide Vaisselle Paic 1L',price:24.00},
+{id:'p218',barcode:'6111041002019',name:'Liquide Vaisselle Fairy 500ml',price:18.00},
+{id:'p219',barcode:'6111041002026',name:'Liquide Vaisselle Fairy 1L',price:32.00},
+{id:'p220',barcode:'6111042001013',name:'Javel Cif 1L',price:9.00},
+{id:'p221',barcode:'6111042001020',name:'Javel Cif 2L',price:16.00},
+{id:'p222',barcode:'6111042002010',name:'Javel La Croix 1L',price:8.00},
+{id:'p223',barcode:'6111043001014',name:'Papier Toilette Lotus x4',price:18.00},
+{id:'p224',barcode:'6111043001021',name:'Papier Toilette Lotus x8',price:34.00},
+{id:'p225',barcode:'6111043002011',name:'Papier Toilette Confort x4',price:14.00},
+{id:'p226',barcode:'6111044001015',name:'Essuie-Tout Lotus x2',price:15.00},
+{id:'p227',barcode:'6111044001022',name:'Essuie-Tout Confort x2',price:12.00},
+{id:'p228',barcode:'6111045001035',name:'Sac Poubelle 30L x20',price:12.00},
+{id:'p229',barcode:'6111045001042',name:'Sac Poubelle 50L x10',price:10.00},
+{id:'p230',barcode:'6111046001043',name:'Eponge Vaisselle x3',price:8.00},
+{id:'p231',barcode:'6111047001020',name:'Produit WC Canard 750ml',price:22.00},
+{id:'p232',barcode:'6111048001011',name:'Nettoyant Sol Mr Propre 1L',price:28.00},
+{id:'p233',barcode:'6111048001028',name:'Nettoyant Multi-Surfaces Cif 500ml',price:24.00},
+{id:'p234',barcode:'6111049001012',name:'Desodorisant Glade 300ml',price:35.00},
+{id:'p235',barcode:'6111049001029',name:'Insecticide Raid 300ml',price:42.00},
+{id:'p236',barcode:'6111018001044',name:'Oeufs Frais x6',price:10.00},
+{id:'p237',barcode:'6111018001051',name:'Oeufs Frais x12',price:19.00},
+{id:'p238',barcode:'6111018001068',name:'Oeufs Frais x30',price:46.00},
+{id:'p239',barcode:'6111100001011',name:'Amandes 200g',price:32.00},
+{id:'p240',barcode:'6111100001028',name:'Noix 200g',price:38.00},
+{id:'p241',barcode:'6111100001035',name:'Raisins Secs 200g',price:16.00},
+{id:'p242',barcode:'6111100001042',name:'Dattes Medjool 500g',price:55.00},
+{id:'p243',barcode:'6111100001059',name:'Abricots Secs 200g',price:22.00},
+{id:'p244',barcode:'6111100001066',name:'Figues Seches 200g',price:20.00},
+{id:'p245',barcode:'6111100001073',name:'Cacahuetes 500g',price:18.00},
+{id:'p246',barcode:'6111100001080',name:'Graines de Sesame 100g',price:8.00},
+{id:'p247',barcode:'6111100001097',name:'Pistaches 100g',price:30.00},
+{id:'p248',barcode:'6111100001103',name:'Noix de Cajou 100g',price:28.00},
+{id:'p249',barcode:'6111102001013',name:'Piles AA Duracell x4',price:24.00},
+{id:'p250',barcode:'6111102001020',name:'Piles AAA Duracell x4',price:22.00},
+{id:'p251',barcode:'6111102001037',name:'Ampoule LED 9W',price:18.00},
+{id:'p252',barcode:'6111102001044',name:'Ampoule LED 15W',price:22.00},
+{id:'p253',barcode:'6111103001014',name:'Allumettes x10 boites',price:5.00},
+{id:'p254',barcode:'6111103001021',name:'Briquet BIC',price:5.00},
+{id:'p255',barcode:'6111103001038',name:'Bougie Blanche x10',price:8.00},
+{id:'p256',barcode:'6111104001015',name:'Film Etirable 30m',price:12.00},
+{id:'p257',barcode:'6111104001022',name:'Papier Aluminium 10m',price:14.00},
+{id:'p258',barcode:'6111104001039',name:'Sacs Congelation x20',price:10.00},
+{id:'p259',barcode:'6111105001016',name:'Stylo BIC Cristal x10',price:12.00},
+{id:'p260',barcode:'6111105001023',name:'Cahier 100 pages',price:8.00},
+{id:'p261',barcode:'6111105001030',name:'Ruban Adhesif Scotch',price:7.00},
+{id:'p262',barcode:'6111105001047',name:'Colle UHU 21g',price:10.00},
+{id:'p263',barcode:'6111097001013',name:'Doliprane 500mg x16',price:18.00},
+{id:'p264',barcode:'6111097001020',name:'Aspirine 500mg x20',price:12.00},
+{id:'p265',barcode:'6111097001037',name:'Vitamine C 1000mg x30',price:32.00},
+{id:'p266',barcode:'6111098001014',name:'Alcool 70 250ml',price:15.00},
+{id:'p267',barcode:'6111098001021',name:'Eau Oxygenee 125ml',price:8.00},
+{id:'p268',barcode:'6111098001038',name:'Mercurochrome 30ml',price:12.00},
+{id:'p269',barcode:'6111098001045',name:'Pansements Urgo x10',price:16.00},
+{id:'p270',barcode:'6111101001012',name:'Frites Surgelees McCain 750g',price:32.00},
+{id:'p271',barcode:'6111101001029',name:'Pizza Surgelee 400g',price:38.00},
+{id:'p272',barcode:'6111101001036',name:'Nuggets Poulet 500g',price:45.00},
+{id:'p273',barcode:'6111101001043',name:'Legumes Surgeles 500g',price:22.00},
+{id:'p274',barcode:'6111095001011',name:'Bledina Legumes 200g',price:18.00},
+{id:'p275',barcode:'6111095001028',name:'Bledina Fruits 200g',price:18.00},
+{id:'p276',barcode:'6111096001012',name:'Lait Bebe NAN 800g',price:145.00},
+{id:'p277',barcode:'6111096001029',name:'Lait Bebe Aptamil 800g',price:155.00},
+{id:'p278',barcode:'6111106001017',name:'Croquettes Chat Whiskas 400g',price:28.00},
+{id:'p279',barcode:'6111106001024',name:'Croquettes Chien Pedigree 400g',price:30.00}
+];
+function initData(){
+  var ex=LS.get('products',null);
+  if(!ex||ex.length<200)LS.set('products',PRODS);
+  if(!LS.get('users',null))LS.set('users',[{id:'u1',name:'Admin',role:'admin',pin:'123456',color:'#1a7a4a'}]);
+  // Migration: upgrade old short PINs (e.g. 4-digit "1234") to 6 digits so login works
+  var us=LS.get('users',[]);var changed=false;
+  for(var i=0;i<us.length;i++){
+    if(!us[i].pin||us[i].pin.length!==6){
+      if(us[i].id==='u1'||us[i].role==='admin'){us[i].pin='123456';}
+      else{us[i].pin=((us[i].pin||'')+'000000').slice(0,6);}
+      changed=true;
+    }
+  }
+  if(changed)LS.set('users',us);
+  if(!LS.get('projects',null))LS.set('projects',[]);
+}
+initData();
+var CU=null,CP=null,dP=0,dQ=0,eI=0,npT=null,npV='',npD=true,btDev=null,lang='fr',pinV='',pinSel=null;
+var TR={
+fr:{sel:'Sélectionnez votre compte',pin:'Entrez votre PIN',hint:'PIN admin: 123456',
+newProj:'Nouveau projet',cProj:'Créer le projet →',sProj:'Projets sauvegardés',
+aProd:'Ajouter un produit',srch:'Rechercher',price:'Prix (DH)',qty:'Quantité',
+add:'+ Ajouter',eProd:'Produit',of:'sur',runT:'Total provisoire',back:'← Retour',next:'Suivant →',
+adj:'Ajustements',adjD:'Ajoutez frais, remises ou corrections.',addL:'+ Ajouter une ligne',
+recap:'Récapitulatif',tP:'Total produits',tA:'Total ajustements',grand:'TOTAL GÉNÉRAL',
+dlPDF:'Télécharger PDF',nInv:'🔄 Nouvel inventaire',nInvQ:'Recommencer ?',
+prof:'Mon profil',ld:'Charger',pd:'PDF',chn:'Changer le nom',chp:'Changer le PIN',upd:'Mettre à jour',
+tap:'Appuyer',ok:'Confirmer ✓',can:'Annuler',fd:'Trouvé',nf:'Inconnu — saisie manuelle',onl:'Recherche en ligne…',
+mProf:'Mon profil',out2:'Déconnexion',nacc:'Nouveau compte',rUsr:'Utilisateur',rAdm:'Administrateur',backapp:'← Retour'},
+ar:{sel:'اختر حسابك',pin:'أدخل رمز PIN',hint:'PIN المدير: 1234',
+newProj:'مشروع جديد',cProj:'إنشاء المشروع ←',sProj:'المشاريع المحفوظة',
+aProd:'إضافة منتج',srch:'بحث',price:'السعر (درهم)',qty:'الكمية',
+add:'+ إضافة',eProd:'المنتج',of:'من',runT:'المجموع المؤقت',back:'→ رجوع',next:'التالي →',
+adj:'التسويات',adjD:'أضف رسوماً أو خصومات.',addL:'+ إضافة سطر',
+recap:'الملخص',tP:'مجموع المنتجات',tA:'مجموع التسويات',grand:'المجموع الكلي',
+dlPDF:'تحميل PDF',nInv:'🔄 جرد جديد',nInvQ:'هل تريد البدء من جديد؟',
+prof:'ملفي',ld:'تحميل',pd:'PDF',chn:'تغيير الاسم',chp:'تغيير PIN',upd:'تحديث',
+tap:'اضغط',ok:'تأكيد ✓',can:'إلغاء',fd:'تم العثور عليه',nf:'غير معروف — إدخال يدوي',onl:'البحث على الإنترنت…',
+mProf:'ملفي الشخصي',out2:'خروج',nacc:'حساب جديد',rUsr:'مستخدم',rAdm:'مدير',backapp:'→ رجوع'},
+en:{prof:'My profile',chn:'Change name',chp:'Change PIN',upd:'Update',
+mProf:'My profile',out2:'Logout',rUsr:'User',rAdm:'Administrator',backapp:'← Back',
+tap:'Tap',ok:'Confirm ✓',can:'Cancel'}
+};
+function t(k){var L=TR[lang]||TR.fr;return (L[k]!=null?L[k]:(TR.fr[k]!=null?TR.fr[k]:k));}
+function isAr(){return lang==='ar';}
+
+function toggleLang(){
+  if(CU&&CU.role==='admin')return; // admin = English only, no toggle
+  lang=lang==='fr'?'ar':'fr';
+  document.documentElement.lang=lang;
+  document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  G('lang-login-btn').textContent=lang==='fr'?'🇫🇷 FR':'🇦🇷 AR';
+  var ab=G('lang-app-btn');if(ab)ab.textContent=lang==='fr'?'🇫🇷':'🇦🇷';
+  applyTR();rebuildUC();
+}
+function applyTR(){
+  // login
+  if(G('t-sel'))G('t-sel').textContent=t('sel');
+  if(G('t-pin'))G('t-pin').textContent=t('pin');
+  if(G('t-hint'))G('t-hint').textContent=t('hint');
+  if(G('t-newacc'))G('t-newacc').textContent=t('nacc');
+  // user app
+  var m={'t-newproj':'newProj','t-createproj':'cProj','t-savedproj':'sProj','t-addprod':'aProd',
+  't-search':'srch','t-price':'price','t-qty':'qty','t-addbtn':'add','t-runtotal':'runT',
+  't-adjdesc':'adjD','t-addline':'addL','t-prods-title':'aProd','t-adjs-title':'adj',
+  't-totalp':'tP','t-totala':'tA','t-summp':'tP','t-summa':'tA','t-grand':'grand',
+  't-dlpdf':'dlPDF','t-newinv':'nInv','t-chgname':'chn','t-chgpin':'chp',
+  't-update1':'upd','t-update2':'upd','t-cancel':'can','t-ok':'ok',
+  't-myprof':'mProf','t-logout2':'out2','t-backapp':'backapp'};
+  for(var id in m){var el=G(id);if(el)el.textContent=t(m[id]);}
+  if(G('t-back1'))G('t-back1').textContent=t('back');
+  if(G('t-back2'))G('t-back2').textContent=t('back');
+  if(G('t-back3'))G('t-back3').textContent=t('back');
+  if(G('t-next1'))G('t-next1').textContent=t('next');
+  if(G('t-next2'))G('t-next2').textContent=t('next');
+}
+
+// HID scanner — auto-focus input so keystrokes never leak to browser
+function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
+var _scanFocusTimer=null;
+function startScanGuard(){
+  if(_scanFocusTimer)return;
+  _scanFocusTimer=setInterval(function(){
+    var pg=G('pg-products');
+    if(!pg||!pg.classList.contains('active'))return;
+    if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+    var a=document.activeElement,tag=a?a.tagName:'';
+    if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();
+  },250);
+  // tapping anywhere on the products page brings focus back to the scan field
+  document.addEventListener('click',function(e){
+    var pg=G('pg-products');
+    if(!pg||!pg.classList.contains('active'))return;
+    if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+    var tag=e.target?e.target.tagName:'';
+    if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA'&&tag!=='BUTTON')setTimeout(focusScan,50);
+  });
+}
+document.addEventListener('keydown',function(e){
+  var pg=G('pg-products');
+  if(!pg||!pg.classList.contains('active'))return;
+  if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+  var a=document.activeElement,tag=a?a.tagName:'';
+  if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
+  if(e.key==='Enter'){e.preventDefault();doScan();return;}
+  if(e.key==='Backspace'){e.preventDefault();var s=G('scan-inp');if(s)s.value=s.value.slice(0,-1);return;}
+  if(e.key&&e.key.length===1){e.preventDefault();var s2=G('scan-inp');if(s2)s2.value+=e.key;}
+},true);
+
+function connectBT(){
+  if(!navigator.bluetooth){showToast('Web Bluetooth non supporté. Chrome requis.');return;}
+  navigator.bluetooth.requestDevice({acceptAllDevices:true}).then(function(dev){
+    btDev=dev;dev.addEventListener('gattserverdisconnected',function(){btDev=null;setBT(false,'');});
+    setBT(true,dev.name||'BT');showToast('✅ BT: '+(dev.name||'Connecté'));
+  }).catch(function(e){if(e.message&&e.message.indexOf('cancel')<0)showToast('⚠️ '+e.message);});
+}
+function setBT(on,name){
+  var d2=G('bt-mini-dot'),l2=G('bt-mini-lbl'),b2=G('bt-mini-btn');
+  if(d2)d2.style.background=on?'#1a7a4a':'#ccc';
+  if(l2)l2.textContent=on?(name||'Connecté'):'Scanner BT';
+  if(b2){b2.textContent=on?'✕':'BT';b2.onclick=on?function(){if(btDev&&btDev.gatt&&btDev.gatt.connected)btDev.gatt.disconnect();btDev=null;setBT(false,'');}:connectBT;}
+}
+
+function doScan(){var c=(G('scan-inp').value||'').trim();if(c)handleScan(c);}
+function handleScan(code){
+  var prods=LS.get('products',[]);var found=null;
+  for(var i=0;i<prods.length;i++){if(prods[i].barcode===code){found=prods[i];break;}}
+  if(found){
+    // STEP 1: found in local database
+    var cps=LS.get('customPrices',[]);var cp=null;
+    for(var j=0;j<cps.length;j++){if(cps[j].barcode===code&&cps[j].uid===(CU?CU.id:'')){cp=cps[j];break;}}
+    var price=cp?cp.price:found.price;
+    G('pname-inp').value=found.name;dP=parseFloat(price)||0;dQ=0;updateNFs();
+    setScanMsg((isAr()?'✅ موجود في قاعدة البيانات: ':'✅ Trouvé dans la base: ')+found.name,1);
+    G('scan-inp').value='';focusScan();return;
+  }
+  // STEP 2: not in database -> search the online API
+  setScanMsg(isAr()?'🔎 غير موجود محلياً — البحث على الإنترنت…':'🔎 Pas dans la base — recherche en ligne…',2);
+  fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){
+    if(d.status===1&&d.product){
+      var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;
+      var p2=LS.get('products',[]);var ex=false;for(var i=0;i<p2.length;i++){if(p2[i].barcode===code){ex=true;break;}}
+      if(!ex){p2.push({id:uid(),barcode:code,name:name,price:0});LS.set('products',p2);}
+      G('pname-inp').value=name;dP=0;dQ=0;updateNFs();
+      setScanMsg((isAr()?'✅ تم العثور عليه عبر الإنترنت: ':'✅ Trouvé en ligne (API): ')+name,1);
+    } else {
+      G('pname-inp').value='';
+      setScanMsg((isAr()?'⚠️ غير معروف — أدخل الاسم والسعر يدوياً (كود: ':'⚠️ Inconnu — entrez nom et prix manuellement (code: ')+code+')',0);
+    }
+    G('scan-inp').value='';focusScan();
+  }).catch(function(){
+    setScanMsg((isAr()?'⚠️ لا يوجد إنترنت — إدخال يدوي (كود: ':'⚠️ Pas de connexion — saisie manuelle (code: ')+code+')',0);
+    G('scan-inp').value='';focusScan();
+  });
+}
+function setScanMsg(msg,st){
+  var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');
+  if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';
+  else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';
+  else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';
+}
+function saveCP(bc,price){
+  if(!bc||!CU)return;var cps=LS.get('customPrices',[]);var idx=-1;
+  for(var i=0;i<cps.length;i++){if(cps[i].barcode===bc&&cps[i].uid===CU.id){idx=i;break;}}
+  if(idx>=0)cps[idx].price=price;else cps.push({id:uid(),uid:CU.id,barcode:bc,price:price});LS.set('customPrices',cps);
+}
+function updateNFs(){
+  var p=G('nf-dp'),q=G('nf-dq');
+  if(p){p.className=dP>0?'nf-val':'nf-ph';p.textContent=dP>0?dP.toFixed(2)+' DH':t('tap');}
+  if(q){q.className=dQ>0?'nf-val':'nf-ph';q.textContent=dQ>0?String(dQ):t('tap');}
+}
+
+function openNP(target,label,decimal){
+  npT=target;npD=(decimal!==false);npV='';setText('np-lbl',label||'');G('np-disp').textContent='0';
+  var db=G('np-dot-btn');if(db)db.style.display=npD?'block':'none';
+  var grid=G('np-grid');if(grid){grid.innerHTML='';
+    ['7','8','9','4','5','6','1','2','3','C','0','⌫'].forEach(function(k){
+      var b=document.createElement('button');b.className='nk'+(k==='C'?' nk-c':'');b.textContent=k;
+      b.onclick=function(){if(k==='C')npV='';else if(k==='⌫')npV=npV.slice(0,-1);else npV+=k;G('np-disp').textContent=npV||'0';};
+      grid.appendChild(b);
+    });
+  }
+  show('np-ov');
+}
+function npDot(){if(npV.indexOf('.')<0){npV+='.';G('np-disp').textContent=npV||'0';}}
+function closeNP(){hide('np-ov');npT=null;npV='';}
+function confirmNP(){
+  var v=parseFloat(npV)||0,tgt=npT;closeNP();
+  if(tgt==='dP'){dP=v;updateNFs();}
+  else if(tgt==='dQ'){dQ=v;updateNFs();}
+  else if(tgt==='eP'){var i=getItems();if(i[eI]){i[eI].price=v;LS.set('items_'+CP.id,i);if(i[eI].barcode)saveCP(i[eI].barcode,v);refreshEdit();}}
+  else if(tgt==='eQ'){var i2=getItems();if(i2[eI]){i2[eI].quantity=v;LS.set('items_'+CP.id,i2);refreshEdit();}}
+  else if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);var a=getAdjs();for(var k=0;k<a.length;k++){if(a[k].id===aid){a[k].amount=v;break;}}LS.set('adjs_'+CP.id,a);refreshAdjs();}
+}
+function getMyProjs(){return (LS.get('projects',[])||[]).filter(function(p){return CU&&p.uid===CU.id;});}
+function getItems(){return LS.get('items_'+(CP?CP.id:''),[]);}
+function getAdjs(){return LS.get('adjs_'+(CP?CP.id:''),[]);}
+function createProj(){
+  var inp=G('proj-inp');var name=(inp?inp.value||'':'').trim();if(!name)return;
+  var proj={id:uid(),uid:CU.id,name:name,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  var projs=LS.get('projects',[]);projs.push(proj);LS.set('projects',projs);
+  if(inp)inp.value='';CP=proj;LS.set('items_'+proj.id,[]);LS.set('adjs_'+proj.id,[]);
+  dP=0;dQ=0;eI=0;showPage('products');
+}
+function refreshProjs(){
+  var projs=getMyProjs();var list=G('proj-list');if(!list)return;list.innerHTML='';
+  if(!projs.length){list.innerHTML='<p style="font-size:13px;color:#666">'+(isAr()?'لا توجد مشاريع':'Aucun projet')+'</p>';return;}
+  projs.forEach(function(p){
+    var nameEl=document.createElement('p');nameEl.style.cssText='font-size:14px;font-weight:600;margin:0 0 2px';nameEl.textContent=p.name;
+    var dateEl=document.createElement('p');dateEl.style.cssText='font-size:11px;color:#666;margin:0';dateEl.textContent=new Date(p.updatedAt).toLocaleDateString();
+    var info=document.createElement('div');info.style.flex='1';info.appendChild(nameEl);info.appendChild(dateEl);
+    var btns=document.createElement('div');btns.className='proj-btns';
+    var lb=document.createElement('button');lb.className='btn-b';lb.textContent='📂 '+t('ld');
+    lb.onclick=function(){CP=p;dP=0;dQ=0;eI=0;showPage('products');};
+    var eb=document.createElement('button');eb.className='btn-b';eb.textContent='✏️';
+    eb.onclick=function(){var n=prompt(isAr()?'الاسم الجديد:':'Nouveau nom:',p.name);if(n&&n.trim()){var all=LS.get('projects',[]);for(var i=0;i<all.length;i++){if(all[i].id===p.id){all[i].name=n.trim();all[i].updatedAt=new Date().toISOString();break;}}LS.set('projects',all);p.name=n.trim();nameEl.textContent=p.name;showToast('✅ Renommé');}};
+    var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 '+t('pd');
+    pb.onclick=function(){var sc=CP;CP=p;genPDF();CP=sc;};
+    var db=document.createElement('button');db.className='btn-r';db.textContent='🗑';
+    db.onclick=function(){if(!confirm(isAr()?'حذف هذا المشروع؟':'Supprimer ce projet ?'))return;LS.set('projects',LS.get('projects',[]).filter(function(x){return x.id!==p.id;}));if(row.parentNode)row.parentNode.removeChild(row);showToast('✅ Supprimé');};
+    btns.appendChild(lb);btns.appendChild(eb);btns.appendChild(pb);btns.appendChild(db);
+    var left=document.createElement('div');left.style.flex='1';left.appendChild(info);left.appendChild(btns);
+    var row=document.createElement('div');row.className='proj-row';row.appendChild(left);list.appendChild(row);
+  });
+}
+function addProd(){
+  var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();
+  if(!name){showToast('❌ '+(isAr()?'أدخل اسم المنتج':'Entrez le nom'));return;}
+  var si=G('scan-inp');var bc=(si?si.value||'':'').trim();
+  if(!bc)bc=gen6(); // auto 6-digit code if nothing scanned/typed
+  // register product in global DB if new (so it has a code + can be reused)
+  var prods=LS.get('products',[]);var known=false;
+  for(var k=0;k<prods.length;k++){if(prods[k].barcode===bc){known=true;break;}}
+  if(!known){prods.push({id:uid(),barcode:bc,name:name,price:dP});LS.set('products',prods);}
+  var items=getItems();items.push({id:uid(),name:name,price:dP,quantity:dQ,barcode:bc,createdAt:new Date().toISOString()});
+  LS.set('items_'+CP.id,items);if(bc&&dP)saveCP(bc,dP);
+  if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();
+  eI=items.length-1;hide('scan-msg');refreshEdit();updateRT();focusScan();
+  showToast('✅ '+(isAr()?'تمت الإضافة':'Ajouté')+': '+name+' ('+bc+')');
+}
+function refreshEdit(){
+  var items=getItems();var card=G('edit-card');if(!card)return;
+  if(!items.length){card.classList.add('hidden');G('run-total').classList.add('hidden');return;}
+  card.classList.remove('hidden');if(eI>=items.length)eI=items.length-1;
+  var cur=items[eI];
+  setText('edit-title',t('eProd')+' '+(eI+1)+' '+t('of')+' '+items.length);
+  var ni=G('edit-name');if(ni){ni.value=cur.name||'';ni.onchange=function(){var it=getItems();if(it[eI]){it[eI].name=this.value;LS.set('items_'+CP.id,it);}};}
+  var pr=parseFloat(cur.price)||0,q=parseFloat(cur.quantity)||0;
+  var pv=G('nf-ep'),qv=G('nf-eq');
+  if(pv){pv.className=pr>0?'nf-val':'nf-ph';pv.textContent=pr>0?pr.toFixed(2)+' DH':t('tap');}
+  if(qv){qv.className=q>0?'nf-val':'nf-ph';qv.textContent=q>0?String(q):t('tap');}
+  var sub=G('edit-sub'),sv=G('edit-sub-val');
+  if(sub&&sv){if(pr>0&&q>0){sub.classList.remove('hidden');sv.textContent=fmt(pr*q);}else sub.classList.add('hidden');}
+}
+function prevP(){if(eI>0){eI--;refreshEdit();}}
+function nextP(){var i=getItems();if(eI<i.length-1){eI++;refreshEdit();}}
+function delP(){var items=getItems();items.splice(eI,1);LS.set('items_'+CP.id,items);if(eI>0&&eI>=items.length)eI=items.length-1;refreshEdit();updateRT();showToast('✅ Supprimé');}
+function filterP(q){
+  var res=G('psearch-res'),form=G('edit-form');
+  if(!q||!q.trim()){if(res)res.classList.add('hidden');if(form)form.style.display='block';return;}
+  var items=getItems();var f=items.filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0;});
+  if(res){res.classList.remove('hidden');res.innerHTML='';
+    if(!f.length)res.innerHTML='<p style="font-size:13px;color:#666;padding:8px 0">Aucun résultat</p>';
+    else f.forEach(function(p){var ri=items.indexOf(p);
+      var d=document.createElement('div');d.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px;cursor:pointer';
+      d.innerHTML='<div style="flex:1"><p style="font-size:14px;font-weight:500;margin:0 0 2px">'+esc(p.name)+'</p><p style="font-size:12px;color:#666;margin:0">'+(parseFloat(p.price)||0).toFixed(2)+' DH × '+(parseFloat(p.quantity)||0)+'</p></div><strong style="color:#1a7a4a">'+fmt((parseFloat(p.price)||0)*(parseFloat(p.quantity)||0))+'</strong>';
+      d.onclick=function(){eI=ri;G('psearch').value='';res.classList.add('hidden');if(form)form.style.display='block';refreshEdit();};
+      res.appendChild(d);});
+  }
+  if(form)form.style.display=q?'none':'block';
+}
+function updateRT(){
+  var items=getItems();var tot=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);
+  var bar=G('run-total'),val=G('rtval');
+  if(items.length>0){if(bar)bar.classList.remove('hidden');if(val)val.textContent=fmt(tot);}else if(bar)bar.classList.add('hidden');
+}
+function addAdj(){var a=getAdjs();a.push({id:uid(),description:'',type:'+',amount:0});LS.set('adjs_'+CP.id,a);refreshAdjs();}
+function refreshAdjs(){
+  var adjs=getAdjs();var list=G('adj-list');if(!list)return;list.innerHTML='';
+  adjs.forEach(function(a){
+    var div=document.createElement('div');div.className='adj-item';
+    var row=document.createElement('div');row.className='adj-row';
+    var sb=document.createElement('button');sb.className='adj-sign';sb.style.background=a.type==='+'?'#e8f5ee':'#ffeaea';sb.style.color=a.type==='+'?'#1a7a4a':'#d63031';sb.textContent=a.type;
+    sb.onclick=(function(aid){return function(){var a2=getAdjs();for(var j=0;j<a2.length;j++){if(a2[j].id===aid){a2[j].type=a2[j].type==='+'?'-':'+';break;}}LS.set('adjs_'+CP.id,a2);refreshAdjs();};})(a.id);
+    var inp=document.createElement('input');inp.type='text';inp.className='inp';inp.placeholder=t('adj');inp.value=a.description||'';inp.style.cssText='flex:1;margin-bottom:0';
+    inp.onchange=(function(aid){return function(){var a2=getAdjs();for(var j=0;j<a2.length;j++){if(a2[j].id===aid){a2[j].description=this.value;break;}}LS.set('adjs_'+CP.id,a2);};})(a.id);
+    var db=document.createElement('button');db.style.cssText='width:34px;height:34px;background:transparent;border:none;color:#d63031;font-size:18px;flex-shrink:0;cursor:pointer';db.textContent='✕';
+    db.onclick=(function(aid){return function(){LS.set('adjs_'+CP.id,getAdjs().filter(function(x){return x.id!==aid;}));refreshAdjs();};})(a.id);
+    row.appendChild(sb);row.appendChild(inp);row.appendChild(db);
+    var nf=document.createElement('div');nf.className='num-field';
+    var nl=document.createElement('span');nl.className='nf-label';nl.textContent=t('adj');
+    var nv=document.createElement('span');var am=parseFloat(a.amount)||0;nv.className=am>0?'nf-val':'nf-ph';nv.textContent=am>0?am.toFixed(2)+' DH':t('tap');
+    nf.appendChild(nl);nf.appendChild(nv);
+    nf.onclick=(function(aid){return function(){openNP('adj_'+aid,t('adj'),true);};})(a.id);
+    div.appendChild(row);div.appendChild(nf);list.appendChild(div);
+  });
+}
+function refreshRecap(){
+  var items=getItems(),adjs=getAdjs();
+  var tP=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);
+  var tA=adjs.reduce(function(s,a){return s+(a.type==='+'?1:-1)*(parseFloat(a.amount)||0);},0);
+  var grand=tP+tA;
+  var pb=G('recap-ptbody');
+  if(pb){pb.innerHTML='';items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;var tr=document.createElement('tr');tr.innerHTML='<td style="text-align:center;color:#666;font-size:11px">'+(i+1)+'</td><td>'+esc(p.name||'—')+'</td><td style="text-align:right">'+pr.toFixed(2)+'</td><td style="text-align:center">'+q+'</td><td style="text-align:right;font-weight:600">'+fmt(pr*q)+'</td>';pb.appendChild(tr);});}
+  setText('recap-totalp',fmt(tP));
+  var ac=G('recap-acard');
+  if(adjs.length>0){if(ac)ac.classList.remove('hidden');
+    var ab=G('recap-atbody');if(ab){ab.innerHTML='';adjs.forEach(function(a){var ap=parseFloat(a.amount)||0,col=a.type==='+'?'#1a7a4a':'#d63031';var tr=document.createElement('tr');tr.innerHTML='<td>'+esc(a.description||'—')+'</td><td style="text-align:center;color:'+col+';font-weight:700">'+a.type+'</td><td style="text-align:right;color:'+col+';font-weight:700">'+(a.type==='+'?'+':'-')+ap.toFixed(2)+' DH</td>';ab.appendChild(tr);});}
+    setText('recap-totala',(tA>=0?'+':'')+fmt(tA));show('summ-arow');var av=G('summ-a');if(av){av.textContent=(tA>=0?'+':'')+fmt(tA);av.style.color=tA>=0?'#1a7a4a':'#d63031';}
+  } else {if(ac)ac.classList.add('hidden');hide('summ-arow');}
+  setText('summ-p',fmt(tP));setText('grand-val',fmt(grand));
+}
+function genPDF(){
+  var jsPDFLib=(window.jspdf&&window.jspdf.jsPDF)?window.jspdf.jsPDF:(window.jsPDF||null);
+  if(!jsPDFLib){showToast('⚠️ jsPDF non chargé. Vérifiez la connexion.');return;}
+  var items=getItems(),adjs=getAdjs();
+  var tP=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);
+  var tA=adjs.reduce(function(s,a){return s+(a.type==='+'?1:-1)*(parseFloat(a.amount)||0);},0);
+  var grand=tP+tA,now=new Date().toLocaleDateString('fr-MA');
+  var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});
+  var W=210,M=15,y=36;
+  doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text('L7ssab.ma',M,12);
+  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text((CP?CP.name:'Rapport'),M,20);
+  doc.setFontSize(9);doc.text('Genere le '+now+' | par '+(CU?CU.name:'-'),M,26);
+  doc.setTextColor(26,122,74);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('PRODUITS ('+items.length+')',M,y);y+=6;
+  doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;
+  doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.setFont('helvetica','bold');
+  doc.text('N',M+2,y+5);doc.text('Produit',M+12,y+5);doc.text('Prix',M+108,y+5,{align:'right'});doc.text('Qte',M+124,y+5,{align:'right'});doc.text('Total DH',W-M-2,y+5,{align:'right'});y+=7;
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
+  items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;
+    if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}
+    doc.text(String(i+1),M+2,y+4.5);doc.text((p.name||'-').substring(0,40),M+12,y+4.5);
+    doc.text(pr.toFixed(2),M+108,y+4.5,{align:'right'});doc.text(String(q),M+124,y+4.5,{align:'right'});doc.text((pr*q).toFixed(2),W-M-2,y+4.5,{align:'right'});y+=6;
+    if(y>270){doc.addPage();y=15;}
+  });
+  doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');doc.setFont('helvetica','bold');doc.setTextColor(15,81,50);
+  doc.text('Sous-total produits',M+2,y+5);doc.text(tP.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=10;
+  if(adjs.length>0){
+    doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text('AJUSTEMENTS ('+adjs.length+')',M,y);y+=6;
+    doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;
+    doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);
+    doc.text('Description',M+2,y+5);doc.text('Type',M+118,y+5);doc.text('Montant',W-M-2,y+5,{align:'right'});y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(8);
+    adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];
+      if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}
+      doc.setTextColor(30,30,30);doc.text((a.description||'-').substring(0,46),M+2,y+4.5);
+      doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;
+    });
+    doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');doc.setFont('helvetica','bold');doc.setTextColor(15,81,50);
+    doc.text('Sous-total ajustements',M+2,y+5);doc.text((tA>=0?'+':'')+tA.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=12;
+  }
+  if(y>240){doc.addPage();y=15;}
+  doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,14,'F');doc.setTextColor(255,255,255);doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.text('TOTAL GENERAL',M+4,y+9);doc.text(grand.toFixed(2)+' DH',W-M-4,y+9,{align:'right'});y+=20;
+  if(y>250){doc.addPage();y=15;}
+  doc.setTextColor(100,100,100);doc.setFontSize(9);doc.setFont('helvetica','normal');var sw=(W-2*M)/2-5;
+  doc.line(M,y+12,M+sw,y+12);doc.line(M+sw+10,y+12,W-M,y+12);
+  doc.text('Signature responsable',M+sw/2,y+17,{align:'center'});doc.text('Signature controleur',M+sw+10+sw/2,y+17,{align:'center'});
+  doc.setFontSize(8);doc.setTextColor(180,180,180);doc.text('L7ssab.ma (c) '+new Date().getFullYear(),W/2,290,{align:'center'});
+  doc.save('rapport-'+(CP?CP.name:'inv').replace(/\s+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.pdf');
+}
+function newInv(){if(!confirm(t('nInvQ')))return;CP=null;showPage('inventory');}
+function refreshUsers(){
+  var users=LS.get('users',[]);var tb=G('users-tbody');if(!tb)return;tb.innerHTML='';
+  setText('db-uc',String(users.length));
+  users.forEach(function(u){
+    var tr=document.createElement('tr');
+    var av=document.createElement('div');av.style.cssText='width:28px;height:28px;border-radius:50%;background:'+(u.color||'#1a7a4a')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0';av.textContent=u.name[0].toUpperCase();
+    var td1=document.createElement('td');td1.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 8px';td1.appendChild(av);td1.appendChild(document.createTextNode(u.name));
+    var td2=document.createElement('td');var bd=document.createElement('span');bd.className=u.role==='admin'?'badge b-admin':'badge b-user';bd.textContent=u.role==='admin'?'Administrator':'User';td2.appendChild(bd);
+    var td3=document.createElement('td');td3.style.cssText='color:#999;font-size:12px';td3.textContent='••••';
+    var td4=document.createElement('td');
+    var eb=document.createElement('button');eb.className='btn-b';eb.style.marginRight='4px';eb.textContent='✏️';
+    eb.onclick=(function(id){return function(){var us=LS.get('users',[]);var uu=null;for(var i=0;i<us.length;i++){if(us[i].id===id){uu=us[i];break;}}if(!uu)return;var n=prompt('New name:',uu.name);var p=prompt('New PIN (6 digits):',uu.pin);if(n&&p&&p.length===6){uu.name=n.trim();uu.pin=p;LS.set('users',us);showToast('✅ Updated');refreshUsers();};};})(u.id);
+    var db=document.createElement('button');db.className='btn-r';db.textContent='🗑';
+    if(u.id==='u1'||(CU&&u.id===CU.id)){db.disabled=true;db.style.opacity='.4';}
+    else db.onclick=(function(id){return function(){if(!confirm('Delete this user?'))return;LS.set('users',LS.get('users',[]).filter(function(x){return x.id!==id;}));showToast('✅ Deleted');refreshUsers();};})(u.id);
+    td4.appendChild(eb);td4.appendChild(db);
+    tr.appendChild(td1);tr.appendChild(td2);tr.appendChild(td3);tr.appendChild(td4);tb.appendChild(tr);
+  });
+}
+function doCreateUser(){
+  var name=(G('new-uname')?G('new-uname').value||'':'').trim();var pin=(G('new-upin')?G('new-upin').value||'':'').trim();var role=(G('new-urole')?G('new-urole').value:'user');var err=G('user-err');
+  if(!name||pin.length!==6){if(err){err.textContent='Name and 6-digit PIN required';err.classList.remove('hidden');}return;}
+  var users=LS.get('users',[]);
+  for(var i=0;i<users.length;i++){if(users[i].name.toLowerCase()===name.toLowerCase()){if(err){err.textContent='User already exists';err.classList.remove('hidden');}return;}}
+  var cols=['#1a7a4a','#2563eb','#7c3aed','#d63031','#f59e0b','#0891b2','#059669','#dc2626'];
+  users.push({id:uid(),name:name,role:role,pin:pin,color:cols[users.length%cols.length]});LS.set('users',users);
+  if(G('new-uname'))G('new-uname').value='';if(G('new-upin'))G('new-upin').value='';if(err)err.classList.add('hidden');
+  showToast('✅ Created: '+name);refreshUsers();
+}
+function gen6(){
+  var all=LS.get('products',[]);var code;
+  do{code=String(Math.floor(100000+Math.random()*900000));}while(all.some(function(p){return p.barcode===code;}));
+  return code;
+}
+function refreshDB(){
+  var p=LS.get('products',[]),pr=LS.get('projects',[]),u=LS.get('users',[]);
+  setText('db-pc',String(p.length));setText('db-prc',String(pr.length));setText('db-uc',String(u.length));
+  renderDBTable(p);
+}
+function renderDBTable(prods){
+  var tb=G('db-all-tbody');if(!tb)return;tb.innerHTML='';
+  prods.forEach(function(p){
+    var tr=document.createElement('tr');
+    var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#666';c1.textContent=p.barcode||'—';
+    var c2=document.createElement('td');c2.textContent=p.name||'—';
+    var c3=document.createElement('td');c3.style.cssText='text-align:right;font-weight:600;color:#1a7a4a;white-space:nowrap';c3.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';
+    var c4=document.createElement('td');c4.style.whiteSpace='nowrap';
+    var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';
+    eb.onclick=function(){var n=prompt('New name:',p.name);var pr2=prompt('New price (DH):',String(p.price));if(n&&pr2!=null){var all=LS.get('products',[]);for(var i=0;i<all.length;i++){if(all[i].id===p.id){all[i].name=n.trim();all[i].price=parseFloat(pr2)||0;break;}}LS.set('products',all);refreshDB();showToast('✅ Updated');}};
+    var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';
+    db.onclick=function(){if(!confirm('Delete this product?'))return;LS.set('products',LS.get('products',[]).filter(function(x){return x.id!==p.id;}));refreshDB();showToast('✅ Deleted');};
+    c4.appendChild(eb);c4.appendChild(db);
+    tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c3);tr.appendChild(c4);tb.appendChild(tr);
+  });
+}
+function dbSearch(q){
+  var res=G('db-results');if(!res)return;res.innerHTML='';if(!q||!q.trim())return;
+  var prods=LS.get('products',[]);var f=prods.filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0||p.barcode.indexOf(q)>=0;}).slice(0,15);
+  if(!f.length){res.innerHTML='<p style="font-size:13px;color:#666;padding:8px 0">No results</p>';return;}
+  f.forEach(function(p){
+    var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px';
+    var info=document.createElement('div');info.style.flex='1';info.innerHTML='<p style="font-size:14px;font-weight:500;margin:0 0 1px">'+esc(p.name)+'</p><p style="font-size:11px;color:#666;margin:0">'+p.barcode+'</p>';
+    var pe=document.createElement('strong');pe.style.cssText='color:#1a7a4a;font-size:14px;white-space:nowrap';pe.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';
+    var eb=document.createElement('button');eb.className='btn-b';eb.style.marginLeft='4px';eb.textContent='✏️';
+    eb.onclick=function(){var n=prompt('New name:',p.name);var pr2=prompt('New price (DH):',String(p.price));if(n&&pr2!=null){var all=LS.get('products',[]);for(var i=0;i<all.length;i++){if(all[i].id===p.id){all[i].name=n.trim();all[i].price=parseFloat(pr2)||0;break;}}LS.set('products',all);pe.textContent=(parseFloat(pr2)||0).toFixed(2)+' DH';showToast('✅ Updated');}};
+    var db=document.createElement('button');db.className='btn-r';db.style.marginLeft='4px';db.textContent='🗑';
+    db.onclick=function(){if(!confirm('Delete this product?'))return;LS.set('products',LS.get('products',[]).filter(function(x){return x.id!==p.id;}));if(row.parentNode)row.parentNode.removeChild(row);showToast('✅ Deleted');refreshDB();};
+    var btns=document.createElement('div');btns.style.cssText='display:flex;align-items:center';btns.appendChild(pe);btns.appendChild(eb);btns.appendChild(db);
+    row.appendChild(info);row.appendChild(btns);res.appendChild(row);
+  });
+}
+function dbAddProd(){
+  var bc=(G('db-bc')?G('db-bc').value||'':'').trim();var nm=(G('db-nm')?G('db-nm').value||'':'').trim();var pr=parseFloat(G('db-pr')?G('db-pr').value||'0':'0')||0;
+  if(!nm){showToast('❌ Name required');return;}
+  if(!bc)bc=gen6(); // auto 6-digit code if no barcode entered
+  var all=LS.get('products',[]);
+  for(var i=0;i<all.length;i++){if(all[i].barcode===bc){showToast('❌ Code exists');return;}}
+  all.push({id:uid(),barcode:bc,name:nm,price:pr});LS.set('products',all);
+  if(G('db-bc'))G('db-bc').value='';if(G('db-nm'))G('db-nm').value='';if(G('db-pr'))G('db-pr').value='';
+  showToast('✅ Added: '+nm+' ('+bc+')');refreshDB();
+}
+function refreshProfile(){
+  if(!CU)return;var av=G('prof-av');if(av){av.textContent=CU.name[0].toUpperCase();av.style.background=CU.color||'#1a7a4a';}
+  setText('prof-name',CU.name);var bd=G('prof-badge');if(bd){bd.textContent=CU.role==='admin'?t('rAdm'):t('rUsr');bd.className=CU.role==='admin'?'badge b-admin':'badge b-user';}
+  var ni=G('prof-newname');if(ni)ni.value=CU.name;
+}
+function updateProf(type){
+  if(type==='name'){var n=(G('prof-newname')?G('prof-newname').value||'':'').trim();if(!n)return;var us=LS.get('users',[]);for(var i=0;i<us.length;i++){if(us[i].id===CU.id){us[i].name=n;break;}}LS.set('users',us);CU.name=n;setAvatar();showToast('✅ '+t('upd'));refreshProfile();}
+  else{var p=(G('prof-newpin')?G('prof-newpin').value||'':'');var c=(G('prof-confpin')?G('prof-confpin').value||'':'');if(p.length!==6){showToast('❌ PIN 6 digits');return;}if(p!==c){showToast('❌ PIN mismatch');return;}var us2=LS.get('users',[]);for(var j=0;j<us2.length;j++){if(us2[j].id===CU.id){us2[j].pin=p;break;}}LS.set('users',us2);CU.pin=p;if(G('prof-newpin'))G('prof-newpin').value='';if(G('prof-confpin'))G('prof-confpin').value='';showToast('✅ PIN updated');}
+}
+// header avatar + menu
+function setAvatar(){
+  var av=G('hdr-av');if(av&&CU){av.textContent=CU.name[0].toUpperCase();}
+  setText('av-name',CU?CU.name:'—');setText('av-role',CU&&CU.role==='admin'?t('rAdm'):t('rUsr'));
+}
+function toggleAvMenu(){G('av-menu').classList.toggle('show');}
+function goProf(){G('av-menu').classList.remove('show');showPage('profile');}
+function doLogout(){G('av-menu').classList.remove('show');CU=null;pinV='';pinSel=null;lang='fr';document.documentElement.dir='ltr';document.documentElement.lang='fr';G('main-app').classList.add('hidden');G('login-page').style.display='';rebuildUC();}
+function backToApp(){showPage(CU&&CU.role==='admin'?'database':'inventory');}
+document.addEventListener('click',function(e){
+  var m=G('av-menu');if(m&&m.classList.contains('show')){if(!e.target.closest('#av-menu')&&!e.target.closest('#hdr-av'))m.classList.remove('show');}
+});
+
+function showPage(name){
+  var pages=['inventory','products','adjustments','recap','users','database','profile'];
+  pages.forEach(function(p){var el=G('pg-'+p);if(el){if(p===name)el.classList.add('active');else el.classList.remove('active');}});
+  var isAdmin=CU&&CU.role==='admin';
+  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),users:'Users',database:'Database',profile:t('prof')};
+  setText('hdr-title',titles[name]||name);
+  // admin tab highlight
+  if(isAdmin){
+    var td=G('tab-database'),tu=G('tab-users');
+    if(td)td.classList.toggle('active',name==='database');
+    if(tu)tu.classList.toggle('active',name==='users');
+  }
+  // back-to-app card in profile
+  var bc=G('back-to-app-card');if(bc){if(name==='profile')bc.classList.remove('hidden');else bc.classList.add('hidden');}
+  if(name==='inventory')refreshProjs();
+  if(name==='products'){refreshEdit();updateRT();updateNFs();setTimeout(focusScan,100);}
+  if(name==='adjustments')refreshAdjs();
+  if(name==='recap')refreshRecap();
+  if(name==='users')refreshUsers();
+  if(name==='database')refreshDB();
+  if(name==='profile')refreshProfile();
+}
+
+// LOGIN
+function rebuildUC(){
+  var users=LS.get('users',[]);var c=G('ucircles');if(!c)return;c.innerHTML='';
+  if(pinSel){var still=false;for(var k=0;k<users.length;k++){if(users[k].id===pinSel.id){still=true;pinSel=users[k];break;}}if(!still)pinSel=null;}
+  users.forEach(function(u){
+    var w=document.createElement('div');w.className='ucw';
+    var circle=document.createElement('div');circle.className='uc'+(pinSel&&pinSel.id===u.id?' sel':'');circle.style.background=u.color||'#1a7a4a';circle.textContent=u.name[0].toUpperCase();
+    var nm=document.createElement('span');nm.className='uc-name';nm.textContent=u.name;
+    w.appendChild(circle);w.appendChild(nm);
+    w.onclick=(function(uu,ww){return function(){pinSel=uu;pinV='';updateDots();document.querySelectorAll('.uc').forEach(function(x){x.classList.remove('sel');});ww.querySelector('.uc').classList.add('sel');};})(u,w);
+    c.appendChild(w);
+  });
+  var aw=document.createElement('div');aw.className='ucw';
+  var ab=document.createElement('div');ab.className='add-uc';ab.textContent='+';ab.onclick=showAddU;
+  var al=document.createElement('span');al.className='uc-name';al.style.color='#1a7a4a';al.textContent=isAr()?'إضافة':'Ajouter';
+  aw.appendChild(ab);aw.appendChild(al);c.appendChild(aw);
+}
+function showAddU(){show('add-user-form');var el=G('nacc-name');if(el)el.focus();}
+function hideAddU(){hide('add-user-form');}
+function doAddLoginU(){
+  var name=(G('nacc-name')?G('nacc-name').value||'':'').trim();var pin=(G('nacc-pin')?G('nacc-pin').value||'':'').trim();var role=(G('nacc-role')?G('nacc-role').value:'user');
+  var users=LS.get('users',[]);
+  if(!name||pin.length!==6){showToast('❌ Nom et PIN 6 chiffres requis');return;}
+  for(var i=0;i<users.length;i++){if(users[i].name.toLowerCase()===name.toLowerCase()){showToast('❌ Utilisateur déjà existant');return;}}
+  var hasAdmin=false;for(var j=0;j<users.length;j++){if(users[j].role==='admin'){hasAdmin=true;break;}}
+  if(role==='admin'&&hasAdmin){showToast('❌ Seul l\'admin peut créer un admin');return;}
+  var cols=['#1a7a4a','#2563eb','#7c3aed','#d63031','#f59e0b','#0891b2','#059669','#dc2626'];
+  var nu={id:uid(),name:name,role:role,pin:pin,color:cols[users.length%cols.length]};
+  users.push(nu);LS.set('users',users);
+  if(G('nacc-name'))G('nacc-name').value='';if(G('nacc-pin'))G('nacc-pin').value='';
+  hide('add-user-form');pinSel=nu;showToast('✅ Compte créé: '+name);rebuildUC();
+}
+function buildPinKeys(){
+  var grid=G('pkeys');if(!grid)return;grid.innerHTML='';
+  ['1','2','3','4','5','6','7','8','9','ph','0','del'].forEach(function(k){
+    var b=document.createElement('button');
+    if(k==='ph'){b.className='pin-key pin-ph';b.disabled=true;}
+    else if(k==='del'){b.className='pin-key pin-del';b.textContent='⌫';b.onclick=function(){pinV=pinV.slice(0,-1);updateDots();};}
+    else{b.className='pin-key';b.textContent=k;b.onclick=function(){if(pinV.length>=6)return;pinV+=k;updateDots();if(pinV.length===6)setTimeout(checkPin,150);};}
+    grid.appendChild(b);
+  });
+}
+function updateDots(){for(var i=0;i<6;i++){var d=G('pd'+i);if(!d)continue;d.classList.remove('filled','error');if(i<pinV.length)d.classList.add('filled');}}
+function checkPin(){
+  if(!pinSel){pinV='';updateDots();showToast('Sélectionnez un compte');return;}
+  if(pinV===pinSel.pin){
+    CU=pinSel;
+    G('login-page').style.display='none';
+    G('main-app').classList.remove('hidden');
+    setAvatar();
+    if(CU.role==='admin'){
+      lang='en';document.documentElement.dir='ltr';document.documentElement.lang='en';
+      hide('lang-app-btn');           // admin = English only
+      show('admin-tabs');             // show Database | Users tabs
+      applyTR();
+      showPage('database');           // admin starts on Database, no inventory app
+    } else {
+      lang='fr';document.documentElement.dir='ltr';document.documentElement.lang='fr';
+      show('lang-app-btn');
+      G('lang-app-btn').textContent='🇫🇷';
+      hide('admin-tabs');             // simple user = no tabs, no sidebar, just circle on top
+      applyTR();
+      showPage('inventory');
+    }
+  } else {
+    for(var i=0;i<4;i++){var d=G('pd'+i);if(d)d.classList.add('error');}
+    setTimeout(function(){pinV='';updateDots();},700);
+  }
+}
+rebuildUC();buildPinKeys();updateDots();applyTR();startScanGuard();
+</script>
+</body>
+</html>
