@@ -37,6 +37,24 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 .page{display:none;min-height:calc(100vh - 54px);background:#f0f4f0;padding-bottom:60px}
 .page.active{display:block}
 .content{padding:12px;max-width:720px;margin:0 auto}
+/* responsive: adapt to the device screen */
+@media (min-width:1024px){
+  .content{max-width:920px}
+  .card{padding:22px}
+}
+@media (min-width:1024px) and (min-height:600px){
+  .db-stats{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:380px){
+  .content{padding:8px}
+  .card{padding:14px}
+  .pin-key{padding:14px;font-size:20px}
+  .nk{padding:13px;font-size:18px}
+}
+/* landscape tablets: use two columns for the inventory forms area */
+@media (min-width:900px) and (orientation:landscape){
+  .content{max-width:1000px}
+}
 .card{background:#fff;border:.5px solid #e0e0e0;border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .card-title{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px}
 .inp{width:100%;padding:11px 13px;font-size:15px;border-radius:12px;border:.5px solid #ccc;background:#f5f5f5;color:#111;margin-bottom:8px;display:block}
@@ -127,6 +145,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 <body>
 <div id="login-page">
   <div id="login-topbar" style="position:absolute;top:14px;right:14px;display:flex;gap:8px">
+    <button onclick="toggleFS()" id="fs-btn-login" title="Plein écran" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">⛶</button>
     <button onclick="doInstall()" id="install-btn-login" class="hidden" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#1a7a4a;color:#fff;border:none">📲 Installer</button>
     <button onclick="toggleLang()" id="lang-login-btn" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">🇫🇷 FR</button>
   </div>
@@ -160,6 +179,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
   <div class="hdr">
     <span class="hdr-title" id="hdr-title">L7ssab.ma</span>
     <div class="hdr-right">
+      <button class="hdr-btn" onclick="toggleFS()" id="fs-btn-app" title="Plein écran">⛶</button>
       <button class="hdr-btn" onclick="toggleLang()" id="lang-app-btn">🇫🇷</button>
       <div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">?</div>
       <div class="av-menu" id="av-menu">
@@ -1211,6 +1231,28 @@ function checkPin(){
     setTimeout(function(){pinV='';updateDots();},700);
   }
 }
+// ===== Fullscreen toggle =====
+function toggleFS(){
+  var d=document,el=d.documentElement;
+  var isFs=d.fullscreenElement||d.webkitFullscreenElement||d.mozFullScreenElement||d.msFullscreenElement;
+  if(!isFs){
+    var rq=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+    if(rq)rq.call(el);else showToast(isAr()?'ملء الشاشة غير مدعوم':'Plein écran non supporté');
+  } else {
+    var ex=d.exitFullscreen||d.webkitExitFullscreen||d.mozCancelFullScreen||d.msExitFullscreen;
+    if(ex)ex.call(d);
+  }
+}
+function _fsUpd(){
+  var isFs=document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement;
+  var a=G('fs-btn-app'),l=G('fs-btn-login');
+  var icon=isFs?'⛶':'⛶';
+  if(a)a.style.background=isFs?'rgba(255,255,255,.4)':'rgba(255,255,255,.18)';
+  if(l)l.style.background=isFs?'#e8f5ee':'#fff';
+}
+document.addEventListener('fullscreenchange',_fsUpd);
+document.addEventListener('webkitfullscreenchange',_fsUpd);
+
 // ===== PWA install + offline =====
 var _deferredPrompt=null;
 if('serviceWorker' in navigator){
