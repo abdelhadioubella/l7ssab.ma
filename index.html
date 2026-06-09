@@ -4,6 +4,13 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>L7ssab.ma</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#1a7a4a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="L7ssab.ma"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -103,37 +110,24 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 .db-val{font-size:24px;font-weight:700;color:#1a7a4a}
 .db-lbl{font-size:11px;color:#666;margin-top:2px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2e22;color:#e8f5ee;padding:12px 22px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap}
-[dir=rtl] .hdr,[dir=rtl] .tbar,[dir=rtl] .grand-box,[dir=rtl] .sc-row,[dir=rtl] .srow{flex-direction:row-reverse}
-[dir=rtl] .adj-row,[dir=rtl] .proj-row{flex-direction:row-reverse}
-[dir=rtl] .rtbl thead th,[dir=rtl] .rtbl tbody td,[dir=rtl] .rtbl tfoot td,[dir=rtl] .utbl th,[dir=rtl] .utbl td{text-align:right}
-[dir=rtl] .hdr-right{flex-direction:row-reverse}
-[dir=rtl] .nav-row{direction:rtl}
-[dir=rtl] .num-field{text-align:right}
-[dir=rtl] .proj-btns{flex-direction:row-reverse}
-[dir=rtl] .card-title{text-align:right}
-[dir=rtl] .inp{direction:rtl;text-align:right}
-[dir=rtl] .av-menu{right:auto;left:0}
-[dir=rtl] .av-menu button{text-align:right}
-/* full RTL flip */
+/* ===== RTL (Arabic) — rely on natural dir=rtl flow ===== */
 [dir=rtl] body,[dir=rtl] .content,[dir=rtl] .card,[dir=rtl] .page{text-align:right;direction:rtl}
-[dir=rtl] .card p,[dir=rtl] .card div,[dir=rtl] .card span,[dir=rtl] .card label{text-align:right}
-[dir=rtl] .sc-name,[dir=rtl] .sc-row{flex-direction:row-reverse}
-[dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px}
-[dir=rtl] select.inp{direction:rtl;text-align:right;background-position:left 12px center}
-[dir=rtl] .tabbar{flex-direction:row-reverse}
-[dir=rtl] .db-stats{direction:rtl}
-[dir=rtl] .adj-item{text-align:right}
-[dir=rtl] .toast{direction:rtl}
-[dir=rtl] .smsg{text-align:right}
+[dir=rtl] .card p,[dir=rtl] .card div,[dir=rtl] .card span,[dir=rtl] .card label,[dir=rtl] .card-title,[dir=rtl] .hdr-title,[dir=rtl] .smsg,[dir=rtl] .adj-item{text-align:right}
+[dir=rtl] .inp,[dir=rtl] select.inp{direction:rtl;text-align:right}
+[dir=rtl] .rtbl thead th,[dir=rtl] .rtbl tbody td,[dir=rtl] .rtbl tfoot td,[dir=rtl] .utbl th,[dir=rtl] .utbl td{text-align:right}
+[dir=rtl] .num-field{text-align:right}
+[dir=rtl] .av-menu{right:auto;left:0}
+[dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px;text-align:right}
+/* keypads stay left-to-right (numbers) */
 [dir=rtl] .pin-grid,[dir=rtl] .np-grid{direction:ltr}
 [dir=rtl] .np-disp{text-align:left;direction:ltr}
-[dir=rtl] .user-circles{direction:rtl}
-[dir=rtl] .hdr-title{text-align:right}
+[dir=rtl] #login-topbar{right:auto;left:14px}
 </style>
 </head>
 <body>
 <div id="login-page">
-  <div style="position:absolute;top:14px;right:14px">
+  <div id="login-topbar" style="position:absolute;top:14px;right:14px;display:flex;gap:8px">
+    <button onclick="doInstall()" id="install-btn-login" class="hidden" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#1a7a4a;color:#fff;border:none">📲 Installer</button>
     <button onclick="toggleLang()" id="lang-login-btn" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">🇫🇷 FR</button>
   </div>
   <div style="text-align:center;margin-bottom:18px">
@@ -171,6 +165,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
       <div class="av-menu" id="av-menu">
         <div class="av-head"><div class="n" id="av-name">—</div><div class="r" id="av-role">—</div></div>
         <button onclick="goProf()">👤 <span id="t-myprof">Mon profil</span></button>
+        <button id="install-btn-menu" onclick="doInstall()" class="hidden" style="color:#1a7a4a">📲 <span id="t-install">Installer l'app</span></button>
         <button onclick="doLogout()">🚪 <span id="t-logout2">Déconnexion</span></button>
       </div>
     </div>
@@ -196,8 +191,9 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
           <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 10px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">BT</button>
         </div>
       </div>
+      <div id="scan-status" onclick="focusScan()" style="padding:9px 12px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:8px;text-align:center;cursor:pointer;background:#fff3cd;color:#664d03;border:1px solid #f0a500">⚪ Cliquez ici puis scannez</div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();doScan();}"/>
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" inputmode="numeric" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();doScan();}"/>
         <button onclick="doScan()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
       </div>
       <div id="scan-msg" class="smsg hidden"></div>
@@ -678,8 +674,8 @@ function toggleLang(){
   lang=lang==='fr'?'ar':'fr';
   document.documentElement.lang=lang;
   document.documentElement.dir=lang==='ar'?'rtl':'ltr';
-  G('lang-login-btn').textContent=lang==='fr'?'🇫🇷 FR':'🇦🇷 AR';
-  var ab=G('lang-app-btn');if(ab)ab.textContent=lang==='fr'?'🇫🇷':'🇦🇷';
+  G('lang-login-btn').textContent=lang==='fr'?'🇫🇷 FR':'🇲🇦 AR';
+  var ab=G('lang-app-btn');if(ab)ab.textContent=lang==='fr'?'🇫🇷':'🇲🇦';
   applyTR();rebuildUC();
 }
 function applyTR(){
@@ -731,10 +727,12 @@ document.addEventListener('keydown',function(e){
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   var a=document.activeElement,tag=a?a.tagName:'';
   if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
-  if(e.key==='Enter'){e.preventDefault();doScan();return;}
+  if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();doScan();return;}
   if(e.key==='Backspace'){e.preventDefault();var s=G('scan-inp');if(s)s.value=s.value.slice(0,-1);return;}
-  if(e.key&&e.key.length===1){e.preventDefault();var s2=G('scan-inp');if(s2)s2.value+=e.key;}
+  if(e.key&&e.key.length===1){e.preventDefault();var s2=G('scan-inp');if(s2){s2.value+=e.key;clearTimeout(_scanInputTimer);_scanInputTimer=setTimeout(function(){var v=(s2.value||'').trim();if(v.length>=4)handleScan(v);},180);}}
 },true);
+// re-focus the scan field when the window/products page regains focus
+window.addEventListener('focus',function(){var pg=G('pg-products');if(pg&&pg.classList.contains('active'))setTimeout(focusScan,60);});
 
 function connectBT(){
   if(!navigator.bluetooth){showToast('Web Bluetooth non supporté. Chrome requis.');return;}
@@ -751,6 +749,33 @@ function setBT(on,name){
 }
 
 function doScan(){var c=(G('scan-inp').value||'').trim();if(c)handleScan(c);}
+// Auto-submit: USB scanners type fast; if input grows then pauses, treat as a completed scan
+var _scanInputTimer=null;
+function setupScanInput(){
+  var s=G('scan-inp');if(!s)return;
+  function setStatus(on){
+    var st=G('scan-status');if(!st)return;
+    if(on){st.textContent=isAr()?'🟢 الماسح جاهز — امسح الآن':'🟢 Scanner prêt — scannez maintenant';st.style.cssText='padding:9px 12px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:8px;text-align:center;cursor:pointer;background:#e8f5ee;color:#0f5132;border:1px solid #1a7a4a';}
+    else{st.textContent=isAr()?'⚪ اضغط هنا ثم امسح':'⚪ Cliquez ici puis scannez';st.style.cssText='padding:9px 12px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:8px;text-align:center;cursor:pointer;background:#fff3cd;color:#664d03;border:1px solid #f0a500';}
+  }
+  s.addEventListener('focus',function(){setStatus(true);});
+  s.addEventListener('blur',function(){setStatus(false);});
+  s.addEventListener('input',function(){
+    clearTimeout(_scanInputTimer);
+    if(/[\r\n\t]/.test(s.value)){
+      var vv=s.value.replace(/[\r\n\t]/g,'').trim();
+      s.value=vv;
+      if(vv.length>=4){handleScan(vv);return;}
+    }
+    var val=(s.value||'').trim();
+    if(val.length>=4){
+      _scanInputTimer=setTimeout(function(){
+        var v=(s.value||'').trim();
+        if(v.length>=4)handleScan(v);
+      },180);
+    }
+  });
+}
 function handleScan(code){
   var prods=LS.get('products',[]);var found=null;
   for(var i=0;i<prods.length;i++){if(prods[i].barcode===code){found=prods[i];break;}}
@@ -1186,7 +1211,36 @@ function checkPin(){
     setTimeout(function(){pinV='';updateDots();},700);
   }
 }
-rebuildUC();buildPinKeys();updateDots();applyTR();startScanGuard();
+// ===== PWA install + offline =====
+var _deferredPrompt=null;
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();_deferredPrompt=e;
+  var b1=G('install-btn-login'),b2=G('install-btn-menu');
+  if(b1)b1.classList.remove('hidden');
+  if(b2)b2.classList.remove('hidden');
+});
+window.addEventListener('appinstalled',function(){
+  _deferredPrompt=null;
+  var b1=G('install-btn-login'),b2=G('install-btn-menu');
+  if(b1)b1.classList.add('hidden');
+  if(b2)b2.classList.add('hidden');
+  showToast('✅ Application installée !');
+});
+function doInstall(){
+  var m=G('av-menu');if(m)m.classList.remove('show');
+  if(_deferredPrompt){
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.then(function(){_deferredPrompt=null;});
+  } else {
+    showToast(isAr()?'استعمل قائمة المتصفح: تثبيت التطبيق':'Menu du navigateur ⋮ → « Installer l\'application »',4000);
+  }
+}
+rebuildUC();buildPinKeys();updateDots();applyTR();startScanGuard();setupScanInput();
 </script>
 </body>
 </html>
