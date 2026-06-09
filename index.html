@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>L7ssab.ma</title>
 <link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a7a4a'/%3E%3Crect x='12' y='12' width='40' height='40' rx='8' fill='%23ffffff'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-size='24' font-weight='bold' fill='%231a7a4a' text-anchor='middle'%3EL7%3C/text%3E%3C/svg%3E"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
+<link rel="shortcut icon" href="icon-192.png"/>
 <meta name="theme-color" content="#1a7a4a"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -205,13 +208,18 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
   <div id="pg-products" class="page"><div class="content">
     <div class="card">
       <div class="card-title" id="t-addprod">Ajouter un produit</div>
+      <div class="sc-card" id="usb-mini">
+        <div class="sc-row">
+          <span class="sc-name"><span class="sc-dot" id="usb-mini-dot" style="background:#ccc"></span><span id="usb-mini-lbl">Scanner USB</span></span>
+          <span class="badge b-off" id="usb-mini-badge">Non détecté</span>
+        </div>
+      </div>
       <div class="sc-card" id="bt-mini">
         <div class="sc-row">
           <span class="sc-name"><span class="sc-dot" id="bt-mini-dot" style="background:#ccc"></span><span id="bt-mini-lbl">Scanner BT</span></span>
           <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 10px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">BT</button>
         </div>
       </div>
-      <div id="scan-status" onclick="focusScan()" style="padding:9px 12px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:8px;text-align:center;cursor:pointer;background:#fff3cd;color:#664d03;border:1px solid #f0a500">⚪ Cliquez ici puis scannez</div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" inputmode="numeric" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();doScan();}"/>
         <button onclick="doScan()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
@@ -747,7 +755,7 @@ document.addEventListener('keydown',function(e){
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   var a=document.activeElement,tag=a?a.tagName:'';
   if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
-  if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();doScan();return;}
+  if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();if(typeof markUSBconnected==='function')markUSBconnected();doScan();return;}
   if(e.key==='Backspace'){e.preventDefault();var s=G('scan-inp');if(s)s.value=s.value.slice(0,-1);return;}
   if(e.key&&e.key.length===1){e.preventDefault();var s2=G('scan-inp');if(s2){s2.value+=e.key;clearTimeout(_scanInputTimer);_scanInputTimer=setTimeout(function(){var v=(s2.value||'').trim();if(v.length>=4)handleScan(v);},180);}}
 },true);
@@ -771,27 +779,33 @@ function setBT(on,name){
 function doScan(){var c=(G('scan-inp').value||'').trim();if(c)handleScan(c);}
 // Auto-submit: USB scanners type fast; if input grows then pauses, treat as a completed scan
 var _scanInputTimer=null;
+function markUSBconnected(){
+  var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');
+  if(dot)dot.style.background='#1a7a4a';
+  if(badge){badge.textContent=isAr()?'متصل ✅':'Connecté ✅';badge.className='badge b-ok';}
+}
+// Passive check: if WebHID is available and a device was already authorized, show green
+function checkUSBDevices(){
+  try{
+    if(navigator.hid&&navigator.hid.getDevices){
+      navigator.hid.getDevices().then(function(devs){if(devs&&devs.length>0)markUSBconnected();}).catch(function(){});
+    }
+  }catch(e){}
+}
 function setupScanInput(){
   var s=G('scan-inp');if(!s)return;
-  function setStatus(on){
-    var st=G('scan-status');if(!st)return;
-    if(on){st.textContent=isAr()?'🟢 الماسح جاهز — امسح الآن':'🟢 Scanner prêt — scannez maintenant';st.style.cssText='padding:9px 12px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:8px;text-align:center;cursor:pointer;background:#e8f5ee;color:#0f5132;border:1px solid #1a7a4a';}
-    else{st.textContent=isAr()?'⚪ اضغط هنا ثم امسح':'⚪ Cliquez ici puis scannez';st.style.cssText='padding:9px 12px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:8px;text-align:center;cursor:pointer;background:#fff3cd;color:#664d03;border:1px solid #f0a500';}
-  }
-  s.addEventListener('focus',function(){setStatus(true);});
-  s.addEventListener('blur',function(){setStatus(false);});
   s.addEventListener('input',function(){
     clearTimeout(_scanInputTimer);
     if(/[\r\n\t]/.test(s.value)){
       var vv=s.value.replace(/[\r\n\t]/g,'').trim();
       s.value=vv;
-      if(vv.length>=4){handleScan(vv);return;}
+      if(vv.length>=4){markUSBconnected();handleScan(vv);return;}
     }
     var val=(s.value||'').trim();
     if(val.length>=4){
       _scanInputTimer=setTimeout(function(){
         var v=(s.value||'').trim();
-        if(v.length>=4)handleScan(v);
+        if(v.length>=4){markUSBconnected();handleScan(v);}
       },180);
     }
   });
@@ -1282,7 +1296,7 @@ function doInstall(){
     showToast(isAr()?'استعمل قائمة المتصفح: تثبيت التطبيق':'Menu du navigateur ⋮ → « Installer l\'application »',4000);
   }
 }
-rebuildUC();buildPinKeys();updateDots();applyTR();startScanGuard();setupScanInput();
+rebuildUC();buildPinKeys();updateDots();applyTR();startScanGuard();setupScanInput();checkUSBDevices();
 </script>
 </body>
 </html>
