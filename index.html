@@ -148,6 +148,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 <body>
 <div id="login-page">
   <div id="login-topbar" style="position:absolute;top:14px;right:14px;display:flex;gap:8px">
+    <button onclick="location.reload()" id="refresh-btn-login" title="Rafraîchir" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">↻</button>
     <button onclick="toggleFS()" id="fs-btn-login" title="Plein écran" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">⛶</button>
     <button onclick="doInstall()" id="install-btn-login" class="hidden" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#1a7a4a;color:#fff;border:none">📲 Installer</button>
     <button onclick="toggleLang()" id="lang-login-btn" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">🇫🇷 FR</button>
@@ -158,12 +159,10 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
     <p id="t-sel" style="font-size:13px;color:#666;margin-top:4px">Connexion</p>
   </div>
   <div class="login-card">
-    <!-- STEP 1: just a + button -->
-    <div id="login-step-plus" style="text-align:center">
-      <div class="ucw" style="display:inline-flex" onclick="showUsernameForm()">
-        <div class="add-uc">+</div>
-        <span class="uc-name" style="color:#1a7a4a" id="t-loginbtn">Se connecter</span>
-      </div>
+    <!-- STEP 1: remembered users on this device + a plus button -->
+    <div id="login-step-plus">
+      <p id="t-quicklogin" style="font-size:13px;color:#666;text-align:center;margin-bottom:12px">Choisissez votre compte</p>
+      <div class="user-circles" id="remembered-circles"></div>
     </div>
     <!-- STEP 2: enter username, check database -->
     <div id="login-step-username" class="hidden">
@@ -194,6 +193,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
   <div class="hdr">
     <span class="hdr-title" id="hdr-title">L7ssab.ma</span>
     <div class="hdr-right">
+      <button class="hdr-btn" onclick="location.reload()" id="refresh-btn-app" title="Rafraîchir">↻</button>
       <button class="hdr-btn" onclick="toggleFS()" id="fs-btn-app" title="Plein écran">⛶</button>
       <button class="hdr-btn" onclick="toggleLang()" id="lang-app-btn">🇫🇷</button>
       <div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">?</div>
@@ -1032,7 +1032,7 @@ function genPDF(){
   doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text('L7ssab.ma',M,12);
   doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text((CP?CP.name:'Rapport'),M,20);
-  doc.setFontSize(9);doc.text('Genere le '+now+' | par '+(CU?CU.name:'-'),M,26);
+  doc.setFontSize(9);doc.text('Genere le '+now+' | par '+(CU?(CU.fullname||CU.name):'-'),M,26);
   doc.setTextColor(26,122,74);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('PRODUITS ('+items.length+')',M,y);y+=6;
   doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;
   doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');
@@ -1234,8 +1234,54 @@ function showPage(name){
 }
 
 // LOGIN
-// ===== LOGIN FLOW: + -> username -> check DB -> PIN =====
-function rebuildUC(){ /* no user list shown anymore; login starts at the + button */ }
+// ===== LOGIN FLOW: remembered circles + plus -> username -> check DB -> PIN =====
+// "remembered" = usernames saved on THIS device for quick login
+function getRemembered(){return LS.get('remembered',[])||[];}
+function rememberUser(u){
+  var r=getRemembered();
+  var exists=false;for(var i=0;i<r.length;i++){if(r[i].id===u.id){r[i].name=u.name;r[i].fullname=u.fullname||u.name;r[i].color=u.color;exists=true;break;}}
+  if(!exists)r.push({id:u.id,name:u.name,fullname:u.fullname||u.name,color:u.color});
+  LS.set('remembered',r);
+}
+function forgetUser(id){LS.set('remembered',getRemembered().filter(function(x){return x.id!==id;}));renderRemembered();}
+function renderRemembered(){
+  var c=G('remembered-circles');if(!c)return;c.innerHTML='';
+  var r=getRemembered();
+  var users=LS.get('users',[]);
+  // keep only those still existing in the DB
+  r=r.filter(function(rm){for(var i=0;i<users.length;i++){if(users[i].id===rm.id)return true;}return false;});
+  LS.set('remembered',r);
+  _updateQuickLabel(r.length>0);
+  r.forEach(function(rm){
+    var w=document.createElement('div');w.className='ucw';
+    var circle=document.createElement('div');circle.className='uc';circle.style.background=rm.color||'#1a7a4a';circle.textContent=(rm.fullname||rm.name)[0].toUpperCase();
+    var nm=document.createElement('span');nm.className='uc-name';nm.textContent=rm.fullname||rm.name;
+    w.appendChild(circle);w.appendChild(nm);
+    // long-press / right-click to forget
+    w.oncontextmenu=function(ev){ev.preventDefault();if(confirm((isAr()?'إزالة ':'Retirer ')+(rm.fullname||rm.name)+' ?'))forgetUser(rm.id);};
+    w.onclick=(function(rid){return function(){
+      var us=LS.get('users',[]);var found=null;for(var i=0;i<us.length;i++){if(us[i].id===rid){found=us[i];break;}}
+      if(!found){forgetUser(rid);return;}
+      pinSel=found;pinV='';
+      hide('login-step-plus');show('login-step-pin');
+      var av=G('login-av');if(av){av.textContent=(found.fullname||found.name)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}
+      setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.name));
+      buildPinKeys();updateDots();
+    };})(rm.id);
+    c.appendChild(w);
+  });
+  // the + button (adds / logs in a new user by username)
+  var aw=document.createElement('div');aw.className='ucw';
+  var ab=document.createElement('div');ab.className='add-uc';ab.textContent='+';ab.onclick=showUsernameForm;
+  var al=document.createElement('span');al.className='uc-name';al.style.color='#1a7a4a';al.textContent=isAr()?'إضافة':'Ajouter';
+  aw.appendChild(ab);aw.appendChild(al);c.appendChild(aw);
+}
+function rebuildUC(){renderRemembered();}
+function _updateQuickLabel(hasUsers){
+  var el=G('t-quicklogin');if(!el)return;
+  if(hasUsers)el.textContent=isAr()?'اختر حسابك':'Choisissez votre compte';
+  else el.textContent=isAr()?'اضغط + للاتصال':'Cliquez + pour vous connecter';
+}
 function showUsernameForm(){
   hide('login-step-plus');hide('login-step-pin');show('login-step-username');
   var el=G('login-username');if(el){el.value='';setTimeout(function(){el.focus();},80);}
@@ -1243,6 +1289,7 @@ function showUsernameForm(){
 function backToPlus(){
   pinSel=null;pinV='';
   hide('login-step-username');hide('login-step-pin');show('login-step-plus');
+  renderRemembered();
 }
 function loginCheckUser(){
   var name=(G('login-username')?G('login-username').value||'':'').trim();
@@ -1251,7 +1298,6 @@ function loginCheckUser(){
   for(var i=0;i<users.length;i++){if(users[i].name.toLowerCase()===name.toLowerCase()){found=users[i];break;}}
   if(!found){showToast(isAr()?'❌ المستخدم غير موجود':'❌ Utilisateur introuvable');return;}
   pinSel=found;pinV='';
-  // show PIN step with greeting
   hide('login-step-username');show('login-step-pin');
   var av=G('login-av');if(av){av.textContent=(found.fullname||found.name)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}
   setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.name));
@@ -1272,6 +1318,7 @@ function checkPin(){
   if(!pinSel){pinV='';updateDots();return;}
   if(pinV===pinSel.pin){
     CU=pinSel;
+    rememberUser(CU); // save on this device for next time
     G('login-page').style.display='none';
     G('main-app').classList.remove('hidden');
     setAvatar();
@@ -1289,7 +1336,7 @@ function checkPin(){
       applyTR();
       showPage('inventory');
     }
-    backToPlus(); // reset login screen for next time
+    backToPlus();
   } else {
     for(var i=0;i<6;i++){var d=G('pd'+i);if(d)d.classList.add('error');}
     setTimeout(function(){pinV='';updateDots();},700);
@@ -1346,7 +1393,7 @@ function doInstall(){
     showToast(isAr()?'استعمل قائمة المتصفح: تثبيت التطبيق':'Menu du navigateur ⋮ → « Installer l\'application »',4000);
   }
 }
-updateDots();applyTR();startScanGuard();setupScanInput();checkUSBDevices();backToPlus();
+updateDots();applyTR();startScanGuard();setupScanInput();checkUSBDevices();backToPlus();renderRemembered();
 </script>
 </body>
 </html>
