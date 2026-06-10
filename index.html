@@ -155,27 +155,39 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
   <div style="text-align:center;margin-bottom:18px">
     <div class="logo-box">📦</div>
     <h1 style="font-size:24px;font-weight:700;color:#1a7a4a">L7ssab.ma</h1>
-    <p id="t-sel" style="font-size:13px;color:#666;margin-top:4px">Sélectionnez votre compte</p>
+    <p id="t-sel" style="font-size:13px;color:#666;margin-top:4px">Connexion</p>
   </div>
   <div class="login-card">
-    <div id="add-user-form">
-      <p style="font-size:13px;font-weight:600;color:#1a7a4a;margin-bottom:10px" id="t-newacc">Nouveau compte</p>
-      <input class="inp" type="text" id="nacc-name" placeholder="Nom d'utilisateur"/>
-      <input class="inp" type="password" id="nacc-pin" placeholder="PIN (6 chiffres)" maxlength="6"/>
-      <select class="inp" id="nacc-role"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button class="btn-g" onclick="hideAddU()">Annuler</button>
-        <button class="btn-p" style="margin-top:0" onclick="doAddLoginU()">Créer</button>
+    <!-- STEP 1: just a + button -->
+    <div id="login-step-plus" style="text-align:center">
+      <div class="ucw" style="display:inline-flex" onclick="showUsernameForm()">
+        <div class="add-uc">+</div>
+        <span class="uc-name" style="color:#1a7a4a" id="t-loginbtn">Se connecter</span>
       </div>
     </div>
-    <div class="user-circles" id="ucircles"></div>
-    <p id="t-pin" style="font-size:13px;color:#666;text-align:center;margin-bottom:4px">Entrez votre PIN</p>
-    <div class="pin-dots" id="pdots">
-      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div><div class="pin-dot" id="pd4"></div><div class="pin-dot" id="pd5"></div>
+    <!-- STEP 2: enter username, check database -->
+    <div id="login-step-username" class="hidden">
+      <p style="font-size:13px;font-weight:600;color:#1a7a4a;margin-bottom:10px" id="t-enter-uname">Entrez votre nom d'utilisateur</p>
+      <input class="inp" type="text" id="login-username" placeholder="Nom d'utilisateur" onkeydown="if(event.key==='Enter')loginCheckUser()"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn-g" onclick="backToPlus()" id="t-lcancel">Annuler</button>
+        <button class="btn-p" style="margin-top:0" onclick="loginCheckUser()" id="t-continue">Continuer →</button>
+      </div>
     </div>
-    <div class="pin-grid" id="pkeys"></div>
-    <p id="t-hint" style="font-size:11px;color:#bbb;text-align:center;margin-top:12px">PIN admin: 123456</p>
+    <!-- STEP 3: enter PIN -->
+    <div id="login-step-pin" class="hidden">
+      <div style="text-align:center;margin-bottom:6px">
+        <div id="login-av" style="width:54px;height:54px;border-radius:50%;background:#1a7a4a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin:0 auto 6px">?</div>
+        <p id="login-greeting" style="font-size:15px;font-weight:600;color:#111"></p>
+      </div>
+      <p id="t-pin" style="font-size:13px;color:#666;text-align:center;margin-bottom:4px">Entrez votre PIN</p>
+      <div class="pin-dots" id="pdots">
+        <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div><div class="pin-dot" id="pd4"></div><div class="pin-dot" id="pd5"></div>
+      </div>
+      <div class="pin-grid" id="pkeys"></div>
+      <button class="btn-g" style="width:100%;margin-top:12px" onclick="backToPlus()" id="t-lback">← Retour</button>
+    </div>
   </div>
 </div>
 <div id="main-app" class="hidden">
@@ -295,13 +307,14 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
     <div class="card">
       <div class="card-title" id="t-createuser">Create a user</div>
       <input class="inp" type="text" id="new-uname" placeholder="Username"/>
+      <input class="inp" type="text" id="new-ufull" placeholder="Full name"/>
       <input class="inp" type="password" id="new-upin" placeholder="PIN (6 digits)" maxlength="6"/>
       <select class="inp" id="new-urole"><option value="user">User</option><option value="admin">Administrator</option></select>
       <p class="hidden" id="user-err" style="color:#d63031;font-size:13px;margin-bottom:8px"></p>
       <button class="btn-p" onclick="doCreateUser()" id="t-createbtn">Create</button>
     </div>
     <div class="card"><div class="card-title" id="t-userslist">Users</div>
-      <table class="utbl"><thead><tr><th id="th-name">Name</th><th id="th-role">Role</th><th>PIN</th><th id="th-act">Actions</th></tr></thead><tbody id="users-tbody"></tbody></table>
+      <table class="utbl"><thead><tr><th id="th-name">User</th><th id="th-role">Role</th><th>PIN</th><th id="th-act">Actions</th></tr></thead><tbody id="users-tbody"></tbody></table>
     </div>
   </div></div>
   <div id="pg-database" class="page"><div class="content">
@@ -321,11 +334,19 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
         <table class="rtbl"><thead><tr><th style="width:120px" id="th-code">Code-barres</th><th id="th-pname">Name</th><th style="text-align:right;width:80px" id="th-pprice">Price</th><th style="width:70px"></th></tr></thead><tbody id="db-all-tbody"></tbody></table>
       </div>
     </div>
-    <div class="card"><div class="card-title" id="t-add-prod-db">Add a product</div>
-      <input class="inp" type="text" id="db-bc" placeholder="Code-barres (laisser vide = code 6 chiffres auto)"/>
-      <input class="inp" type="text" id="db-nm" placeholder="Product name"/>
-      <input class="inp" type="number" id="db-pr" placeholder="Price (DH)"/>
-      <button class="btn-p" onclick="dbAddProd()" id="t-add-prod-btn">+ Add product</button>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-p" style="flex:1;min-width:140px" onclick="toggleAddForm()" id="t-add-toggle">+ Add a product</button>
+        <button class="btn-p" style="flex:1;min-width:140px;background:#2563eb" onclick="G('csv-file').click()" id="t-csv-btn">⬆️ Import CSV</button>
+        <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none" onchange="importCSV(this.files[0])"/>
+      </div>
+      <div id="db-add-form" class="hidden" style="margin-top:12px">
+        <input class="inp" type="text" id="db-bc" placeholder="Barcode"/>
+        <input class="inp" type="text" id="db-nm" placeholder="Product name"/>
+        <input class="inp" type="number" id="db-pr" placeholder="Price (DH)"/>
+        <button class="btn-p" onclick="dbAddProd()" id="t-add-prod-btn">+ Add product</button>
+      </div>
+      <p style="font-size:11px;color:#999;margin-top:10px" id="t-csv-hint">CSV: 3 colonnes — code-barres, nom, prix</p>
     </div>
   </div></div>
   <div id="pg-profile" class="page"><div class="content">
@@ -663,6 +684,7 @@ function initData(){
       else{us[i].pin=((us[i].pin||'')+'000000').slice(0,6);}
       changed=true;
     }
+    if(!us[i].fullname){us[i].fullname=us[i].name;changed=true;}
   }
   if(changed)LS.set('users',us);
   if(!LS.get('projects',null))LS.set('projects',[]);
@@ -1055,8 +1077,8 @@ function refreshUsers(){
   setText('db-uc',String(users.length));
   users.forEach(function(u){
     var tr=document.createElement('tr');
-    var av=document.createElement('div');av.style.cssText='width:28px;height:28px;border-radius:50%;background:'+(u.color||'#1a7a4a')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0';av.textContent=u.name[0].toUpperCase();
-    var td1=document.createElement('td');td1.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 8px';td1.appendChild(av);td1.appendChild(document.createTextNode(u.name));
+    var av=document.createElement('div');av.style.cssText='width:28px;height:28px;border-radius:50%;background:'+(u.color||'#1a7a4a')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0';av.textContent=(u.fullname||u.name)[0].toUpperCase();
+    var td1=document.createElement('td');td1.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 8px';av.style.flexShrink='0';var nmwrap=document.createElement('div');nmwrap.innerHTML='<div style="font-weight:600">'+esc(u.name)+'</div>'+(u.fullname&&u.fullname!==u.name?'<div style="font-size:11px;color:#888">'+esc(u.fullname)+'</div>':'');td1.appendChild(av);td1.appendChild(nmwrap);
     var td2=document.createElement('td');var bd=document.createElement('span');bd.className=u.role==='admin'?'badge b-admin':'badge b-user';bd.textContent=u.role==='admin'?'Administrator':'User';td2.appendChild(bd);
     var td3=document.createElement('td');td3.style.cssText='color:#999;font-size:12px';td3.textContent='••••';
     var td4=document.createElement('td');
@@ -1070,13 +1092,13 @@ function refreshUsers(){
   });
 }
 function doCreateUser(){
-  var name=(G('new-uname')?G('new-uname').value||'':'').trim();var pin=(G('new-upin')?G('new-upin').value||'':'').trim();var role=(G('new-urole')?G('new-urole').value:'user');var err=G('user-err');
-  if(!name||pin.length!==6){if(err){err.textContent='Name and 6-digit PIN required';err.classList.remove('hidden');}return;}
+  var name=(G('new-uname')?G('new-uname').value||'':'').trim();var full=(G('new-ufull')?G('new-ufull').value||'':'').trim();var pin=(G('new-upin')?G('new-upin').value||'':'').trim();var role=(G('new-urole')?G('new-urole').value:'user');var err=G('user-err');
+  if(!name||pin.length!==6){if(err){err.textContent='Username and 6-digit PIN required';err.classList.remove('hidden');}return;}
   var users=LS.get('users',[]);
   for(var i=0;i<users.length;i++){if(users[i].name.toLowerCase()===name.toLowerCase()){if(err){err.textContent='User already exists';err.classList.remove('hidden');}return;}}
   var cols=['#1a7a4a','#2563eb','#7c3aed','#d63031','#f59e0b','#0891b2','#059669','#dc2626'];
-  users.push({id:uid(),name:name,role:role,pin:pin,color:cols[users.length%cols.length]});LS.set('users',users);
-  if(G('new-uname'))G('new-uname').value='';if(G('new-upin'))G('new-upin').value='';if(err)err.classList.add('hidden');
+  users.push({id:uid(),name:name,fullname:full||name,role:role,pin:pin,color:cols[users.length%cols.length]});LS.set('users',users);
+  if(G('new-uname'))G('new-uname').value='';if(G('new-ufull'))G('new-ufull').value='';if(G('new-upin'))G('new-upin').value='';if(err)err.classList.add('hidden');
   showToast('✅ Created: '+name);refreshUsers();
 }
 function gen6(){
@@ -1121,15 +1143,50 @@ function dbSearch(q){
     row.appendChild(info);row.appendChild(btns);res.appendChild(row);
   });
 }
+function toggleAddForm(){var f=G('db-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('db-bc');if(b)b.focus();}}
 function dbAddProd(){
   var bc=(G('db-bc')?G('db-bc').value||'':'').trim();var nm=(G('db-nm')?G('db-nm').value||'':'').trim();var pr=parseFloat(G('db-pr')?G('db-pr').value||'0':'0')||0;
   if(!nm){showToast('❌ Name required');return;}
-  if(!bc)bc=gen6(); // auto 6-digit code if no barcode entered
+  // barcode is NOT auto-generated; if empty it stays empty
   var all=LS.get('products',[]);
-  for(var i=0;i<all.length;i++){if(all[i].barcode===bc){showToast('❌ Code exists');return;}}
+  if(bc){for(var i=0;i<all.length;i++){if(all[i].barcode===bc){showToast('❌ Barcode already exists');return;}}}
   all.push({id:uid(),barcode:bc,name:nm,price:pr});LS.set('products',all);
   if(G('db-bc'))G('db-bc').value='';if(G('db-nm'))G('db-nm').value='';if(G('db-pr'))G('db-pr').value='';
-  showToast('✅ Added: '+nm+' ('+bc+')');refreshDB();
+  showToast('✅ Added: '+nm);refreshDB();
+}
+function importCSV(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var text=e.target.result||'';
+    var lines=text.split(/\r\n|\n|\r/);
+    var all=LS.get('products',[]);
+    var added=0,skipped=0;
+    // detect header row (if first cell isn't a number-ish/known)
+    var start=0;
+    if(lines.length>0){
+      var h=lines[0].toLowerCase();
+      if(h.indexOf('barcode')>=0||h.indexOf('code')>=0||h.indexOf('name')>=0||h.indexOf('nom')>=0||h.indexOf('price')>=0||h.indexOf('prix')>=0)start=1;
+    }
+    for(var i=start;i<lines.length;i++){
+      var line=lines[i].trim();if(!line)continue;
+      // split by comma or semicolon
+      var cols=line.split(/[,;]/);
+      if(cols.length<2)continue;
+      var bc=(cols[0]||'').trim().replace(/^"|"$/g,'');
+      var nm=(cols[1]||'').trim().replace(/^"|"$/g,'');
+      var pr=parseFloat((cols[2]||'0').trim().replace(/^"|"$/g,'').replace(',','.'))||0;
+      if(!nm){skipped++;continue;}
+      // skip duplicates by barcode (when barcode present)
+      if(bc){var dup=false;for(var j=0;j<all.length;j++){if(all[j].barcode===bc){dup=true;break;}}if(dup){skipped++;continue;}}
+      all.push({id:uid(),barcode:bc,name:nm,price:pr});added++;
+    }
+    LS.set('products',all);refreshDB();
+    showToast('✅ '+added+' '+(isAr()?'منتج مضاف':'produits ajoutés')+(skipped?(' · '+skipped+' '+(isAr()?'تخطي':'ignorés')):''),4000);
+    var fi=G('csv-file');if(fi)fi.value='';
+  };
+  reader.onerror=function(){showToast('❌ '+(isAr()?'خطأ في قراءة الملف':'Erreur de lecture'));};
+  reader.readAsText(file);
 }
 function refreshProfile(){
   if(!CU)return;var av=G('prof-av');if(av){av.textContent=CU.name[0].toUpperCase();av.style.background=CU.color||'#1a7a4a';}
@@ -1177,36 +1234,28 @@ function showPage(name){
 }
 
 // LOGIN
-function rebuildUC(){
-  var users=LS.get('users',[]);var c=G('ucircles');if(!c)return;c.innerHTML='';
-  if(pinSel){var still=false;for(var k=0;k<users.length;k++){if(users[k].id===pinSel.id){still=true;pinSel=users[k];break;}}if(!still)pinSel=null;}
-  users.forEach(function(u){
-    var w=document.createElement('div');w.className='ucw';
-    var circle=document.createElement('div');circle.className='uc'+(pinSel&&pinSel.id===u.id?' sel':'');circle.style.background=u.color||'#1a7a4a';circle.textContent=u.name[0].toUpperCase();
-    var nm=document.createElement('span');nm.className='uc-name';nm.textContent=u.name;
-    w.appendChild(circle);w.appendChild(nm);
-    w.onclick=(function(uu,ww){return function(){pinSel=uu;pinV='';updateDots();document.querySelectorAll('.uc').forEach(function(x){x.classList.remove('sel');});ww.querySelector('.uc').classList.add('sel');};})(u,w);
-    c.appendChild(w);
-  });
-  var aw=document.createElement('div');aw.className='ucw';
-  var ab=document.createElement('div');ab.className='add-uc';ab.textContent='+';ab.onclick=showAddU;
-  var al=document.createElement('span');al.className='uc-name';al.style.color='#1a7a4a';al.textContent=isAr()?'إضافة':'Ajouter';
-  aw.appendChild(ab);aw.appendChild(al);c.appendChild(aw);
+// ===== LOGIN FLOW: + -> username -> check DB -> PIN =====
+function rebuildUC(){ /* no user list shown anymore; login starts at the + button */ }
+function showUsernameForm(){
+  hide('login-step-plus');hide('login-step-pin');show('login-step-username');
+  var el=G('login-username');if(el){el.value='';setTimeout(function(){el.focus();},80);}
 }
-function showAddU(){show('add-user-form');var el=G('nacc-name');if(el)el.focus();}
-function hideAddU(){hide('add-user-form');}
-function doAddLoginU(){
-  var name=(G('nacc-name')?G('nacc-name').value||'':'').trim();var pin=(G('nacc-pin')?G('nacc-pin').value||'':'').trim();var role=(G('nacc-role')?G('nacc-role').value:'user');
-  var users=LS.get('users',[]);
-  if(!name||pin.length!==6){showToast('❌ Nom et PIN 6 chiffres requis');return;}
-  for(var i=0;i<users.length;i++){if(users[i].name.toLowerCase()===name.toLowerCase()){showToast('❌ Utilisateur déjà existant');return;}}
-  var hasAdmin=false;for(var j=0;j<users.length;j++){if(users[j].role==='admin'){hasAdmin=true;break;}}
-  if(role==='admin'&&hasAdmin){showToast('❌ Seul l\'admin peut créer un admin');return;}
-  var cols=['#1a7a4a','#2563eb','#7c3aed','#d63031','#f59e0b','#0891b2','#059669','#dc2626'];
-  var nu={id:uid(),name:name,role:role,pin:pin,color:cols[users.length%cols.length]};
-  users.push(nu);LS.set('users',users);
-  if(G('nacc-name'))G('nacc-name').value='';if(G('nacc-pin'))G('nacc-pin').value='';
-  hide('add-user-form');pinSel=nu;showToast('✅ Compte créé: '+name);rebuildUC();
+function backToPlus(){
+  pinSel=null;pinV='';
+  hide('login-step-username');hide('login-step-pin');show('login-step-plus');
+}
+function loginCheckUser(){
+  var name=(G('login-username')?G('login-username').value||'':'').trim();
+  if(!name){showToast(isAr()?'أدخل اسم المستخدم':'Entrez un nom d\'utilisateur');return;}
+  var users=LS.get('users',[]);var found=null;
+  for(var i=0;i<users.length;i++){if(users[i].name.toLowerCase()===name.toLowerCase()){found=users[i];break;}}
+  if(!found){showToast(isAr()?'❌ المستخدم غير موجود':'❌ Utilisateur introuvable');return;}
+  pinSel=found;pinV='';
+  // show PIN step with greeting
+  hide('login-step-username');show('login-step-pin');
+  var av=G('login-av');if(av){av.textContent=(found.fullname||found.name)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}
+  setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.name));
+  buildPinKeys();updateDots();
 }
 function buildPinKeys(){
   var grid=G('pkeys');if(!grid)return;grid.innerHTML='';
@@ -1220,7 +1269,7 @@ function buildPinKeys(){
 }
 function updateDots(){for(var i=0;i<6;i++){var d=G('pd'+i);if(!d)continue;d.classList.remove('filled','error');if(i<pinV.length)d.classList.add('filled');}}
 function checkPin(){
-  if(!pinSel){pinV='';updateDots();showToast('Sélectionnez un compte');return;}
+  if(!pinSel){pinV='';updateDots();return;}
   if(pinV===pinSel.pin){
     CU=pinSel;
     G('login-page').style.display='none';
@@ -1228,20 +1277,21 @@ function checkPin(){
     setAvatar();
     if(CU.role==='admin'){
       lang='en';document.documentElement.dir='ltr';document.documentElement.lang='en';
-      hide('lang-app-btn');           // admin = English only
-      show('admin-tabs');             // show Database | Users tabs
+      hide('lang-app-btn');
+      show('admin-tabs');
       applyTR();
-      showPage('database');           // admin starts on Database, no inventory app
+      showPage('database');
     } else {
       lang='fr';document.documentElement.dir='ltr';document.documentElement.lang='fr';
       show('lang-app-btn');
       G('lang-app-btn').textContent='🇫🇷';
-      hide('admin-tabs');             // simple user = no tabs, no sidebar, just circle on top
+      hide('admin-tabs');
       applyTR();
       showPage('inventory');
     }
+    backToPlus(); // reset login screen for next time
   } else {
-    for(var i=0;i<4;i++){var d=G('pd'+i);if(d)d.classList.add('error');}
+    for(var i=0;i<6;i++){var d=G('pd'+i);if(d)d.classList.add('error');}
     setTimeout(function(){pinV='';updateDots();},700);
   }
 }
@@ -1296,7 +1346,7 @@ function doInstall(){
     showToast(isAr()?'استعمل قائمة المتصفح: تثبيت التطبيق':'Menu du navigateur ⋮ → « Installer l\'application »',4000);
   }
 }
-rebuildUC();buildPinKeys();updateDots();applyTR();startScanGuard();setupScanInput();checkUSBDevices();
+updateDots();applyTR();startScanGuard();setupScanInput();checkUSBDevices();backToPlus();
 </script>
 </body>
 </html>
