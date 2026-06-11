@@ -2,7 +2,6 @@ var CU=requireUser();
 var CP=requireProject();
 var dP=0,dQ=0,eI=0,npT=null,npV='',npD=true,btDev=null,_scanInputTimer=null,_scanFocusTimer=null;
 var CACHE={products:[],items:[]};
-<<<<<<< HEAD
 buildHeader({title:'📦 '+CP.name,role:'user',showLang:true});
 function applyTR(){
   setText('t-addprod',t('aProd'));setText('t-search',t('srch'));setText('t-price',t('price'));setText('t-qty',t('qty'));setText('t-addbtn',t('add'));setText('t-runtotal',t('runT'));
@@ -11,11 +10,6 @@ function applyTR(){
   updateNFs();refreshEdit();
 }
 applyTR();
-=======
-function isAr(){return false;}
-function t(k){var m={tap:'Appuyer',fd:'Trouvé',nf:'Inconnu — saisie manuelle',onl:'Recherche en ligne…',eProd:'Produit',of:'sur'};return m[k]||k;}
-buildHeader({title:'📦 '+CP.name,role:'user',showLang:false});
->>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 
 function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;return p;});}
 function loadItems(){return dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;});}
@@ -31,11 +25,7 @@ function setupScanInput(){var s=G('scan-inp');if(!s)return;s.addEventListener('i
 function connectBT(){if(!navigator.bluetooth){showToast('Web Bluetooth non supporté.');return;}navigator.bluetooth.requestDevice({acceptAllDevices:true}).then(function(dev){btDev=dev;dev.addEventListener('gattserverdisconnected',function(){btDev=null;setBT(false,'');});setBT(true,dev.name||'BT');showToast('✅ BT');}).catch(function(){});}
 function setBT(on,name){var d2=G('bt-mini-dot'),l2=G('bt-mini-lbl'),b2=G('bt-mini-btn');if(d2)d2.style.background=on?'#1a7a4a':'#ccc';if(l2)l2.textContent=on?(name||'Connecté'):'Scanner BT';if(b2){b2.textContent=on?'✕':'BT';b2.onclick=on?function(){if(btDev&&btDev.gatt&&btDev.gatt.connected)btDev.gatt.disconnect();btDev=null;setBT(false,'');}:connectBT;}}
 function doScan(){var c=(G('scan-inp').value||'').trim();if(c)handleScan(c);}
-<<<<<<< HEAD
 function handleScan(code){var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}if(found){dbGetCustomPrice(CU.id,code).then(function(cp){var price=cp?cp.price:found.price;G('pname-inp').value=found.name;dP=parseFloat(price)||0;dQ=0;updateNFs();setScanMsg('✅ '+t('fd')+': '+found.name,1);G('scan-inp').value='';focusScan();});return;}setScanMsg('🔎 '+t('onl'),2);fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){if(d.status===1&&d.product){var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});G('pname-inp').value=name;dP=0;dQ=0;updateNFs();setScanMsg('✅ '+t('apiF')+': '+name,1);}else{G('pname-inp').value='';setScanMsg('⚠️ '+t('nf')+' ('+code+')',0);}G('scan-inp').value='';focusScan();}).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);G('scan-inp').value='';focusScan();});}
-=======
-function handleScan(code){var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}if(found){dbGetCustomPrice(CU.id,code).then(function(cp){var price=cp?cp.price:found.price;G('pname-inp').value=found.name;dP=parseFloat(price)||0;dQ=0;updateNFs();setScanMsg('✅ Trouvé dans la base: '+found.name,1);G('scan-inp').value='';focusScan();});return;}setScanMsg('🔎 Pas dans la base — recherche en ligne…',2);fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){if(d.status===1&&d.product){var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});G('pname-inp').value=name;dP=0;dQ=0;updateNFs();setScanMsg('✅ Trouvé en ligne (API): '+name,1);}else{G('pname-inp').value='';setScanMsg('⚠️ Inconnu — saisie manuelle ('+code+')',0);}G('scan-inp').value='';focusScan();}).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);G('scan-inp').value='';focusScan();});}
->>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
 function saveCP(bc,price){if(!bc)return;sb.from('custom_prices').upsert({user_id:CU.id,barcode:bc,price:price},{onConflict:'user_id,barcode'}).then(function(){});}
 function updateNFs(){var p=G('nf-dp'),q=G('nf-dq');if(p){p.className=dP>0?'nf-val':'nf-ph';p.textContent=dP>0?dP.toFixed(2)+' DH':t('tap');}if(q){q.className=dQ>0?'nf-val':'nf-ph';q.textContent=dQ>0?String(dQ):t('tap');}}
@@ -45,11 +35,7 @@ function npDot(){if(npV.indexOf('.')<0){npV+='.';G('np-disp').textContent=npV||'
 function closeNP(){hide('np-ov');npT=null;npV='';}
 function confirmNP(){var v=parseFloat(npV)||0,tgt=npT;closeNP();if(tgt==='dP'){dP=v;updateNFs();}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
 // items
-<<<<<<< HEAD
 function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(bc&&dP)saveCP(bc,dP);sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
-=======
-function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ Entrez le nom');return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(bc&&dP)saveCP(bc,dP);sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ Ajouté: '+name);});});}
->>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 function refreshEdit(){var items=CACHE.items;var card=G('edit-card');if(!card)return;if(!items.length){card.classList.add('hidden');G('run-total').classList.add('hidden');return;}card.classList.remove('hidden');if(eI>=items.length)eI=items.length-1;var cur=items[eI];setText('edit-title',t('eProd')+' '+(eI+1)+' '+t('of')+' '+items.length);var ni=G('edit-name');if(ni){ni.value=cur.name||'';ni.onchange=function(){cur.name=this.value;sb.from('project_items').update({name:this.value}).eq('id',cur.id).then(function(){});};}var pr=parseFloat(cur.price)||0,q=parseFloat(cur.quantity)||0;var pv=G('nf-ep'),qv=G('nf-eq');if(pv){pv.className=pr>0?'nf-val':'nf-ph';pv.textContent=pr>0?pr.toFixed(2)+' DH':t('tap');}if(qv){qv.className=q>0?'nf-val':'nf-ph';qv.textContent=q>0?String(q):t('tap');}var sub=G('edit-sub'),sv=G('edit-sub-val');if(sub&&sv){if(pr>0&&q>0){sub.classList.remove('hidden');sv.textContent=fmt(pr*q);}else sub.classList.add('hidden');}}
 function prevP(){if(eI>0){eI--;refreshEdit();}}
 function nextP(){if(eI<CACHE.items.length-1){eI++;refreshEdit();}}
