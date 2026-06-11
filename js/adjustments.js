@@ -1,4 +1,6 @@
 var CU=requireUser();var CP=requireProject();
+// Backspace navigation guard
+document.addEventListener('keydown',function(e){if(e.key==='Backspace'){var a=document.activeElement,tag=a?a.tagName:'';var ed=(tag==='INPUT'||tag==='TEXTAREA'||(a&&a.isContentEditable));if(!ed)e.preventDefault();}},true);
 var npT=null,npV='',npD=true;var CACHE={adjs:[]};
 buildHeader({title:t('adj'),role:'user',showLang:true});
 function applyTR(){setText('hdr-title',t('adj'));setText('t-adjdesc',t('adjD'));setText('t-addline',t('addL'));if(G('t-back2'))G('t-back2').textContent=t('back');if(G('t-next2'))G('t-next2').textContent=t('next');refreshAdjs();}

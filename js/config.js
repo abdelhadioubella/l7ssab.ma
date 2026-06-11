@@ -32,7 +32,7 @@ function getSession(){return LS.get('session',null);}
 function clearSession(){LS.del('session');}
 function requireUser(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role==='admin'){location.href=pageUrl('database');return null;}return s;}
 function requireAdmin(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role!=='admin'){location.href=pageUrl('inventory');return null;}return s;}
-function logout(){clearSession();location.href=pageUrl('index');}
+function logout(){clearSession();LS.set('fs',0);location.href=pageUrl('index');}
 
 // ====== DATA LAYER (Supabase) ======
 function dbGetUserByUsername(u){return sb.from('app_users').select('*').ilike('username',u).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
@@ -45,7 +45,10 @@ function dbGetAdjs(pid){return sb.from('adjustments').select('*').eq('project_id
 function dbGetCustomPrice(uid,bc){return sb.from('custom_prices').select('*').eq('user_id',uid).eq('barcode',bc).limit(1).then(function(r){return (r.data&&r.data[0])||null;});}
 
 // ====== SHARED UI bits ======
-function toggleFS(){var d=document,el=d.documentElement;var isFs=d.fullscreenElement||d.webkitFullscreenElement;if(!isFs){var rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq)rq.call(el);}else{var ex=d.exitFullscreen||d.webkitExitFullscreen;if(ex)ex.call(d);}}
+function isFSnow(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
+function toggleFS(){var d=document,el=d.documentElement;if(!isFSnow()){var rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq)rq.call(el);LS.set('fs',1);}else{var ex=d.exitFullscreen||d.webkitExitFullscreen;if(ex)ex.call(d);LS.set('fs',0);}}
+// If the user had fullscreen on, re-enter on the first tap after navigating to a new page
+document.addEventListener('click',function once(){if(LS.get('fs',0)&&!isFSnow()){var el=document.documentElement;var rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq){try{rq.call(el);}catch(e){}}}document.removeEventListener('click',once);},{once:true});
 
 // PWA registration (shared)
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register(inPages()?'../sw.js':'sw.js').catch(function(){});});}

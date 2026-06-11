@@ -1,4 +1,14 @@
 var CU=requireUser();
+
+// Guard: prevent Backspace (and Alt+Left) from navigating the browser "back",
+// which would leave the products page. Scanners sometimes emit stray keys.
+document.addEventListener('keydown',function(e){
+  if(e.key==='Backspace'){
+    var a=document.activeElement,tag=a?a.tagName:'';
+    var editable=(tag==='INPUT'||tag==='TEXTAREA'||(a&&a.isContentEditable));
+    if(!editable){e.preventDefault();}
+  }
+},true);
 var CP=requireProject();
 var dP=0,dQ=0,eI=0,npT=null,npV='',npD=true,btDev=null,_scanInputTimer=null,_scanFocusTimer=null;
 var CACHE={products:[],items:[]};

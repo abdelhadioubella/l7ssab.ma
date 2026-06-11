@@ -1,4 +1,6 @@
 var CU=requireUser();var CP=requireProject();
+// Backspace navigation guard
+document.addEventListener('keydown',function(e){if(e.key==='Backspace'){var a=document.activeElement,tag=a?a.tagName:'';var ed=(tag==='INPUT'||tag==='TEXTAREA'||(a&&a.isContentEditable));if(!ed)e.preventDefault();}},true);
 var CACHE={items:[],adjs:[]};
 buildHeader({title:t('recap'),role:'user',showLang:true});
 function applyTR(){setText('hdr-title',t('recap'));setText('t-prods-title',t('prods'));setText('t-adjs-title',t('adj'));setText('t-totalp',t('tP'));setText('t-totala',t('tA'));setText('t-summp',t('tP'));setText('t-summa',t('tA'));setText('t-grand',t('grand'));setText('t-dlpdf',t('dlPDF'));setText('t-newinv',t('nInv'));if(G('t-back3'))G('t-back3').textContent=t('back');refreshRecap();}
