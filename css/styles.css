@@ -165,7 +165,6 @@ html.dark .uc-name{color:#9fb3a9}
 html.dark #login-topbar button{background:#18211d!important;border-color:#33473e!important;color:#e8f0ec!important}
 html.dark .logo-box{box-shadow:0 4px 16px rgba(0,0,0,.5)}
 html.dark .b-user{background:#1f2a25;color:#9fb3a9;border-color:#33473e}
-<<<<<<< HEAD
 
 /* ===== Bigger header buttons ===== */
 .hdr{height:60px}
@@ -179,5 +178,3 @@ html.dark .b-user{background:#1f2a25;color:#9fb3a9;border-color:#33473e}
 [dir=rtl] .nav-row button{direction:rtl}
 [dir=rtl] .num-field{text-align:right}
 [dir=rtl] .nf-label,[dir=rtl] .nf-val,[dir=rtl] .nf-ph{text-align:right;direction:rtl}
-=======
->>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
