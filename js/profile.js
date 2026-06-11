@@ -1,8 +1,12 @@
 var s=getSession();if(!s){location.href='../index.html';}
 var CU=s;var isAdmin=CU&&CU.role==='admin';
+<<<<<<< HEAD
 buildHeader({title:isAdmin?'My profile':t('prof'),role:isAdmin?'admin':'user',activeTab:'',showLang:!isAdmin});
 function applyTR(){if(isAdmin)return;setText('hdr-title',t('prof'));setText('t-chgname',t('chn'));setText('t-chgpin',t('chp'));setText('t-update1',t('upd'));setText('t-update2',t('upd'));if(G('t-backapp'))G('t-backapp').textContent=t('back');refreshProfile();}
 if(!isAdmin)applyTR();
+=======
+buildHeader({title:isAdmin?'My profile':'Mon profil',role:isAdmin?'admin':'user',activeTab:'',showLang:false});
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 function backToApp(){location.href=isAdmin?'database.html':'inventory.html';}
 function refreshProfile(){var av=G('prof-av');if(av){av.textContent=(CU.fullname||CU.username)[0].toUpperCase();av.style.background=CU.color||'#1a7a4a';}setText('prof-name',CU.fullname||CU.username);var bd=G('prof-badge');if(bd){bd.textContent=isAdmin?'Administrator':'Utilisateur';bd.className=isAdmin?'badge b-admin':'badge b-user';}var ni=G('prof-newname');if(ni)ni.value=CU.fullname||CU.username;var bc=G('back-to-app-card');if(bc)bc.classList.remove('hidden');}
 function updateProf(type){

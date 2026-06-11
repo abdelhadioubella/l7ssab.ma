@@ -1,8 +1,13 @@
 var CU=requireUser();var CP=requireProject();
 var npT=null,npV='',npD=true;var CACHE={adjs:[]};
+<<<<<<< HEAD
 buildHeader({title:t('adj'),role:'user',showLang:true});
 function applyTR(){setText('hdr-title',t('adj'));setText('t-adjdesc',t('adjD'));setText('t-addline',t('addL'));if(G('t-back2'))G('t-back2').textContent=t('back');if(G('t-next2'))G('t-next2').textContent=t('next');refreshAdjs();}
 applyTR();
+=======
+function t(k){var m={adj:'Ajustements',tap:'Appuyer'};return m[k]||k;}
+buildHeader({title:'Ajustements',role:'user',showLang:false});
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 function loadAdjs(){return dbGetAdjs(CP.id).then(function(a){CACHE.adjs=a;return a;});}
 function addAdj(){sb.from('adjustments').insert({project_id:CP.id,description:'',type:'+',amount:0}).then(function(){loadAdjs().then(refreshAdjs);});}
 function refreshAdjs(){var adjs=CACHE.adjs;var list=G('adj-list');if(!list)return;list.innerHTML='';adjs.forEach(function(a){var div=document.createElement('div');div.className='adj-item';var row=document.createElement('div');row.className='adj-row';var sg=document.createElement('button');sg.className='adj-sign';sg.style.background=a.type==='+'?'#e8f5ee':'#ffeaea';sg.style.color=a.type==='+'?'#1a7a4a':'#d63031';sg.textContent=a.type;sg.onclick=function(){var nt=a.type==='+'?'-':'+';sb.from('adjustments').update({type:nt}).eq('id',a.id).then(function(){a.type=nt;loadAdjs().then(refreshAdjs);});};var inp=document.createElement('input');inp.type='text';inp.className='inp';inp.placeholder=t('adj');inp.value=a.description||'';inp.style.cssText='flex:1;margin-bottom:0';inp.onchange=function(){sb.from('adjustments').update({description:this.value}).eq('id',a.id).then(function(){});};var db=document.createElement('button');db.style.cssText='width:34px;height:34px;background:transparent;border:none;color:#d63031;font-size:18px;flex-shrink:0;cursor:pointer';db.textContent='✕';db.onclick=function(){sb.from('adjustments').delete().eq('id',a.id).then(function(){loadAdjs().then(refreshAdjs);});};row.appendChild(sg);row.appendChild(inp);row.appendChild(db);var nf=document.createElement('div');nf.className='num-field';var nl=document.createElement('span');nl.className='nf-label';nl.textContent=t('adj');var nv=document.createElement('span');var am=parseFloat(a.amount)||0;nv.className=am>0?'nf-val':'nf-ph';nv.textContent=am>0?am.toFixed(2)+' DH':t('tap');nf.appendChild(nl);nf.appendChild(nv);nf.onclick=function(){openNP('adj_'+a.id,t('adj'),true);};div.appendChild(row);div.appendChild(nf);list.appendChild(div);});}

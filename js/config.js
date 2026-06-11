@@ -37,9 +37,15 @@ function logout(){clearSession();location.href=pageUrl('index');}
 // ====== DATA LAYER (Supabase) ======
 function dbGetUserByUsername(u){return sb.from('app_users').select('*').ilike('username',u).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
 function dbGetUserById(id){return sb.from('app_users').select('*').eq('id',id).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
+<<<<<<< HEAD
 function dbGetUsers(){return sb.from('app_users').select('*').order('created_at',{ascending:true}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
 function dbGetProducts(){return sb.from('products').select('*').order('name',{ascending:true}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
 function dbGetProjects(uid){return sb.from('projects').select('*').eq('user_id',uid).order('updated_at',{ascending:false}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
+=======
+function dbGetUsers(){return sb.from('app_users').select('*').order('created_at',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
+function dbGetProducts(){return sb.from('products').select('*').order('name',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
+function dbGetProjects(uid){return sb.from('projects').select('*').eq('user_id',uid).order('updated_at',{ascending:false}).then(function(r){return r.error?[]:(r.data||[]);});}
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 function dbGetItems(pid){return sb.from('project_items').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
 function dbGetAdjs(pid){return sb.from('adjustments').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
 function dbGetCustomPrice(uid,bc){return sb.from('custom_prices').select('*').eq('user_id',uid).eq('barcode',bc).limit(1).then(function(r){return (r.data&&r.data[0])||null;});}
@@ -64,11 +70,14 @@ function getCurrentProject(){return LS.get('cproj',null);}
 function clearCurrentProject(){LS.del('cproj');}
 function requireProject(){var p=getCurrentProject();if(!p){location.href=pageUrl('inventory');return null;}return p;}
 
+<<<<<<< HEAD
 
 // Exact counts (no row cap) for statistics
 function dbCount(table){return sb.from(table).select('*',{count:'exact',head:true}).then(function(r){return r.count||0;});}
 function dbCountProjects(){return sb.from('projects').select('*',{count:'exact',head:true}).then(function(r){return r.count||0;});}
 
+=======
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 // ====== SHARED HEADER ======
 // opts: {title, role:'user'|'admin', activeTab, lang:true/false, showLang}
 function buildHeader(opts){
@@ -76,11 +85,15 @@ function buildHeader(opts){
   var s=getSession();var initial=s?(s.fullname||s.username)[0].toUpperCase():'?';
   var roleLabel=s&&s.role==='admin'?'Administrator':'Utilisateur';
   var langBtn=opts.showLang?'<button class="hdr-btn" onclick="toggleLang&&toggleLang()" id="lang-app-btn">🇫🇷</button>':'';
+<<<<<<< HEAD
   // order (after the avatar): language, dark, fullscreen, refresh
+=======
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
   var html=''+
   '<div class="hdr">'+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
+<<<<<<< HEAD
       '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
       langBtn+
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
@@ -91,6 +104,19 @@ function buildHeader(opts){
         (opts.role==='admin'?'<button onclick="location.href=\'profile.html\'">👤 My profile</button>':'<button onclick="location.href=\'profile.html\'">👤 '+t('myProfile')+'</button>')+
         '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+(opts.role==='admin'?'Install':t('installApp'))+'</button>'+
         '<button onclick="logout()">🚪 '+(opts.role==='admin'?'Logout':t('logoutTxt'))+'</button>'+
+=======
+      '<button class="hdr-btn" onclick="location.reload()" title="Rafraîchir">↻</button>'+
+      '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
+      '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
+      langBtn+
+      '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
+      '<div class="av-menu" id="av-menu">'+
+        '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
+        (opts.role==='admin'?'':'<button onclick="location.href=\'profile.html\'">👤 Mon profil</button>')+
+        (opts.role==='admin'?'<button onclick="location.href=\'profile.html\'">👤 My profile</button>':'')+
+        '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 Installer</button>'+
+        '<button onclick="logout()">🚪 '+(opts.role==='admin'?'Logout':'Déconnexion')+'</button>'+
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
       '</div>'+
     '</div>'+
   '</div>';
@@ -99,12 +125,18 @@ function buildHeader(opts){
       '<button class="'+(opts.activeTab==='database'?'active':'')+'" onclick="location.href=\'database.html\'">🗄️ Database</button>'+
       '<button class="'+(opts.activeTab==='users'?'active':'')+'" onclick="location.href=\'users.html\'">👥 Users</button>'+
       '<button class="'+(opts.activeTab==='projects'?'active':'')+'" onclick="location.href=\'projects.html\'">📁 Projects</button>'+
+<<<<<<< HEAD
       '<button class="'+(opts.activeTab==='statistics'?'active':'')+'" onclick="location.href=\'statistics.html\'">📊 Stats</button>'+
+=======
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
     '</div>';
   }
   var holder=G('app-header');if(holder)holder.innerHTML=html;
   applyTheme();
+<<<<<<< HEAD
   if(opts.role!=='admin'){applyDir();setLangBtn();}
+=======
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
 }
 function toggleAvMenu(){var m=G('av-menu');if(m)m.classList.toggle('show');}
 document.addEventListener('click',function(e){var m=G('av-menu');if(m&&m.classList.contains('show')){if(!e.target.closest('#av-menu')&&!e.target.closest('#hdr-av'))m.classList.remove('show');}});
@@ -133,6 +165,7 @@ function generatePDF(project,items,adjs,authorName){
   doc.save('rapport-'+(project?project.name:'inv').replace(/\s+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 function pdfForProjectId(pid,projName,authorName){Promise.all([dbGetItems(pid),dbGetAdjs(pid)]).then(function(r){generatePDF({id:pid,name:projName},r[0],r[1],authorName);});}
+<<<<<<< HEAD
 
 // ====== SHARED LANGUAGE ENGINE (FR / AR) for user pages ======
 var LANG=LS.get('lang','fr');
@@ -146,3 +179,5 @@ function setLangBtn(){var b=G('lang-app-btn');if(b)b.textContent=LANG==='fr'?'�
 function applyDir(){document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';}
 // pages provide their own applyTR() to translate their specific elements
 function toggleLang(){LANG=LANG==='fr'?'ar':'fr';LS.set('lang',LANG);applyDir();setLangBtn();if(typeof applyTR==='function')applyTR();}
+=======
+>>>>>>> b431d67383dde2c022f7a4f776f603a97d6d6512
