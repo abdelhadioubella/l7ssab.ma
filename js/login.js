@@ -1,7 +1,6 @@
 // ====== LOGIN PAGE ======
-var lang='fr',pinV='',pinSel=null;
-function isAr(){return lang==='ar';}
-function toggleLang(){lang=lang==='fr'?'ar':'fr';document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';G('lang-login-btn').textContent=lang==='fr'?'🇫🇷 FR':'🇲🇦 AR';renderRemembered();var g=G('login-greeting');}
+var pinV='',pinSel=null;
+function toggleLang(){LANG=LANG==='fr'?'ar':'fr';LS.set('lang',LANG);document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';var lb=G('lang-login-btn');if(lb)lb.textContent=LANG==='fr'?'🇫🇷 FR':'🇲🇦 AR';renderRemembered();}
 // if already logged in, skip straight to the right app
 (function(){var s=getSession();if(s){location.href=s.role==='admin'?'pages/database.html':'pages/inventory.html';}})();
 
