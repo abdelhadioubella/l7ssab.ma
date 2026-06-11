@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>L7ssab.ma</title>
+<link rel="manifest" href="../manifest.json"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a7a4a'/%3E%3Crect x='12' y='12' width='40' height='40' rx='8' fill='%23ffffff'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-size='24' font-weight='bold' fill='%231a7a4a' text-anchor='middle'%3EL7%3C/text%3E%3C/svg%3E"/>
+<link rel="icon" type="image/png" href="../assets/icon-192.png"/>
+<meta name="theme-color" content="#1a7a4a"/>
+<link rel="apple-touch-icon" href="../assets/icon-192.png"/>
+<link rel="stylesheet" href="../css/styles.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="app-header"></div>
+<div class="page active"><div class="content">
+    <div class="card"><div class="card-title" id="t-statistics">Statistics</div>
+      <div class="db-stats">
+        <div class="db-stat"><div class="db-val" id="db-pc">0</div><div class="db-lbl" id="t-lbl-prod">Products</div></div>
+        <div class="db-stat"><div class="db-val" id="db-prc">0</div><div class="db-lbl" id="t-lbl-proj">Projects</div></div>
+        <div class="db-stat"><div class="db-val" id="db-uc">0</div><div class="db-lbl" id="t-lbl-usr">Users</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title" id="t-search-edit">Search / edit a product</div>
+      <input class="inp" type="text" id="db-search" placeholder="Name or barcode…" oninput="dbSearch(this.value)"/>
+      <div id="db-results"></div>
+    </div>
+    <div class="card"><div class="card-title" id="t-all-prods">All products</div>
+      <div style="max-height:420px;overflow-y:auto">
+        <table class="rtbl"><thead><tr><th style="width:120px" id="th-code">Code-barres</th><th id="th-pname">Name</th><th style="text-align:right;width:80px" id="th-pprice">Price</th><th style="width:70px"></th></tr></thead><tbody id="db-all-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-p" style="flex:1;min-width:140px" onclick="toggleAddForm()" id="t-add-toggle">+ Add a product</button>
+        <button class="btn-p" style="flex:1;min-width:140px;background:#2563eb" onclick="G('csv-file').click()" id="t-csv-btn">⬆️ Import CSV</button>
+        <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none" onchange="importCSV(this.files[0])"/>
+      </div>
+      <div id="db-add-form" class="hidden" style="margin-top:12px">
+        <input class="inp" type="text" id="db-bc" placeholder="Barcode"/>
+        <input class="inp" type="text" id="db-nm" placeholder="Product name"/>
+        <input class="inp" type="number" id="db-pr" placeholder="Price (DH)"/>
+        <button class="btn-p" onclick="dbAddProd()" id="t-add-prod-btn">+ Add product</button>
+      </div>
+      <p style="font-size:11px;color:#999;margin-top:10px" id="t-csv-hint">CSV: 3 colonnes — code-barres, nom, prix</p>
+    </div>
+</div></div>
+<script src="../js/config.js"></script>
+<script src="../js/database.js"></script>
+</body>
+</html>

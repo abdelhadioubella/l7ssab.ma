@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>L7ssab.ma</title>
+<link rel="manifest" href="../manifest.json"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a7a4a'/%3E%3Crect x='12' y='12' width='40' height='40' rx='8' fill='%23ffffff'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-size='24' font-weight='bold' fill='%231a7a4a' text-anchor='middle'%3EL7%3C/text%3E%3C/svg%3E"/>
+<link rel="icon" type="image/png" href="../assets/icon-192.png"/>
+<meta name="theme-color" content="#1a7a4a"/>
+<link rel="apple-touch-icon" href="../assets/icon-192.png"/>
+<link rel="stylesheet" href="../css/styles.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="app-header"></div>
+<div class="page active"><div class="content">
+    <div class="card">
+      <p style="font-size:14px;color:#666;margin-bottom:14px" id="t-adjdesc">Ajoutez frais, remises ou corrections.</p>
+      <div id="adj-list"></div>
+      <button class="btn-p" style="background:transparent;color:#1a7a4a;border:1.5px dashed #1a7a4a" onclick="addAdj()" id="t-addline">+ Ajouter une ligne</button>
+    </div>
+    <div class="nav-row">
+      <button class="btn-g" onclick="location.href='products.html'" id="t-back2">← Retour</button>
+      <button class="btn-p" style="margin-top:0" onclick="location.href='recap.html'" id="t-next2">Suivant →</button>
+    </div>
+</div></div>
+<div id="np-ov" class="hidden" onclick="if(event.target===this)closeNP()">
+  <div class="np-panel">
+    <p id="np-lbl" style="font-size:13px;color:#666;margin-bottom:8px;text-align:center"></p>
+    <div class="np-disp" id="np-disp">0</div>
+    <div class="np-grid" id="np-grid"></div>
+    <button id="np-dot-btn" onclick="npDot()" style="width:100%;padding:13px;font-size:20px;background:#f5f5f5;border:.5px solid #e0e0e0;border-radius:12px;margin-bottom:8px">.</button>
+    <div class="np-acts">
+      <button class="btn-g" onclick="closeNP()" id="t-cancel">Annuler</button>
+      <button class="btn-p" style="margin-top:0" onclick="confirmNP()" id="t-ok">Confirmer ✓</button>
+    </div>
+  </div>
+</div>
+<script src="../js/config.js"></script>
+<script src="../js/adjustments.js"></script>
+</body>
+</html>
