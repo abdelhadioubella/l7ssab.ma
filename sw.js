@@ -1,4 +1,4 @@
-var CACHE='l7ssab-v6';
+var CACHE='l7ssab-v7';
 var ASSETS=[
 './','./index.html','./manifest.json',
 './css/styles.css',
