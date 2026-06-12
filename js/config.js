@@ -30,7 +30,7 @@ function hashPIN(pin){return crypto.subtle.digest('SHA-256',new TextEncoder().en
 function setSession(u){LS.set('session',{id:u.id,username:u.username,fullname:u.fullname,role:u.role,color:u.color,ts:Date.now()});}
 function getSession(){return LS.get('session',null);}
 function clearSession(){LS.del('session');}
-function requireUser(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role==='admin'){location.href=pageUrl('database');return null;}return s;}
+function requireUser(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role==='admin'){location.href=pageUrl('statistics');return null;}return s;}
 function requireAdmin(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role!=='admin'){location.href=pageUrl('inventory');return null;}return s;}
 function logout(){clearSession();LS.set('fs',0);location.href=pageUrl('index');}
 
@@ -99,10 +99,11 @@ function buildHeader(opts){
   '</div>';
   if(opts.role==='admin'){
     html+='<div class="tabbar">'+
+      '<button class="'+(opts.activeTab==='statistics'?'active':'')+'" onclick="location.href=\'statistics.html\'">📊 Stats</button>'+
       '<button class="'+(opts.activeTab==='database'?'active':'')+'" onclick="location.href=\'database.html\'">🗄️ Database</button>'+
       '<button class="'+(opts.activeTab==='users'?'active':'')+'" onclick="location.href=\'users.html\'">👥 Users</button>'+
       '<button class="'+(opts.activeTab==='projects'?'active':'')+'" onclick="location.href=\'projects.html\'">📁 Projects</button>'+
-      '<button class="'+(opts.activeTab==='statistics'?'active':'')+'" onclick="location.href=\'statistics.html\'">📊 Stats</button>'+
+      '<button class="'+(opts.activeTab==='backup'?'active':'')+'" onclick="location.href=\'backup.html\'">💾 Backup</button>'+
     '</div>';
   }
   var holder=G('app-header');if(holder)holder.innerHTML=html;
@@ -149,3 +150,46 @@ function setLangBtn(){var b=G('lang-app-btn');if(b)b.textContent=LANG==='fr'?'�
 function applyDir(){document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';}
 // pages provide their own applyTR() to translate their specific elements
 function toggleLang(){LANG=LANG==='fr'?'ar':'fr';LS.set('lang',LANG);applyDir();setLangBtn();if(typeof applyTR==='function')applyTR();}
+
+// ====== IN-APP MODAL SYSTEM ======
+// openModal({title, fields:[{key,label,value,type,maxlength}], confirmText, onConfirm(values)})
+function openModal(opts){
+  closeModal();
+  var ov=document.createElement('div');ov.className='modal-ov';ov.id='app-modal';
+  var fieldsHtml='';
+  (opts.fields||[]).forEach(function(f){
+    var type=f.type||'text';
+    if(type==='select'){
+      var optsH='';(f.options||[]).forEach(function(o){optsH+='<option value="'+esc(o.value)+'"'+(o.value===f.value?' selected':'')+'>'+esc(o.label)+'</option>';});
+      fieldsHtml+='<div class="ml">'+esc(f.label)+'</div><select class="inp" id="modal-'+f.key+'">'+optsH+'</select>';
+    } else {
+      fieldsHtml+='<div class="ml">'+esc(f.label)+'</div><input class="inp" id="modal-'+f.key+'" type="'+type+'" value="'+esc(f.value!=null?String(f.value):'')+'"'+(f.maxlength?' maxlength="'+f.maxlength+'"':'')+(f.placeholder?' placeholder="'+esc(f.placeholder)+'"':'')+'/>';
+    }
+  });
+  ov.innerHTML='<div class="modal-box">'+
+    '<div class="modal-head"><span>'+esc(opts.title||'')+'</span><button class="x" onclick="closeModal()">×</button></div>'+
+    '<div class="modal-body">'+fieldsHtml+(opts.bodyHtml||'')+'</div>'+
+    '<div class="modal-foot"><button class="btn-g" onclick="closeModal()">'+esc(opts.cancelText||'Annuler')+'</button>'+
+    '<button class="btn-p" style="margin-top:0" id="modal-ok">'+esc(opts.confirmText||'OK')+'</button></div>'+
+  '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
+  G('modal-ok').onclick=function(){
+    var vals={};(opts.fields||[]).forEach(function(f){var el=G('modal-'+f.key);vals[f.key]=el?el.value:'';});
+    if(opts.onConfirm)opts.onConfirm(vals);
+  };
+  var first=ov.querySelector('input,select');if(first)setTimeout(function(){first.focus();},60);
+}
+function closeModal(){var m=G('app-modal');if(m&&m.parentNode)m.parentNode.removeChild(m);}
+// confirmation modal
+function confirmModal(title,msg,onYes,yesText){
+  closeModal();
+  var ov=document.createElement('div');ov.className='modal-ov';ov.id='app-modal';
+  ov.innerHTML='<div class="modal-box"><div class="modal-head"><span>'+esc(title||'')+'</span><button class="x" onclick="closeModal()">×</button></div>'+
+    '<div class="modal-body"><p style="font-size:14px;color:#444">'+esc(msg||'')+'</p></div>'+
+    '<div class="modal-foot"><button class="btn-g" onclick="closeModal()">Annuler</button>'+
+    '<button class="btn-r" style="margin-top:0" id="modal-yes">'+esc(yesText||'Supprimer')+'</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
+  G('modal-yes').onclick=function(){closeModal();if(onYes)onYes();};
+}

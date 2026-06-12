@@ -2,7 +2,7 @@
 var pinV='',pinSel=null;
 function toggleLang(){LANG=LANG==='fr'?'ar':'fr';LS.set('lang',LANG);document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';var lb=G('lang-login-btn');if(lb)lb.textContent=LANG==='fr'?'🇫🇷 FR':'🇲🇦 AR';renderRemembered();}
 // if already logged in, skip straight to the right app
-(function(){var s=getSession();if(s){location.href=s.role==='admin'?'pages/database.html':'pages/inventory.html';}})();
+(function(){var s=getSession();if(s){location.href=s.role==='admin'?'pages/statistics.html':'pages/inventory.html';}})();
 
 function getRemembered(){return LS.get('remembered',[])||[];}
 function rememberUser(u){var r=getRemembered(),ex=false;for(var i=0;i<r.length;i++){if(r[i].id===u.id){r[i].username=u.username;r[i].fullname=u.fullname;r[i].color=u.color;ex=true;break;}}if(!ex)r.push({id:u.id,username:u.username,fullname:u.fullname||u.username,color:u.color});LS.set('remembered',r);}
@@ -33,7 +33,7 @@ function checkPin(){
   hashPIN(pinV).then(function(h){
     if(h===pinSel.pin_hash){
       rememberUser(pinSel);setSession(pinSel);
-      location.href=pinSel.role==='admin'?'pages/database.html':'pages/inventory.html';
+      location.href=pinSel.role==='admin'?'pages/statistics.html':'pages/inventory.html';
     } else {for(var i=0;i<6;i++){var d=G('pd'+i);if(d)d.classList.add('error');}setTimeout(function(){pinV='';updateDots();},700);}
   });
 }

@@ -17,9 +17,9 @@ function refreshProjs(){
       var info=document.createElement('div');info.style.flex='1';info.appendChild(nameEl);info.appendChild(dateEl);
       var btns=document.createElement('div');btns.className='proj-btns';
       var lb=document.createElement('button');lb.className='btn-b';lb.textContent='📂 '+t('ld');lb.onclick=function(){setCurrentProject(p);location.href='products.html';};
-      var eb=document.createElement('button');eb.className='btn-b';eb.textContent='✏️';eb.onclick=function(){var n=prompt(t('chn')+':',p.name);if(n&&n.trim()){sb.from('projects').update({name:n.trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){nameEl.textContent=n.trim();showToast('✅');});}};
+      var eb=document.createElement('button');eb.className='btn-b';eb.textContent='✏️';eb.onclick=function(){openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:t('projName'),value:p.name}],onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();showToast('✅ '+t('renamed'));});}});};
       var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 '+t('pd');pb.onclick=function(){pdfForProjectId(p.id,p.name,CU.fullname||CU.username);};
-      var db=document.createElement('button');db.className='btn-r';db.textContent='🗑';db.onclick=function(){if(!confirm(t('del')+' ?'))return;sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('✅');});};
+      var db=document.createElement('button');db.className='btn-r';db.textContent='🗑';db.onclick=function(){confirmModal(t('del'),'"'+p.name+'" ?',function(){sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('✅ '+t('deleted'));});},t('del'));};
       btns.appendChild(lb);btns.appendChild(eb);btns.appendChild(pb);btns.appendChild(db);
       var left=document.createElement('div');left.style.flex='1';left.appendChild(info);left.appendChild(btns);
       var row=document.createElement('div');row.className='proj-row';row.appendChild(left);list.appendChild(row);
