@@ -12,11 +12,10 @@ function exportProducts(fmt){
     logB('✅ '+p.length+' products exported');
   });
 }
-function exportUsers(fmt){
+function exportUsers(){
   dbGetUsers().then(function(u){
-    if(fmt==='json'){dl('users-'+today()+'.json',JSON.stringify(u,null,2),'application/json');}
-    else{var rows=['username,fullname,role,color'];u.forEach(function(x){rows.push([csvEscape(x.username),csvEscape(x.fullname),csvEscape(x.role),csvEscape(x.color)].join(','));});dl('users-'+today()+'.csv',rows.join('\n'),'text/csv');}
-    logB('✅ '+u.length+' users exported (PIN hashes only in JSON)');
+    dl('users-'+today()+'.json',JSON.stringify(u,null,2),'application/json');
+    logB('✅ '+u.length+' users exported (JSON, keeps hashed PIN)');
   });
 }
 function exportFull(){

@@ -84,11 +84,11 @@ function buildHeader(opts){
   '<div class="hdr">'+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
-      '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
-      langBtn+
-      '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
-      '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
       '<button class="hdr-btn" onclick="location.reload()" title="Rafraîchir">↻</button>'+
+      '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
+      '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
+      langBtn+
+      '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
       '<div class="av-menu" id="av-menu">'+
         '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
         (opts.role==='admin'?'<button onclick="location.href=\'profile.html\'">👤 My profile</button>':'<button onclick="location.href=\'profile.html\'">👤 '+t('myProfile')+'</button>')+
@@ -114,36 +114,44 @@ function toggleAvMenu(){var m=G('av-menu');if(m)m.classList.toggle('show');}
 document.addEventListener('click',function(e){var m=G('av-menu');if(m&&m.classList.contains('show')){if(!e.target.closest('#av-menu')&&!e.target.closest('#hdr-av'))m.classList.remove('show');}});
 
 // ====== SHARED PDF (used by user recap + admin projects) ======
-function generatePDF(project,items,adjs,authorName){
+function generatePDF(project,items,adjs,authorName,lang){
+  lang=lang||'fr';
   var jsPDFLib=(window.jspdf&&window.jspdf.jsPDF)?window.jspdf.jsPDF:(window.jsPDF||null);
-  if(!jsPDFLib){showToast('⚠️ jsPDF non chargé.');return;}
+  if(!jsPDFLib){showToast('jsPDF non charge');return;}
+  var L={
+    fr:{prod:'PRODUITS',adjs:'AJUSTEMENTS',gen:'Genere le',by:'par',pname:'Produit',price:'Prix',qte:'Qte',total:'Total DH',subP:'Sous-total produits',subA:'Sous-total ajustements',desc:'Description',type:'Type',amount:'Montant',grand:'TOTAL GENERAL',signR:'Signature responsable',signC:'Signature controleur'},
+    ar:{prod:'المنتجات',adjs:'التسويات',gen:'حرر في',by:'بواسطة',pname:'المنتج',price:'السعر',qte:'الكمية',total:'المجموع',subP:'مجموع المنتجات',subA:'مجموع التسويات',desc:'الوصف',type:'النوع',amount:'المبلغ',grand:'المجموع الكلي',signR:'توقيع المسؤول',signC:'توقيع المراقب'}
+  }[lang]||L.fr;
   var tP=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);
   var tA=adjs.reduce(function(s,a){return s+(a.type==='+'?1:-1)*(parseFloat(a.amount)||0);},0);
   var grand=tP+tA,now=new Date().toLocaleDateString('fr-MA');
   var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});var W=210,M=15,y=36;
-  doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text('L7ssab.ma',M,12);
-  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.text((project?project.name:'Rapport'),M,20);
-  doc.setFontSize(9);doc.text('Genere le '+now+' | par '+(authorName||'-'),M,26);
-  doc.setTextColor(26,122,74);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('PRODUITS ('+items.length+')',M,y);y+=6;
-  doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.setFont('helvetica','bold');
-  doc.text('N',M+2,y+5);doc.text('Produit',M+12,y+5);doc.text('Prix',M+108,y+5,{align:'right'});doc.text('Qte',M+124,y+5,{align:'right'});doc.text('Total DH',W-M-2,y+5,{align:'right'});y+=7;
-  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
+  var FONT='helvetica';
+  if(lang==='ar'&&typeof loadArabicFont==='function'&&loadArabicFont(doc)){FONT='Amiri';}
+  function F(style){try{doc.setFont(FONT,style||'normal');}catch(e){doc.setFont('helvetica',style||'normal');}}
+  doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);F('bold');doc.text('L7ssab.ma',M,12);
+  doc.setFontSize(11);F('normal');doc.text((project?project.name:'Rapport'),M,20);
+  doc.setFontSize(9);doc.text(L.gen+' '+now+' | '+L.by+' '+(authorName||'-'),M,26);
+  doc.setTextColor(26,122,74);doc.setFontSize(11);F('bold');doc.text(L.prod+' ('+items.length+')',M,y);y+=6;
+  doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);F('bold');
+  doc.text('N',M+2,y+5);doc.text(L.pname,M+12,y+5);doc.text(L.price,M+108,y+5,{align:'right'});doc.text(L.qte,M+124,y+5,{align:'right'});doc.text(L.total,W-M-2,y+5,{align:'right'});y+=7;
+  F('normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
   items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.text(String(i+1),M+2,y+4.5);doc.text((p.name||'-').substring(0,40),M+12,y+4.5);doc.text(pr.toFixed(2),M+108,y+4.5,{align:'right'});doc.text(String(q),M+124,y+4.5,{align:'right'});doc.text((pr*q).toFixed(2),W-M-2,y+4.5,{align:'right'});y+=6;if(y>270){doc.addPage();y=15;}});
-  doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');doc.setFont('helvetica','bold');doc.setTextColor(15,81,50);doc.text('Sous-total produits',M+2,y+5);doc.text(tP.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=10;
-  if(adjs.length>0){doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text('AJUSTEMENTS ('+adjs.length+')',M,y);y+=6;doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.text('Description',M+2,y+5);doc.text('Type',M+118,y+5);doc.text('Montant',W-M-2,y+5,{align:'right'});y+=7;doc.setFont('helvetica','normal');doc.setFontSize(8);adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.setTextColor(30,30,30);doc.text((a.description||'-').substring(0,46),M+2,y+4.5);doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;});doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');doc.setFont('helvetica','bold');doc.setTextColor(15,81,50);doc.text('Sous-total ajustements',M+2,y+5);doc.text((tA>=0?'+':'')+tA.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=12;}
-  if(y>240){doc.addPage();y=15;}doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,14,'F');doc.setTextColor(255,255,255);doc.setFontSize(13);doc.setFont('helvetica','bold');doc.text('TOTAL GENERAL',M+4,y+9);doc.text(grand.toFixed(2)+' DH',W-M-4,y+9,{align:'right'});y+=20;
-  if(y>250){doc.addPage();y=15;}doc.setTextColor(100,100,100);doc.setFontSize(9);doc.setFont('helvetica','normal');var sw=(W-2*M)/2-5;doc.line(M,y+12,M+sw,y+12);doc.line(M+sw+10,y+12,W-M,y+12);doc.text('Signature responsable',M+sw/2,y+17,{align:'center'});doc.text('Signature controleur',M+sw+10+sw/2,y+17,{align:'center'});
+  doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(L.subP,M+2,y+5);doc.text(tP.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=10;
+  if(adjs.length>0){doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text(L.adjs+' ('+adjs.length+')',M,y);y+=6;doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.text(L.desc,M+2,y+5);doc.text(L.type,M+118,y+5);doc.text(L.amount,W-M-2,y+5,{align:'right'});y+=7;F('normal');doc.setFontSize(8);adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.setTextColor(30,30,30);doc.text((a.description||'-').substring(0,46),M+2,y+4.5);doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;});doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(L.subA,M+2,y+5);doc.text((tA>=0?'+':'')+tA.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=12;}
+  if(y>240){doc.addPage();y=15;}doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,14,'F');doc.setTextColor(255,255,255);doc.setFontSize(13);F('bold');doc.text(L.grand,M+4,y+9);doc.text(grand.toFixed(2)+' DH',W-M-4,y+9,{align:'right'});y+=20;
+  if(y>250){doc.addPage();y=15;}doc.setTextColor(100,100,100);doc.setFontSize(9);F('normal');var sw=(W-2*M)/2-5;doc.line(M,y+12,M+sw,y+12);doc.line(M+sw+10,y+12,W-M,y+12);doc.text(L.signR,M+sw/2,y+17,{align:'center'});doc.text(L.signC,M+sw+10+sw/2,y+17,{align:'center'});
   doc.setFontSize(8);doc.setTextColor(180,180,180);doc.text('L7ssab.ma (c) '+new Date().getFullYear(),W/2,290,{align:'center'});
   doc.save('rapport-'+(project?project.name:'inv').replace(/\s+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.pdf');
 }
-function pdfForProjectId(pid,projName,authorName){Promise.all([dbGetItems(pid),dbGetAdjs(pid)]).then(function(r){generatePDF({id:pid,name:projName},r[0],r[1],authorName);});}
+function pdfForProjectId(pid,projName,authorName,lang){Promise.all([dbGetItems(pid),dbGetAdjs(pid)]).then(function(r){generatePDF({id:pid,name:projName},r[0],r[1],authorName,lang);});}
 
 // ====== SHARED LANGUAGE ENGINE (FR / AR) for user pages ======
 var LANG=LS.get('lang','fr');
 function isAr(){return LANG==='ar';}
 var T={
-fr:{newProj:'Nouveau projet',cProj:'Créer le projet →',sProj:'Projets sauvegardés',aProd:'Ajouter un produit',srch:'Rechercher',price:'Prix (DH)',qty:'Quantité',add:'+ Ajouter',eProd:'Produit',of:'sur',runT:'Total provisoire',back:'← Retour',next:'Suivant →',adj:'Ajustements',adjD:'Ajoutez frais, remises ou corrections.',addL:'+ Ajouter une ligne',recap:'Récapitulatif',prods:'Produits',tP:'Total produits',tA:'Total ajustements',grand:'TOTAL GÉNÉRAL',dlPDF:'Télécharger PDF',nInv:'🔄 Nouvel inventaire',nInvQ:'Recommencer ?',prof:'Mon profil',ld:'Charger',pd:'PDF',chn:'Changer le nom',chp:'Changer le PIN',upd:'Mettre à jour',tap:'Appuyer',ok:'Confirmer ✓',can:'Annuler',fd:'Trouvé dans la base',nf:'Inconnu — saisie manuelle',onl:'Pas dans la base — recherche en ligne…',apiF:'Trouvé en ligne (API)',mProf:'Mon profil',out2:'Déconnexion',rUsr:'Utilisateur',rAdm:'Administrateur',noProj:'Aucun projet',projName:'Nom du projet…',prodName:'Nom du produit',scanPH:'Scannez ou tapez le code-barres…',type:'Type',amount:'Montant',desc:'Description',num:'N°',total:'Total',signR:'Signature responsable',signC:'Signature contrôleur',sumP:'Sous-total',del:'Supprimer',renamed:'Renommé',added:'Ajouté',deleted:'Supprimé',enterName:'Entrez le nom',installApp:'Installer',myProfile:'Mon profil',logoutTxt:'Déconnexion'},
-ar:{newProj:'مشروع جديد',cProj:'إنشاء المشروع ←',sProj:'المشاريع المحفوظة',aProd:'إضافة منتج',srch:'بحث',price:'السعر (درهم)',qty:'الكمية',add:'+ إضافة',eProd:'المنتج',of:'من',runT:'المجموع المؤقت',back:'→ رجوع',next:'التالي ←',adj:'التسويات',adjD:'أضف رسوماً أو خصومات أو تصحيحات.',addL:'+ إضافة سطر',recap:'الملخص',prods:'المنتجات',tP:'مجموع المنتجات',tA:'مجموع التسويات',grand:'المجموع الكلي',dlPDF:'تحميل PDF',nInv:'🔄 جرد جديد',nInvQ:'هل تريد البدء من جديد؟',prof:'ملفي',ld:'تحميل',pd:'PDF',chn:'تغيير الاسم',chp:'تغيير الرمز',upd:'تحديث',tap:'اضغط',ok:'تأكيد ✓',can:'إلغاء',fd:'موجود في قاعدة البيانات',nf:'غير معروف — إدخال يدوي',onl:'غير موجود — البحث على الإنترنت…',apiF:'تم العثور عليه عبر الإنترنت',mProf:'ملفي الشخصي',out2:'تسجيل الخروج',rUsr:'مستخدم',rAdm:'مدير',noProj:'لا توجد مشاريع',projName:'اسم المشروع…',prodName:'اسم المنتج',scanPH:'امسح أو اكتب الرمز الشريطي…',type:'النوع',amount:'المبلغ',desc:'الوصف',num:'رقم',total:'المجموع',signR:'توقيع المسؤول',signC:'توقيع المراقب',sumP:'المجموع الفرعي',del:'حذف',renamed:'تم التغيير',added:'تمت الإضافة',deleted:'تم الحذف',enterName:'أدخل الاسم',installApp:'تثبيت التطبيق',myProfile:'ملفي الشخصي',logoutTxt:'تسجيل الخروج'}
+fr:{newProj:'Nouveau projet',cProj:'Créer le projet →',sProj:'Projets sauvegardés',aProd:'Ajouter un produit',srch:'Rechercher',price:'Prix (DH)',qty:'Quantité',add:'+ Ajouter',eProd:'Produit',of:'sur',runT:'Total provisoire',back:'← Retour',next:'Suivant →',adj:'Ajustements',adjD:'Ajoutez frais, remises ou corrections.',addL:'+ Ajouter une ligne',recap:'Récapitulatif',prods:'Produits',tP:'Total produits',tA:'Total ajustements',grand:'TOTAL GÉNÉRAL',dlPDF:'Télécharger PDF',nInv:'🔄 Nouvel inventaire',nInvQ:'Recommencer ?',prof:'Mon profil',ld:'Charger',pd:'PDF',chn:'Changer le nom',chp:'Changer le PIN',upd:'Mettre à jour',tap:'Appuyer',ok:'Confirmer ✓',can:'Annuler',fd:'Trouvé dans la base',nf:'Inconnu — saisie manuelle',onl:'Pas dans la base — recherche en ligne…',apiF:'Trouvé en ligne (API)',mProf:'Mon profil',out2:'Déconnexion',rUsr:'Utilisateur',rAdm:'Administrateur',noProj:'Aucun projet',projName:'Nom du projet…',prodName:'Nom du produit',scanPH:'Scannez ou tapez le code-barres…',type:'Type',amount:'Montant',desc:'Description',num:'N°',total:'Total',signR:'Signature responsable',signC:'Signature contrôleur',sumP:'Sous-total',del:'Supprimer',renamed:'Renommé',added:'Ajouté',deleted:'Supprimé',enterName:'Entrez le nom',installApp:'Installer',myProfile:'Mon profil',logoutTxt:'Déconnexion',scanner:'Scanner',notDetected:'Non détecté',connect:'Connecter'},
+ar:{newProj:'مشروع جديد',cProj:'إنشاء المشروع ←',sProj:'المشاريع المحفوظة',aProd:'إضافة منتج',srch:'بحث',price:'السعر (درهم)',qty:'الكمية',add:'+ إضافة',eProd:'المنتج',of:'من',runT:'المجموع المؤقت',back:'→ رجوع',next:'التالي ←',adj:'التسويات',adjD:'أضف رسوماً أو خصومات أو تصحيحات.',addL:'+ إضافة سطر',recap:'الملخص',prods:'المنتجات',tP:'مجموع المنتجات',tA:'مجموع التسويات',grand:'المجموع الكلي',dlPDF:'تحميل PDF',nInv:'🔄 جرد جديد',nInvQ:'هل تريد البدء من جديد؟',prof:'ملفي',ld:'تحميل',pd:'PDF',chn:'تغيير الاسم',chp:'تغيير الرمز',upd:'تحديث',tap:'اضغط',ok:'تأكيد ✓',can:'إلغاء',fd:'موجود في قاعدة البيانات',nf:'غير معروف — إدخال يدوي',onl:'غير موجود — البحث على الإنترنت…',apiF:'تم العثور عليه عبر الإنترنت',mProf:'ملفي الشخصي',out2:'تسجيل الخروج',rUsr:'مستخدم',rAdm:'مدير',noProj:'لا توجد مشاريع',projName:'اسم المشروع…',prodName:'اسم المنتج',scanPH:'امسح أو اكتب الرمز الشريطي…',type:'النوع',amount:'المبلغ',desc:'الوصف',num:'رقم',total:'المجموع',signR:'توقيع المسؤول',signC:'توقيع المراقب',sumP:'المجموع الفرعي',del:'حذف',renamed:'تم التغيير',added:'تمت الإضافة',deleted:'تم الحذف',enterName:'أدخل الاسم',installApp:'تثبيت التطبيق',myProfile:'ملفي الشخصي',logoutTxt:'تسجيل الخروج',scanner:'الماسح',notDetected:'غير متصل',connect:'ربط'}
 };
 function t(k){var L=T[LANG]||T.fr;return L[k]!=null?L[k]:(T.fr[k]||k);}
 function setLangBtn(){var b=G('lang-app-btn');if(b)b.textContent=LANG==='fr'?'🇫🇷':'🇲🇦';}

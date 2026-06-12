@@ -16,7 +16,7 @@ function render(list){
     var info=document.createElement('div');info.style.flex='1';
     info.innerHTML='<p style="font-size:14px;font-weight:600;margin:0 0 2px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">👤 '+esc(owner)+' · '+new Date(p.updated_at).toLocaleDateString()+'</p>';
     var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 PDF';pb.style.flexShrink='0';
-    pb.onclick=function(){pdfForProjectId(p.id,p.name,owner);};
+    pb.onclick=function(){openModal({title:'Download PDF',confirmText:'Download',cancelText:'Cancel',fields:[{key:'lang',label:'Language',type:'select',value:'fr',options:[{value:'fr',label:'Français'},{value:'ar',label:'العربية (Arabic)'}]}],onConfirm:function(v){closeModal();pdfForProjectId(p.id,p.name,owner,v.lang);}});};
     row.appendChild(info);row.appendChild(pb);c.appendChild(row);
   });
 }
