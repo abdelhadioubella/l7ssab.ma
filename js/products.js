@@ -29,8 +29,55 @@ function loadItems(){return dbGetItems(CP.id).then(function(it){CACHE.items=it;r
 
 // scanner
 function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
-function startScanGuard(){if(_scanFocusTimer)return;_scanFocusTimer=setInterval(function(){if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;var a=document.activeElement,tag=a?a.tagName:'';if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();},250);document.addEventListener('click',function(e){if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;var tag=e.target?e.target.tagName:'';if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA'&&tag!=='BUTTON')setTimeout(focusScan,50);});}
-document.addEventListener('keydown',function(e){if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;var a=document.activeElement,tag=a?a.tagName:'';var inScan=(a&&a.id==='scan-inp');var inOther=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')&&!inScan;if(inOther)return;if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();markUSBconnected();doScan();return;}if(inScan)return;if(e.key==='Backspace'){e.preventDefault();var s=G('scan-inp');if(s)s.value=s.value.slice(0,-1);return;}if(e.key&&e.key.length===1){e.preventDefault();var s2=G('scan-inp');if(s2){s2.value+=e.key;clearTimeout(_scanInputTimer);_scanInputTimer=setTimeout(function(){var v=(s2.value||'').trim();if(v.length>=4){markUSBconnected();handleScan(v);}},180);}}},true);
+function startScanGuard(){if(_scanFocusTimer)return;_scanFocusTimer=setInterval(function(){if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;var a=document.activeElement,tag=a?a.tagName:'';if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();},250);}
+
+// ===== ROBUST GLOBAL SCAN BUFFER =====
+// USB barcode scanners act as keyboards that type very fast and end with Enter.
+// We capture keystrokes GLOBALLY (no matter the focus) and assemble the code,
+// so a stray Enter can never leave the page and digits never go "elsewhere".
+var _scanBuf='', _scanLast=0;
+document.addEventListener('keydown',function(e){
+  // ignore while the number pad popup is open
+  if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+  var a=document.activeElement,tag=a?a.tagName:'';
+  var inField=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA');
+  var inScan=(a&&a.id==='scan-inp');
+  // If user is deliberately typing in another field (name, search), leave them alone
+  if(inField&&!inScan)return;
+
+  var now=Date.now();
+  // reset buffer if there was a human-speed pause (>120ms between keys)
+  if(now-_scanLast>120)_scanBuf='';
+  _scanLast=now;
+
+  if(e.key==='Enter'||e.key==='Tab'){
+    e.preventDefault();
+    var code=_scanBuf.trim();_scanBuf='';
+    if(code.length>=3){markUSBconnected();handleScan(code);}
+    else{var sv=(G('scan-inp')&&G('scan-inp').value||'').trim();if(sv)handleScan(sv);}
+    return;
+  }
+  if(e.key==='Backspace'){
+    e.preventDefault(); // never let Backspace navigate "back"
+    _scanBuf=_scanBuf.slice(0,-1);
+    var s=G('scan-inp');if(s)s.value=_scanBuf;
+    return;
+  }
+  // printable single character (scanner digits/letters)
+  if(e.key&&e.key.length===1){
+    _scanBuf+=e.key;
+    var si=G('scan-inp');if(si&&!inScan){si.value=_scanBuf;}
+    // if it's a fast burst (scanner), no Enter needed: auto-submit after short idle
+    clearTimeout(_scanInputTimer);
+    _scanInputTimer=setTimeout(function(){
+      var v=_scanBuf.trim();
+      if(v.length>=4){markUSBconnected();handleScan(v);_scanBuf='';}
+    },150);
+    // when typing directly in the scan box, let the browser fill it naturally
+    if(inScan){return;}
+    e.preventDefault();
+  }
+},true);
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
 function markUSBconnected(){var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}}
 function checkUSBDevices(){try{if(navigator.hid&&navigator.hid.getDevices){navigator.hid.getDevices().then(function(devs){if(devs&&devs.length>0)markUSBconnected();}).catch(function(){});}}catch(e){}}
