@@ -119,8 +119,9 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 [dir=rtl] .inp,[dir=rtl] select.inp{direction:rtl;text-align:right}
 [dir=rtl] .rtbl thead th,[dir=rtl] .rtbl tbody td,[dir=rtl] .rtbl tfoot td,[dir=rtl] .utbl th,[dir=rtl] .utbl td{text-align:right}
 [dir=rtl] .num-field{text-align:right}
-[dir=rtl] .av-menu{right:auto;left:0}
-[dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px;text-align:right}
+[dir=rtl] .av-menu{right:0;left:auto}
+[dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px;text-align:right;justify-content:flex-end}
+[dir=rtl] .av-menu .av-head{text-align:right}
 /* keypads stay left-to-right (numbers) */
 [dir=rtl] .pin-grid,[dir=rtl] .np-grid{direction:ltr}
 [dir=rtl] .np-disp{text-align:left;direction:ltr}
@@ -197,3 +198,7 @@ html.dark .modal-body .ml{color:#9fb3a9}
 /* scrollable tabbar for many tabs */
 .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tabbar button{flex:1 0 auto;white-space:nowrap;padding:13px 14px;font-size:13px}
+
+/* Profile RTL alignment */
+[dir=rtl] #prof-name,[dir=rtl] .card-title{text-align:right}
+[dir=rtl] .card{text-align:right}
