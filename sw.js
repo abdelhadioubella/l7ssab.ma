@@ -1,9 +1,9 @@
-var CACHE='l7ssab-v7';
+var CACHE='l7ssab-v8';
 var ASSETS=[
 './','./index.html','./manifest.json',
 './css/styles.css',
-'./js/config.js','./js/login.js','./js/inventory.js','./js/products.js','./js/adjustments.js','./js/recap.js','./js/profile.js','./js/database.js','./js/statistics.js','./js/users.js','./js/adminprojects.js',
-'./pages/inventory.html','./pages/products.html','./pages/adjustments.html','./pages/recap.html','./pages/profile.html','./pages/database.html','./pages/statistics.html','./pages/users.html','./pages/projects.html',
+'./js/config.js','./js/login.js','./js/inventory.js','./js/products.js','./js/adjustments.js','./js/recap.js','./js/profile.js','./js/database.js','./js/statistics.js','./js/backup.js','./js/users.js','./js/adminprojects.js',
+'./pages/inventory.html','./pages/products.html','./pages/adjustments.html','./pages/recap.html','./pages/profile.html','./pages/database.html','./pages/statistics.html','./pages/backup.html','./pages/users.html','./pages/projects.html',
 './assets/icon-192.png','./assets/icon-512.png'
 ];
 self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS).catch(function(){});}));});
