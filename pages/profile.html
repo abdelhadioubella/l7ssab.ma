@@ -16,12 +16,18 @@
 <body>
 <div id="app-header"></div>
 <div class="page active"><div class="content">
-    <div class="card" style="text-align:center">
-      <div id="prof-av" style="width:72px;height:72px;border-radius:50%;background:#1a7a4a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 10px">?</div>
-      <p style="font-size:17px;font-weight:600;margin-bottom:6px" id="prof-name">—</p>
-      <span class="badge" id="prof-badge">—</span>
+    <div class="card" style="display:flex;align-items:center;gap:14px">
+      <div id="prof-av" style="width:64px;height:64px;border-radius:50%;background:#1a7a4a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;flex-shrink:0">?</div>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:17px;font-weight:700;margin-bottom:4px" id="prof-name">—</p>
+        <span class="badge" id="prof-badge">—</span>
+      </div>
     </div>
-    <div class="card"><div class="card-title" id="t-chgname">Changer le nom</div>
+    <div class="card"><div class="card-title" id="t-chguname">Changer le nom d'utilisateur</div>
+      <input class="inp" type="text" id="prof-newuname" autocomplete="off"/>
+      <button class="btn-p" onclick="updateProf('username')" id="t-update0">Mettre à jour</button>
+    </div>
+    <div class="card"><div class="card-title" id="t-chgname">Changer le nom complet</div>
       <input class="inp" type="text" id="prof-newname"/>
       <button class="btn-p" onclick="updateProf('name')" id="t-update1">Mettre à jour</button>
     </div>
