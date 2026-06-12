@@ -18,20 +18,21 @@
 <div class="page active"><div class="content">
     <div class="card">
       <div class="card-title" id="t-addprod">Ajouter un produit</div>
-      <div class="sc-card" id="usb-mini">
-        <div class="sc-row">
-          <span class="sc-name"><span class="sc-dot" id="usb-mini-dot" style="background:#ccc"></span><span id="usb-mini-lbl">Scanner USB</span></span>
+      <div class="sc-card" id="scanner-card">
+        <div class="sc-row" style="margin-bottom:6px">
+          <span class="sc-name" style="font-weight:700"><span id="t-scanner">Scanner</span></span>
+        </div>
+        <div class="sc-row" style="margin-bottom:6px">
+          <span class="sc-name"><span class="sc-dot" id="usb-mini-dot" style="background:#ccc"></span><span id="usb-mini-lbl">USB</span></span>
           <span class="badge b-off" id="usb-mini-badge">Non détecté</span>
         </div>
-      </div>
-      <div class="sc-card" id="bt-mini">
         <div class="sc-row">
-          <span class="sc-name"><span class="sc-dot" id="bt-mini-dot" style="background:#ccc"></span><span id="bt-mini-lbl">Scanner BT</span></span>
-          <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 10px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">BT</button>
+          <span class="sc-name"><span class="sc-dot" id="bt-mini-dot" style="background:#ccc"></span><span id="bt-mini-lbl">Bluetooth</span></span>
+          <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 12px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">Connecter</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" inputmode="numeric" onkeydown="if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();doScan();}"/>
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" inputmode="numeric"/>
         <button onclick="doScan()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
       </div>
       <div id="scan-msg" class="smsg hidden"></div>
