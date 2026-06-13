@@ -202,3 +202,18 @@ html.dark .modal-body .ml{color:#9fb3a9}
 /* Profile RTL alignment */
 [dir=rtl] #prof-name,[dir=rtl] .card-title{text-align:right}
 [dir=rtl] .card{text-align:right}
+
+/* Product suggestions dropdown */
+.suggest-box{background:#fff;border:1px solid #e0e0e0;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);margin-bottom:8px;max-height:260px;overflow-y:auto}
+.suggest-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:.5px solid #f0f0f0;cursor:pointer}
+.suggest-item:last-child{border-bottom:none}
+.suggest-item:hover,.suggest-item:active{background:#e8f5ee}
+.suggest-item .si-name{font-size:14px;font-weight:500;color:#111;margin:0 0 1px}
+.suggest-item .si-bc{font-size:11px;color:#888;font-family:monospace;margin:0}
+.suggest-item .si-price{font-size:14px;font-weight:700;color:#1a7a4a;white-space:nowrap}
+html.dark .suggest-box{background:#18211d;border-color:#2a3a33}
+html.dark .suggest-item{border-color:#22302a}
+html.dark .suggest-item:hover{background:#22302a}
+html.dark .suggest-item .si-name{color:#e8f0ec}
+[dir=rtl] .suggest-item{flex-direction:row-reverse}
+[dir=rtl] .suggest-item .si-name,[dir=rtl] .suggest-item .si-bc{text-align:right}
