@@ -31,10 +31,11 @@
           <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 12px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">Connecter</button>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" inputmode="numeric"/>
-        <button onclick="doScan()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
+      <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" oninput="onScanInput(this.value)"/>
+        <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
       </div>
+      <div id="scan-suggest" class="suggest-box hidden"></div>
       <div id="scan-msg" class="smsg hidden"></div>
       <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit"/>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
