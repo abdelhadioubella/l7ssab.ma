@@ -9,6 +9,10 @@ document.addEventListener('keydown',function(e){
     if(!editable){e.preventDefault();}
   }
 },true);
+// Extra safety net: trap the history "back" so a stray scanner key can never
+// leave this page. We push a dummy state; if a back fires, we re-push and stay.
+try{history.pushState({l7:1},'',location.href);
+window.addEventListener('popstate',function(){history.pushState({l7:1},'',location.href);});}catch(e){}
 var CP=requireProject();
 var dP=0,dQ=0,eI=0,npT=null,npV='',npD=true,btDev=null,_scanInputTimer=null,_scanFocusTimer=null;
 var CACHE={products:[],items:[]};
@@ -117,7 +121,7 @@ function pickProduct(p){
     var price=cp?cp.price:p.price;
     G('pname-inp').value=p.name;dP=parseFloat(price)||0;dQ=0;updateNFs();
     setScanMsg('✅ '+t('fd')+': '+p.name,1);
-    G('scan-inp').value='';focusScan();
+    var si=G('scan-inp');if(si)si.value=p.barcode||'';  // keep barcode shown
   });
 }
 // "Rechercher" button: if exact barcode match or single result -> fill; else show list
@@ -132,7 +136,32 @@ function doSearch(){
   // nothing locally -> treat as a scan/lookup (database miss -> API)
   handleScan(q);
 }
-function handleScan(code){hideSuggest&&hideSuggest();var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}if(found){dbGetCustomPrice(CU.id,code).then(function(cp){var price=cp?cp.price:found.price;G('pname-inp').value=found.name;dP=parseFloat(price)||0;dQ=0;updateNFs();setScanMsg('✅ '+t('fd')+': '+found.name,1);G('scan-inp').value='';focusScan();});return;}setScanMsg('🔎 '+t('onl'),2);fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){if(d.status===1&&d.product){var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});G('pname-inp').value=name;dP=0;dQ=0;updateNFs();setScanMsg('✅ '+t('apiF')+': '+name,1);}else{G('pname-inp').value='';setScanMsg('⚠️ '+t('nf')+' ('+code+')',0);}G('scan-inp').value='';focusScan();}).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);G('scan-inp').value='';focusScan();});}
+function handleScan(code){
+  hideSuggest&&hideSuggest();
+  // Always WRITE the scanned barcode into the field and keep it there.
+  var si=G('scan-inp');if(si)si.value=code;
+  var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}
+  if(found){
+    dbGetCustomPrice(CU.id,code).then(function(cp){
+      var price=cp?cp.price:found.price;
+      G('pname-inp').value=found.name;dP=parseFloat(price)||0;dQ=0;updateNFs();
+      setScanMsg('✅ '+t('fd')+': '+found.name,1);
+      // keep barcode shown; do not clear
+    });
+    return;
+  }
+  setScanMsg('🔎 '+t('onl'),2);
+  fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){
+    if(d.status===1&&d.product){
+      var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;
+      sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
+      G('pname-inp').value=name;dP=0;dQ=0;updateNFs();setScanMsg('✅ '+t('apiF')+': '+name,1);
+    } else {
+      G('pname-inp').value='';setScanMsg('⚠️ '+t('nf')+' ('+code+')',0);
+    }
+    // keep barcode shown
+  }).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);});
+}
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
 function saveCP(bc,price){if(!bc)return;sb.from('custom_prices').upsert({user_id:CU.id,barcode:bc,price:price},{onConflict:'user_id,barcode'}).then(function(){});}
 function updateNFs(){var p=G('nf-dp'),q=G('nf-dq');if(p){p.className=dP>0?'nf-val':'nf-ph';p.textContent=dP>0?dP.toFixed(2)+' DH':t('tap');}if(q){q.className=dQ>0?'nf-val':'nf-ph';q.textContent=dQ>0?String(dQ):t('tap');}}
