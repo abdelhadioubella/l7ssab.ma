@@ -169,20 +169,36 @@ function generatePDF(project,items,adjs,authorName,lang){
   var tA=adjs.reduce(function(s,a){return s+(a.type==='+'?1:-1)*(parseFloat(a.amount)||0);},0);
   var grand=tP+tA,now=new Date().toLocaleDateString('fr-MA');
   var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});var W=210,M=15,y=36;
-  function R(x){if(lang==='ar'&&typeof reshapeAr==='function')return reshapeAr(String(x==null?'':x));return String(x==null?'':x);}
-  var FONT='helvetica';
-  if(lang==='ar'&&typeof loadArabicFont==='function'&&loadArabicFont(doc)){FONT='Amiri';}
-  function F(style){var st=(FONT==='Amiri')?'normal':(style||'normal');try{doc.setFont(FONT,st);}catch(e){try{doc.setFont(FONT,'normal');}catch(e2){doc.setFont('helvetica',style||'normal');}}}
+  function R(x){
+    x=String(x==null?'':x);
+    // reshape any string that contains Arabic, regardless of the PDF language
+    if(/[\u0600-\u06FF]/.test(x)&&typeof reshapeAr==='function')return reshapeAr(x);
+    return x;
+  }
+  function hasAr(x){return /[\u0600-\u06FF]/.test(String(x==null?'':x));}
+  var FONT=(lang==='ar')?'Amiri':'helvetica';
+  // Always try to load Amiri so Arabic product names render even in a French PDF
+  var amiriOK=(typeof loadArabicFont==='function')&&loadArabicFont(doc);
+  if(lang==='ar'&&!amiriOK)FONT='helvetica';
+  // current "mode" font (set by F); T() draws text choosing Amiri automatically for Arabic strings
+  var _curStyle='normal';
+  function F(style){_curStyle=style||'normal';var f=FONT,st=(f==='Amiri')?'normal':_curStyle;try{doc.setFont(f,st);}catch(e){try{doc.setFont(f,'normal');}catch(e2){doc.setFont('helvetica',_curStyle);}}}
+  // smart text: if the string is Arabic and Amiri is available, draw with Amiri; else keep current font
+  function T(txt,x,y,opt){
+    var s=String(txt==null?'':txt);
+    if(hasAr(s)&&amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}doc.text(s,x,y,opt);F(_curStyle);}
+    else{doc.text(s,x,y,opt);}
+  }
   doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);F('bold');doc.text('L7ssab.ma',M,12);
-  doc.setFontSize(11);F('normal');doc.text(R(project?project.name:'Rapport'),M,20);
+  doc.setFontSize(11);F('normal');T(R(project?project.name:'Rapport'),M,20);
   doc.setFontSize(9);doc.text(R(L.by+' '+(authorName||'-'))+'  |  '+L.gen+' '+now,M,26);
   doc.setTextColor(26,122,74);doc.setFontSize(11);F('bold');doc.text(R(L.prod)+' ('+items.length+')',M,y);y+=6;
   doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);F('bold');
   doc.text('N',M+2,y+5);doc.text(R(L.pname),M+12,y+5);doc.text(R(L.price),M+108,y+5,{align:'right'});doc.text(R(L.qte),M+124,y+5,{align:'right'});doc.text(R(L.total),W-M-2,y+5,{align:'right'});y+=7;
   F('normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
-  items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.text(String(i+1),M+2,y+4.5);doc.text(R((p.name||'-').substring(0,40)),M+12,y+4.5);doc.text(pr.toFixed(2),M+108,y+4.5,{align:'right'});doc.text(String(q),M+124,y+4.5,{align:'right'});doc.text((pr*q).toFixed(2),W-M-2,y+4.5,{align:'right'});y+=6;if(y>270){doc.addPage();y=15;}});
+  items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.text(String(i+1),M+2,y+4.5);T(R((p.name||'-').substring(0,40)),M+12,y+4.5);doc.text(pr.toFixed(2),M+108,y+4.5,{align:'right'});doc.text(String(q),M+124,y+4.5,{align:'right'});doc.text((pr*q).toFixed(2),W-M-2,y+4.5,{align:'right'});y+=6;if(y>270){doc.addPage();y=15;}});
   doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(R(L.subP),M+2,y+5);doc.text(tP.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=10;
-  if(adjs.length>0){doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text(R(L.adjs)+' ('+adjs.length+')',M,y);y+=6;doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.text(R(L.desc),M+2,y+5);doc.text(R(L.type),M+118,y+5);doc.text(R(L.amount),W-M-2,y+5,{align:'right'});y+=7;F('normal');doc.setFontSize(8);adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.setTextColor(30,30,30);doc.text(R((a.description||'-').substring(0,46)),M+2,y+4.5);doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;});doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(R(L.subA),M+2,y+5);doc.text((tA>=0?'+':'')+tA.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=12;}
+  if(adjs.length>0){doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text(R(L.adjs)+' ('+adjs.length+')',M,y);y+=6;doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.text(R(L.desc),M+2,y+5);doc.text(R(L.type),M+118,y+5);doc.text(R(L.amount),W-M-2,y+5,{align:'right'});y+=7;F('normal');doc.setFontSize(8);adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.setTextColor(30,30,30);T(R((a.description||'-').substring(0,46)),M+2,y+4.5);doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;});doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(R(L.subA),M+2,y+5);doc.text((tA>=0?'+':'')+tA.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=12;}
   if(y>240){doc.addPage();y=15;}doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,14,'F');doc.setTextColor(255,255,255);doc.setFontSize(13);F('bold');doc.text(R(L.grand),M+4,y+9);doc.text(grand.toFixed(2)+' DH',W-M-4,y+9,{align:'right'});y+=20;
   if(y>250){doc.addPage();y=15;}doc.setTextColor(100,100,100);doc.setFontSize(9);F('normal');var sw=(W-2*M)/2-5;doc.line(M,y+12,M+sw,y+12);doc.line(M+sw+10,y+12,W-M,y+12);doc.text(R(L.signR),M+sw/2,y+17,{align:'center'});doc.text(R(L.signC),M+sw+10+sw/2,y+17,{align:'center'});
   doc.setFontSize(8);doc.setTextColor(180,180,180);doc.text('L7ssab.ma (c) '+new Date().getFullYear(),W/2,290,{align:'center'});
