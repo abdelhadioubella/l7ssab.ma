@@ -237,6 +237,40 @@ html.dark .suggest-item .si-name{color:#e8f0ec}
 /* Single-page sections */
 .appsec{display:none}
 .appsec.active{display:block}
+
+/* ===== SIDEBAR + CALCULATOR ===== */
+.hamb{font-size:20px!important}
+.sb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .2s;z-index:400}
+.sb-overlay.show{opacity:1;pointer-events:auto}
+.sidebar{position:fixed;top:0;left:0;width:280px;max-width:85vw;height:100%;background:#fff;box-shadow:2px 0 20px rgba(0,0,0,.2);transform:translateX(-100%);transition:transform .25s;z-index:401;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar.open{transform:translateX(0)}
+[dir=rtl] .sidebar{left:auto;right:0;transform:translateX(100%)}
+[dir=rtl] .sidebar.open{transform:translateX(0)}
+.sb-head{background:#1a7a4a;color:#fff;padding:18px 16px;font-size:18px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.sb-x{background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
+.sb-nav{padding:10px}
+.sb-item{display:flex;align-items:center;gap:12px;width:100%;padding:14px 14px;background:none;border:none;border-radius:12px;font-size:15px;color:#222;cursor:pointer;text-align:left;margin-bottom:4px}
+.sb-item span{flex:1}
+.sb-item:hover{background:#f0f7f3}
+.sb-item.active{background:#e8f5ee;color:#0f5132;font-weight:700}
+[dir=rtl] .sb-item{text-align:right;flex-direction:row-reverse}
+.sb-calc{padding:12px;border-top:1px solid #eee;margin-top:auto}
+.sb-calc-title{font-size:13px;font-weight:700;color:#666;margin-bottom:8px}
+.calc-disp{width:100%;padding:12px;font-size:24px;text-align:right;border:2px solid #1a7a4a;border-radius:10px;box-sizing:border-box;background:#f9fdfb;font-family:monospace;margin-bottom:4px}
+.calc-sub{font-size:12px;color:#1a7a4a;font-weight:600;text-align:right;margin-bottom:8px;min-height:16px}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.calc-k{padding:14px 0;font-size:17px;border:none;border-radius:10px;background:#f0f0f0;cursor:pointer;font-weight:600}
+.calc-k:active{transform:scale(.95)}
+.calc-op{background:#e8f5ee;color:#1a7a4a}
+.calc-fn{background:#eee;color:#666;font-size:15px}
+.calc-eq{background:#1a7a4a;color:#fff}
+html.dark .sidebar{background:#18211d}
+html.dark .sb-item{color:#e8f5ee}
+html.dark .sb-item:hover{background:#22302a}
+html.dark .calc-disp{background:#0f1714;color:#e8f5ee}
+html.dark .calc-k{background:#22302a;color:#e8f5ee}
+html.dark .calc-fn{background:#1c2622;color:#9bb3a8}
+
 </style>
 </head>
 <body>
@@ -283,6 +317,7 @@ html.dark .suggest-item .si-name{color:#e8f0ec}
 </div>
 <div id="main-app" class="hidden">
 <div id="app-header"></div>
+<div id="sidebar-holder"></div>
 <div class="appsec" id="sec-inventory">
 <div class="content">
   <div class="card">
@@ -506,8 +541,8 @@ html.dark .suggest-item .si-name{color:#e8f0ec}
       <button class="btn-p" onclick="exportUsers()">⬇️ Users JSON</button>
       <button class="btn-p" onclick="exportProjectsJSON()">⬇️ Projects JSON</button>
     </div>
-    <button class="btn-p" style="margin-top:10px;background:#1a7a4a" onclick="exportProjectsPDF()">📄 Projects backup (PDF)</button>
-    <button class="btn-p" style="margin-top:10px;background:#0f5132" onclick="exportFull()">💾 Full backup (JSON + PDF)</button>
+    <button class="btn-p" style="margin-top:10px;background:#0f5132" onclick="exportFull()">💾 Full backup (JSON)</button>
+    <p style="font-size:12px;color:#888;margin-top:8px">The Projects JSON (and Full backup) restore every project with its products & adjustments. After importing, open a project and tap “Download PDF” to get its PDF again.</p>
   </div>
   <div class="card"><div class="card-title">Import</div>
     <p style="font-size:13px;color:#888;margin-bottom:12px">Restore products/users from a file. Duplicates are skipped.</p>
@@ -515,6 +550,8 @@ html.dark .suggest-item .si-name{color:#e8f0ec}
     <input type="file" id="imp-prod" accept=".csv,.json" onchange="importProducts(this.files[0])" style="margin-bottom:10px"/>
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Users (JSON only — keeps hashed PIN)</div>
     <input type="file" id="imp-users" accept=".json" onchange="importUsers(this.files[0])" style="margin-bottom:10px"/>
+    <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Projects (JSON) — restores projects + items + adjustments</div>
+    <input type="file" id="imp-projects" accept=".json" onchange="importProjects(this.files[0])" style="margin-bottom:10px"/>
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Full backup (JSON)</div>
     <input type="file" id="imp-full" accept=".json" onchange="importFull(this.files[0])"/>
   </div>
