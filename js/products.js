@@ -35,52 +35,57 @@ function loadItems(){return dbGetItems(CP.id).then(function(it){CACHE.items=it;r
 function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
 function startScanGuard(){if(_scanFocusTimer)return;_scanFocusTimer=setInterval(function(){if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;var a=document.activeElement,tag=a?a.tagName:'';if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();},250);}
 
-// ===== ROBUST GLOBAL SCAN BUFFER =====
-// USB barcode scanners act as keyboards that type very fast and end with Enter.
-// We capture keystrokes GLOBALLY (no matter the focus) and assemble the code,
-// so a stray Enter can never leave the page and digits never go "elsewhere".
+// ===== SCANNER (robust, field-based) =====
+// The scan input is kept focused. USB scanners type into it fast and send Enter.
+// We read the FIELD VALUE on Enter, and block any key that could navigate away.
 var _scanBuf='', _scanLast=0;
+var SCAN_DEBUG=false; // set true to log keys in the console for diagnosis
 document.addEventListener('keydown',function(e){
-  // ignore while the number pad popup is open
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+  if(SCAN_DEBUG){try{console.log('KEY:',JSON.stringify(e.key),'code:',e.code);}catch(_){}}
   var a=document.activeElement,tag=a?a.tagName:'';
   var inField=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA');
   var inScan=(a&&a.id==='scan-inp');
-  // If user is deliberately typing in another field (name, search), leave them alone
+  // user deliberately typing in another field (product name, etc.) -> leave alone
   if(inField&&!inScan)return;
 
-  var now=Date.now();
-  // reset buffer if there was a human-speed pause (>120ms between keys)
-  if(now-_scanLast>120)_scanBuf='';
-  _scanLast=now;
-
+  // ENTER / TAB = end of scan (or search). Always stop default so it can't navigate.
   if(e.key==='Enter'||e.key==='Tab'){
-    e.preventDefault();
-    var code=_scanBuf.trim();_scanBuf='';
-    if(code.length>=3){markUSBconnected();handleScan(code);}      // device scan -> direct lookup (DB/API)
-    else{var sv=(G('scan-inp')&&G('scan-inp').value||'').trim();if(sv)doSearch();}  // typed text -> search/suggest
-    return;
+    e.preventDefault();e.stopPropagation();
+    var fieldVal=(G('scan-inp')&&G('scan-inp').value||'').trim();
+    var code=fieldVal||_scanBuf.trim();_scanBuf='';
+    if(code.length>=3){markUSBconnected();handleScan(code);}
+    else if(code.length>0){doSearch();}
+    return false;
   }
+  // BACKSPACE outside a field must never trigger browser "back"
   if(e.key==='Backspace'){
-    e.preventDefault(); // never let Backspace navigate "back"
-    _scanBuf=_scanBuf.slice(0,-1);
-    var s=G('scan-inp');if(s)s.value=_scanBuf;
+    if(!inScan){e.preventDefault();e.stopPropagation();
+      _scanBuf=_scanBuf.slice(0,-1);var s=G('scan-inp');if(s)s.value=_scanBuf;}
     return;
   }
-  // printable single character (scanner digits/letters)
+  // printable character
   if(e.key&&e.key.length===1){
-    // When the cursor is in the search box, this is a HUMAN typing:
-    // let the box fill naturally and show suggestions — do NOT buffer/auto-submit.
-    if(inScan){_scanBuf='';return;}
-    // Otherwise it's a device scan (focus elsewhere): buffer it.
-    _scanBuf+=e.key;
-    var si=G('scan-inp');if(si){si.value=_scanBuf;}
+    if(inScan){
+      // human/scanner typing into the focused field: let it fill naturally,
+      // suggestions appear via oninput. Auto-submit a fast burst.
+      var now=Date.now();if(now-_scanLast>120)_scanLast=now;else _scanLast=now;
+      clearTimeout(_scanInputTimer);
+      _scanInputTimer=setTimeout(function(){
+        var v=(G('scan-inp')&&G('scan-inp').value||'').trim();
+        // only auto-fire if it looks like a scanned barcode (mostly digits, >=6 long)
+        if(v.length>=6&&/^[0-9A-Za-z\-]+$/.test(v)){markUSBconnected();handleScan(v);}
+      },160);
+      return;
+    }
+    // focus was lost: redirect the keystroke into the field and keep focus there
+    e.preventDefault();
+    var si=G('scan-inp');if(si){si.value=(si.value||'')+e.key;si.focus();}
     clearTimeout(_scanInputTimer);
     _scanInputTimer=setTimeout(function(){
-      var v=_scanBuf.trim();
-      if(v.length>=4){markUSBconnected();handleScan(v);_scanBuf='';}
-    },150);
-    e.preventDefault();
+      var v=(G('scan-inp')&&G('scan-inp').value||'').trim();
+      if(v.length>=6&&/^[0-9A-Za-z\-]+$/.test(v)){markUSBconnected();handleScan(v);}
+    },160);
   }
 },true);
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
