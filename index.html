@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>L7ssab.ma</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a7a4a'/%3E%3Crect x='12' y='12' width='40' height='40' rx='8' fill='%23ffffff'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-size='24' font-weight='bold' fill='%231a7a4a' text-anchor='middle'%3EL7%3C/text%3E%3C/svg%3E"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
+<meta name="theme-color" content="#1a7a4a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f0;color:#111}
+button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
+.hidden{display:none!important}
+.hdr{background:#1a7a4a;color:#fff;height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;position:sticky;top:0;z-index:98;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr-title{font-size:16px;font-weight:700;flex:1}
+.hdr-right{display:flex;gap:8px;align-items:center;position:relative}
+.hdr-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:5px 10px;font-size:13px}
+.hdr-av{width:36px;height:36px;border-radius:50%;background:#fff;color:#1a7a4a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;cursor:pointer;border:2px solid rgba(255,255,255,.6)}
+.av-menu{position:absolute;top:46px;right:0;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);overflow:hidden;width:190px;display:none;z-index:300}
+.av-menu.show{display:block}
+.av-menu .av-head{padding:12px 16px;border-bottom:.5px solid #eee;background:#f8fdf9}
+.av-menu .av-head .n{font-size:14px;font-weight:600;color:#111}
+.av-menu .av-head .r{font-size:11px;color:#666}
+.av-menu button{display:block;width:100%;padding:12px 16px;font-size:14px;background:transparent;border:none;text-align:left;color:#111;cursor:pointer;border-bottom:.5px solid #f0f0f0}
+.av-menu button:last-child{border-bottom:none;color:#d63031}
+.av-menu button:hover{background:#f5f5f5}
+.tabbar{display:flex;background:#fff;border-bottom:.5px solid #e0e0e0;position:sticky;top:54px;z-index:90}
+.tabbar button{flex:1;padding:13px;font-size:14px;font-weight:600;background:transparent;border:none;color:#666;border-bottom:3px solid transparent}
+.tabbar button.active{color:#1a7a4a;border-bottom-color:#1a7a4a}
+.page{display:none;min-height:calc(100vh - 54px);background:#f0f4f0;padding-bottom:60px}
+.page.active{display:block}
+.content{padding:12px;max-width:720px;margin:0 auto}
+/* responsive: adapt to the device screen */
+@media (min-width:1024px){
+  .content{max-width:920px}
+  .card{padding:22px}
+}
+@media (min-width:1024px) and (min-height:600px){
+  .db-stats{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:380px){
+  .content{padding:8px}
+  .card{padding:14px}
+  .pin-key{padding:14px;font-size:20px}
+  .nk{padding:13px;font-size:18px}
+}
+/* landscape tablets: use two columns for the inventory forms area */
+@media (min-width:900px) and (orientation:landscape){
+  .content{max-width:1000px}
+}
+.card{background:#fff;border:.5px solid #e0e0e0;border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card-title{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px}
+.inp{width:100%;padding:11px 13px;font-size:15px;border-radius:12px;border:.5px solid #ccc;background:#f5f5f5;color:#111;margin-bottom:8px;display:block}
+.inp:focus{outline:none;border-color:#1a7a4a;box-shadow:0 0 0 2px rgba(26,122,74,.15)}
+.btn-p{width:100%;padding:12px;font-size:15px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:12px;margin-top:2px}
+.btn-g{padding:12px;font-size:14px;background:#f5f5f5;color:#111;border:.5px solid #ccc;border-radius:12px}
+.btn-r{padding:7px 11px;font-size:13px;background:#ffeaea;color:#d63031;border:none;border-radius:8px;cursor:pointer}
+.btn-b{padding:7px 11px;font-size:13px;background:#e8f0ff;color:#2563eb;border:none;border-radius:8px;cursor:pointer}
+.btn-grn{padding:7px 11px;font-size:13px;background:#e8f5ee;color:#0f5132;border:none;border-radius:8px;cursor:pointer}
+.nav-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+#login-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:#f0faf5;position:relative}
+.logo-box{width:72px;height:72px;border-radius:20px;background:#1a7a4a;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:36px;box-shadow:0 4px 16px rgba(26,122,74,.35)}
+.login-card{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:400px;box-shadow:0 4px 32px rgba(0,0,0,.1)}
+.user-circles{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end}
+.ucw{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.uc{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;border:3px solid transparent;transition:all .2s}
+.uc.sel{border-color:#1a7a4a;box-shadow:0 0 0 3px rgba(26,122,74,.3)}
+.uc-name{font-size:11px;font-weight:500;color:#666;max-width:60px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.add-uc{width:52px;height:52px;border-radius:50%;background:#f0faf5;border:2px dashed #1a7a4a;display:flex;align-items:center;justify-content:center;font-size:26px;color:#1a7a4a;cursor:pointer}
+#add-user-form{background:#f0faf5;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #c8e6d4;display:none}
+.pin-dots{display:flex;gap:11px;justify-content:center;margin:14px 0}
+.pin-dot{width:18px;height:18px;border-radius:50%;background:#ccc;transition:all .2s}
+.pin-dot.filled{background:#1a7a4a;transform:scale(1.1)}
+.pin-dot.error{background:#d63031}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
+.pin-key{padding:17px;font-size:22px;font-weight:600;background:#fff;border:.5px solid #ddd;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,.06);transition:all .15s}
+.pin-key:active{background:#e8f5ee;transform:scale(.95)}
+.pin-del{background:#ffeaea;color:#d63031}
+.pin-ph{background:transparent;border-color:transparent;box-shadow:none;pointer-events:none}
+#np-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:999}
+.np-panel{background:#fff;border-radius:20px 20px 0 0;padding:18px;width:100%;max-width:420px}
+.np-disp{background:#f5f5f5;border-radius:12px;padding:14px 16px;font-size:32px;font-weight:700;text-align:right;margin-bottom:12px;min-height:58px;letter-spacing:1px;border:.5px solid #e0e0e0;color:#111}
+.np-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.nk{padding:16px;font-size:20px;font-weight:600;background:#f5f5f5;border:.5px solid #e0e0e0;border-radius:12px;color:#111}
+.nk:active{background:#e8f5ee}
+.nk-c{background:#ffeaea;color:#d63031}
+.np-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.num-field{background:#f5f5f5;border:.5px solid #ccc;border-radius:12px;padding:10px 13px;cursor:pointer;min-height:54px;margin-bottom:8px;display:block}
+.nf-label{font-size:11px;color:#666;display:block;margin-bottom:3px}
+.nf-val{font-size:19px;font-weight:700;color:#111;display:block}
+.nf-ph{font-size:14px;color:#bbb;display:block}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.b-admin{background:#e8f5ee;color:#0f5132}
+.b-user{background:#f5f5f5;color:#666;border:.5px solid #ccc}
+.b-ok{background:#e8f5ee;color:#0f5132}
+.b-off{background:#f5f5f5;color:#666;border:.5px solid #ccc}
+.sc-card{border-radius:12px;padding:12px 14px;border:1.5px solid #e0e0e0;background:#f5f5f5;margin-bottom:10px}
+.sc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sc-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
+.rtbl{width:100%;border-collapse:collapse;font-size:13px}
+.rtbl thead tr{background:#1a7a4a;color:#fff}
+.rtbl thead th{padding:9px 7px;font-weight:600;font-size:11px;text-align:left}
+.rtbl tbody tr:nth-child(even){background:#f5f5f5}
+.rtbl tbody td{padding:8px 7px;border-bottom:.5px solid #e0e0e0}
+.rtbl tfoot td{padding:9px 7px;font-weight:700;background:#e8f5ee;border-top:2px solid #1a7a4a;color:#0f5132}
+.utbl{width:100%;border-collapse:collapse}
+.utbl th{padding:9px 8px;font-size:11px;font-weight:700;color:#666;text-align:left;text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid #e0e0e0}
+.utbl td{padding:10px 8px;font-size:13px;border-bottom:.5px solid #e0e0e0}
+.grand-box{background:#1a7a4a;border-radius:14px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.tbar{padding:12px 16px;background:#1a7a4a;border-radius:12px;display:flex;justify-content:space-between;color:#fff;font-size:15px;font-weight:600;margin-bottom:10px}
+.proj-row{display:flex;align-items:flex-start;padding:10px 0;border-bottom:.5px solid #e0e0e0;gap:8px}
+.proj-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.smsg{padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px}
+.adj-item{margin-bottom:10px;padding:12px;background:#f5f5f5;border-radius:12px;border:.5px solid #e0e0e0}
+.adj-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.adj-sign{width:42px;height:42px;border-radius:9px;font-size:22px;font-weight:700;border:none;flex-shrink:0;cursor:pointer}
+.srow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:.5px solid #e0e0e0}
+.db-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.db-stat{background:#f5f5f5;border-radius:10px;padding:12px;text-align:center}
+.db-val{font-size:24px;font-weight:700;color:#1a7a4a}
+.db-lbl{font-size:11px;color:#666;margin-top:2px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2e22;color:#e8f5ee;padding:12px 22px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap}
+/* ===== RTL (Arabic) — rely on natural dir=rtl flow ===== */
+[dir=rtl] body,[dir=rtl] .content,[dir=rtl] .card,[dir=rtl] .page{text-align:right;direction:rtl}
+[dir=rtl] .card p,[dir=rtl] .card div,[dir=rtl] .card span,[dir=rtl] .card label,[dir=rtl] .card-title,[dir=rtl] .hdr-title,[dir=rtl] .smsg,[dir=rtl] .adj-item{text-align:right}
+[dir=rtl] .inp,[dir=rtl] select.inp{direction:rtl;text-align:right}
+[dir=rtl] .rtbl thead th,[dir=rtl] .rtbl tbody td,[dir=rtl] .rtbl tfoot td,[dir=rtl] .utbl th,[dir=rtl] .utbl td{text-align:right}
+[dir=rtl] .num-field{text-align:right}
+[dir=rtl] .av-menu{left:0;right:auto}
+[dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px;text-align:right;justify-content:flex-end}
+[dir=rtl] .av-menu .av-head{text-align:right}
+/* keypads stay left-to-right (numbers) */
+[dir=rtl] .pin-grid,[dir=rtl] .np-grid{direction:ltr}
+[dir=rtl] .np-disp{text-align:left;direction:ltr}
+[dir=rtl] #login-topbar{right:auto;left:14px}
+
+/* ===== NIGHT MODE ===== */
+html.dark body{background:#0f1614;color:#e8f0ec}
+html.dark .page{background:#0f1614}
+html.dark .card{background:#18211d;border-color:#2a3a33;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+html.dark .card-title{color:#9fb3a9}
+html.dark .inp{background:#1f2a25;border-color:#33473e;color:#e8f0ec}
+html.dark .inp:focus{border-color:#2ecc8f;box-shadow:0 0 0 2px rgba(46,204,143,.2)}
+html.dark .btn-g{background:#1f2a25;color:#e8f0ec;border-color:#33473e}
+html.dark .num-field{background:#1f2a25;border-color:#33473e}
+html.dark .nf-val{color:#e8f0ec}
+html.dark .pin-key{background:#18211d;border-color:#2a3a33;color:#e8f0ec}
+html.dark .pin-key:active{background:#22302a}
+html.dark .nk{background:#1f2a25;border-color:#33473e;color:#e8f0ec}
+html.dark .np-panel{background:#18211d}
+html.dark .np-disp{background:#1f2a25;border-color:#33473e;color:#e8f0ec}
+html.dark .av-menu{background:#18211d}
+html.dark .av-menu button{color:#e8f0ec;border-color:#22302a}
+html.dark .av-menu button:hover{background:#22302a}
+html.dark .av-menu .av-head{background:#141c19;border-color:#22302a}
+html.dark .av-menu .av-head .n{color:#e8f0ec}
+html.dark .tabbar{background:#18211d;border-color:#2a3a33}
+html.dark .tabbar button{color:#9fb3a9}
+html.dark .tabbar button.active{color:#2ecc8f;border-bottom-color:#2ecc8f}
+html.dark .rtbl tbody tr:nth-child(even){background:#141c19}
+html.dark .rtbl tbody td{border-color:#2a3a33}
+html.dark .utbl td{border-color:#2a3a33}
+html.dark .utbl th{color:#9fb3a9;border-color:#33473e}
+html.dark .sc-card{background:#1f2a25;border-color:#33473e}
+html.dark .db-stat{background:#1f2a25}
+html.dark .proj-row{border-color:#2a3a33}
+html.dark .srow{border-color:#2a3a33}
+html.dark .adj-item{background:#1f2a25;border-color:#33473e}
+html.dark #login-page{background:#0f1614}
+html.dark .login-card{background:#18211d}
+html.dark .add-uc{background:#141c19}
+html.dark .uc-name{color:#9fb3a9}
+html.dark #login-topbar button{background:#18211d!important;border-color:#33473e!important;color:#e8f0ec!important}
+html.dark .logo-box{box-shadow:0 4px 16px rgba(0,0,0,.5)}
+html.dark .b-user{background:#1f2a25;color:#9fb3a9;border-color:#33473e}
+
+/* ===== Bigger header buttons ===== */
+.hdr{height:60px}
+.hdr-btn{font-size:17px;padding:8px 13px;border-radius:10px;min-width:42px}
+.hdr-av{width:42px;height:42px;font-size:18px}
+.hdr-title{font-size:17px}
+[dir=rtl] .hdr-right{flex-direction:row-reverse}
+/* RTL button styling for Arabic pages */
+[dir=rtl] .btn-p,[dir=rtl] .btn-g,[dir=rtl] .btn-r,[dir=rtl] .btn-b,[dir=rtl] .btn-grn{direction:rtl}
+[dir=rtl] .proj-btns{flex-direction:row-reverse;justify-content:flex-end}
+[dir=rtl] .nav-row button{direction:rtl}
+[dir=rtl] .num-field{text-align:right}
+[dir=rtl] .nf-label,[dir=rtl] .nf-val,[dir=rtl] .nf-ph{text-align:right;direction:rtl}
+
+/* ===== MODAL (in-app popups) ===== */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:18px}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.25);overflow:hidden;animation:modalin .18s ease}
+@keyframes modalin{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{padding:16px 18px;background:#1a7a4a;color:#fff;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.modal-head .x{background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1}
+.modal-body{padding:18px}
+.modal-body .ml{font-size:12px;font-weight:600;color:#666;margin:10px 0 4px}
+.modal-body .ml:first-child{margin-top:0}
+.modal-foot{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px 18px}
+html.dark .modal-box{background:#18211d}
+html.dark .modal-body .ml{color:#9fb3a9}
+[dir=rtl] .modal-head{flex-direction:row-reverse}
+[dir=rtl] .modal-body{text-align:right}
+
+/* scrollable tabbar for many tabs */
+.tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabbar button{flex:1 0 auto;white-space:nowrap;padding:13px 14px;font-size:13px}
+
+/* Profile RTL alignment */
+[dir=rtl] #prof-name,[dir=rtl] .card-title{text-align:right}
+[dir=rtl] .card{text-align:right}
+
+/* Product suggestions dropdown */
+.suggest-box{background:#fff;border:1px solid #e0e0e0;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);margin-bottom:8px;max-height:260px;overflow-y:auto}
+.suggest-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:.5px solid #f0f0f0;cursor:pointer}
+.suggest-item:last-child{border-bottom:none}
+.suggest-item:hover,.suggest-item:active{background:#e8f5ee}
+.suggest-item .si-name{font-size:14px;font-weight:500;color:#111;margin:0 0 1px}
+.suggest-item .si-bc{font-size:11px;color:#888;font-family:monospace;margin:0}
+.suggest-item .si-price{font-size:14px;font-weight:700;color:#1a7a4a;white-space:nowrap}
+html.dark .suggest-box{background:#18211d;border-color:#2a3a33}
+html.dark .suggest-item{border-color:#22302a}
+html.dark .suggest-item:hover{background:#22302a}
+html.dark .suggest-item .si-name{color:#e8f0ec}
+[dir=rtl] .suggest-item{flex-direction:row-reverse}
+[dir=rtl] .suggest-item .si-name,[dir=rtl] .suggest-item .si-bc{text-align:right}
+
+/* Single-page sections */
+.appsec{display:none}
+.appsec.active{display:block}
+</style>
+</head>
+<body>
+<div id="login-page">
+  <div id="login-topbar" style="position:absolute;top:14px;right:14px;display:flex;gap:8px">
+    <button onclick="location.reload()" title="Rafraîchir" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">↻</button>
+    <button onclick="toggleTheme()" class="theme-btn" title="Mode nuit" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">🌙</button>
+    <button onclick="toggleFS()" title="Plein écran" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">⛶</button>
+    <button onclick="doInstall()" class="install-btn hidden" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#1a7a4a;color:#fff;border:none">📲 Installer</button>
+    <button onclick="toggleLang()" id="lang-login-btn" style="padding:6px 12px;border-radius:8px;font-size:13px;background:#fff;border:.5px solid #ccc">🇫🇷 FR</button>
+  </div>
+  <div style="text-align:center;margin-bottom:18px">
+    <div class="logo-box">📦</div>
+    <h1 style="font-size:24px;font-weight:700;color:#1a7a4a">L7ssab.ma</h1>
+    <p style="font-size:13px;color:#666;margin-top:4px">Connexion</p>
+  </div>
+  <div class="login-card">
+    <div id="login-step-plus">
+      <p id="t-quicklogin" style="font-size:13px;color:#666;text-align:center;margin-bottom:12px">Choisissez votre compte</p>
+      <div class="user-circles" id="remembered-circles"></div>
+    </div>
+    <div id="login-step-username" class="hidden">
+      <p style="font-size:13px;font-weight:600;color:#1a7a4a;margin-bottom:10px" id="t-enter-uname">Entrez votre nom d'utilisateur</p>
+      <input class="inp" type="text" id="login-username" placeholder="Nom d'utilisateur" onkeydown="if(event.key==='Enter')loginCheckUser()"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn-g" onclick="backToPlus()">Annuler</button>
+        <button class="btn-p" style="margin-top:0" onclick="loginCheckUser()">Continuer →</button>
+      </div>
+    </div>
+    <div id="login-step-pin" class="hidden">
+      <div style="text-align:center;margin-bottom:6px">
+        <div id="login-av" style="width:54px;height:54px;border-radius:50%;background:#1a7a4a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin:0 auto 6px">?</div>
+        <p id="login-greeting" style="font-size:15px;font-weight:600;color:#111"></p>
+      </div>
+      <p id="t-pin" style="font-size:13px;color:#666;text-align:center;margin-bottom:4px">Entrez votre PIN</p>
+      <div class="pin-dots" id="pdots">
+        <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div><div class="pin-dot" id="pd4"></div><div class="pin-dot" id="pd5"></div>
+      </div>
+      <div class="pin-grid" id="pkeys"></div>
+      <button class="btn-g" style="width:100%;margin-top:12px" onclick="backToPlus()">← Retour</button>
+    </div>
+  </div>
+</div>
+<div id="main-app" class="hidden">
+<div id="app-header"></div>
+<div class="appsec" id="sec-inventory">
+<div class="content">
+  <div class="card">
+    <div class="card-title" id="t-newproj">Nouveau projet</div>
+    <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…"/>
+    <button class="btn-p" onclick="createProj()" id="t-createproj">Créer le projet →</button>
+  </div>
+  <div class="card"><div class="card-title" id="t-savedproj">Projets sauvegardés</div><div id="proj-list"></div></div>
+</div></div>
+</div>
+<div class="appsec" id="sec-products">
+<div class="content">
+    <div class="card">
+      <div class="card-title" id="t-addprod">Ajouter un produit</div>
+      <div class="sc-card" id="scanner-card">
+        <div class="sc-row" style="margin-bottom:6px">
+          <span class="sc-name" style="font-weight:700"><span id="t-scanner">Scanner</span></span>
+        </div>
+        <div class="sc-row" style="margin-bottom:6px">
+          <span class="sc-name"><span class="sc-dot" id="usb-mini-dot" style="background:#ccc"></span><span id="usb-mini-lbl">USB</span></span>
+          <span class="badge b-off" id="usb-mini-badge">Non détecté</span>
+        </div>
+        <div class="sc-row">
+          <span class="sc-name"><span class="sc-dot" id="bt-mini-dot" style="background:#ccc"></span><span id="bt-mini-lbl">Bluetooth</span></span>
+          <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 12px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">Connecter</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" autofocus/>
+        <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
+      </div>
+      <div id="scan-suggest" class="suggest-box hidden"></div>
+      <div id="scan-msg" class="smsg hidden"></div>
+      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+        <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price">Prix (DH)</span><span id="nf-dp" class="nf-ph">Appuyer</span></div>
+        <div class="num-field" onclick="openNP('dQ','Quantite',false)"><span class="nf-label" id="t-qty">Quantité</span><span id="nf-dq" class="nf-ph">Appuyer</span></div>
+      </div>
+      <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
+    </div>
+    <div class="card hidden" id="edit-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0" id="edit-title">Produit</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="prevP()" style="padding:8px 14px;background:#f5f5f5;border:.5px solid #ccc;border-radius:8px">◀</button>
+          <button onclick="nextP()" style="padding:8px 14px;background:#f5f5f5;border:.5px solid #ccc;border-radius:8px">▶</button>
+        </div>
+      </div>
+      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" oninput="filterP(this.value)" style="margin-bottom:10px"/>
+      <div id="psearch-res" class="hidden"></div>
+      <div id="edit-form">
+        <input class="inp" type="text" id="edit-name"/>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+          <div class="num-field" onclick="openNP('eP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="nf-ep" class="nf-ph">—</span></div>
+          <div class="num-field" onclick="openNP('eQ','Quantite',false)"><span class="nf-label">Quantité</span><span id="nf-eq" class="nf-ph">—</span></div>
+        </div>
+        <div id="edit-sub" class="hidden" style="padding:10px 12px;background:#f5f5f5;border-radius:10px;font-size:14px;display:flex;justify-content:space-between;margin-bottom:10px">
+          <span style="color:#666">Sous-total</span><strong id="edit-sub-val"></strong>
+        </div>
+        <button class="btn-r" style="width:100%" onclick="delP()">🗑 Supprimer</button>
+      </div>
+    </div>
+    <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
+    <div class="nav-row">
+      <button class="btn-g" onclick="showSection('inventory')" id="t-back1">← Retour</button>
+      <button class="btn-p" style="margin-top:0" onclick="showSection('adjustments')" id="t-next1">Suivant →</button>
+    </div>
+</div></div>
+</div>
+<div class="appsec" id="sec-adjustments">
+<div class="content">
+    <div class="card">
+      <p style="font-size:14px;color:#666;margin-bottom:14px" id="t-adjdesc">Ajoutez frais, remises ou corrections.</p>
+      <div id="adj-list"></div>
+      <button class="btn-p" style="background:transparent;color:#1a7a4a;border:1.5px dashed #1a7a4a" onclick="addAdj()" id="t-addline">+ Ajouter une ligne</button>
+    </div>
+    <div class="nav-row">
+      <button class="btn-g" onclick="showSection('products')" id="t-back2">← Retour</button>
+      <button class="btn-p" style="margin-top:0" onclick="showSection('recap')" id="t-next2">Suivant →</button>
+    </div>
+</div></div>
+</div>
+<div class="appsec" id="sec-recap">
+<div class="content">
+    <div class="card">
+      <div class="card-title" id="t-prods-title">Produits</div>
+      <table class="rtbl"><thead><tr><th style="width:30px">N°</th><th>Produit</th><th style="text-align:right;width:70px">Prix</th><th style="text-align:center;width:38px">Qté</th><th style="text-align:right;width:85px">Total</th></tr></thead><tbody id="recap-ptbody"></tbody><tfoot><tr><td colspan="4" style="text-align:right;font-weight:700" id="t-totalp">Total produits</td><td style="text-align:right;font-weight:700" id="recap-totalp"></td></tr></tfoot></table>
+    </div>
+    <div class="card hidden" id="recap-acard">
+      <div class="card-title" id="t-adjs-title">Ajustements</div>
+      <table class="rtbl"><thead><tr><th>Description</th><th style="text-align:center;width:50px">Type</th><th style="text-align:right;width:100px">Montant</th></tr></thead><tbody id="recap-atbody"></tbody><tfoot><tr><td colspan="2" style="text-align:right;font-weight:700" id="t-totala">Total ajustements</td><td style="text-align:right;font-weight:700" id="recap-totala"></td></tr></tfoot></table>
+    </div>
+    <div class="card">
+      <div class="srow"><span style="font-size:15px;color:#666" id="t-summp">Total produits</span><span style="font-size:15px;font-weight:600" id="summ-p"></span></div>
+      <div class="srow hidden" id="summ-arow"><span style="font-size:15px;color:#666" id="t-summa">Total ajustements</span><span style="font-size:15px;font-weight:600" id="summ-a"></span></div>
+      <div class="grand-box"><span style="color:rgba(255,255,255,.85);font-size:15px;font-weight:600" id="t-grand">TOTAL GÉNÉRAL</span><span style="color:#fff;font-size:28px;font-weight:700" id="grand-val"></span></div>
+    </div>
+    <button class="btn-p" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%" onclick="genPDF()"><span style="font-size:20px">📄</span><span id="t-dlpdf">Télécharger PDF</span></button>
+    <div class="nav-row">
+      <button class="btn-g" onclick="showSection('adjustments')" id="t-back3">← Retour</button>
+      <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" id="t-newinv">🔄 Nouvel inventaire</button>
+    </div>
+</div></div>
+</div>
+<div class="appsec" id="sec-profile">
+<div class="content">
+    <div class="card" style="display:flex;align-items:center;gap:14px">
+      <div id="prof-av" style="width:64px;height:64px;border-radius:50%;background:#1a7a4a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;flex-shrink:0">?</div>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:17px;font-weight:700;margin-bottom:4px" id="prof-name">—</p>
+        <span class="badge" id="prof-badge">—</span>
+      </div>
+    </div>
+    <div class="card"><div class="card-title" id="t-chguname">Changer le nom d'utilisateur</div>
+      <input class="inp" type="text" id="prof-newuname" autocomplete="off"/>
+      <button class="btn-p" onclick="updateProf('username')" id="t-update0">Mettre à jour</button>
+    </div>
+    <div class="card"><div class="card-title" id="t-chgname">Changer le nom complet</div>
+      <input class="inp" type="text" id="prof-newname"/>
+      <button class="btn-p" onclick="updateProf('name')" id="t-update1">Mettre à jour</button>
+    </div>
+    <div class="card"><div class="card-title" id="t-chgpin">Changer le PIN</div>
+      <input class="inp" type="password" id="prof-newpin" placeholder="Nouveau PIN (6 chiffres)" maxlength="6"/>
+      <input class="inp" type="password" id="prof-confpin" placeholder="Confirmer le PIN" maxlength="6"/>
+      <button class="btn-p" onclick="updateProf('pin')" id="t-update2">Mettre à jour</button>
+    </div>
+    <div class="card hidden" id="back-to-app-card">
+      <button class="btn-g" style="width:100%" onclick="backToApp()" id="t-backapp">← Retour</button>
+    </div>
+  </div></div>
+</div></div>
+</div>
+<div id="np-ov" class="hidden" onclick="if(event.target===this)closeNP()">
+  <div class="np-panel">
+    <p id="np-lbl" style="font-size:13px;color:#666;margin-bottom:8px;text-align:center"></p>
+    <div class="np-disp" id="np-disp">0</div>
+    <div class="np-grid" id="np-grid"></div>
+    <button id="np-dot-btn" onclick="npDot()" style="width:100%;padding:13px;font-size:20px;background:#f5f5f5;border:.5px solid #e0e0e0;border-radius:12px;margin-bottom:8px">.</button>
+    <div class="np-acts">
+      <button class="btn-g" onclick="closeNP()" id="t-cancel">Annuler</button>
+      <button class="btn-p" style="margin-top:0" onclick="confirmNP()" id="t-ok">Confirmer ✓</button>
+    </div>
+  </div>
+</div>
+<div class="appsec" id="sec-statistics">
+<div class="content">
+  <div class="card"><div class="card-title">Statistics</div>
+    <div class="db-stats">
+      <div class="db-stat"><div class="db-val" id="st-prod">…</div><div class="db-lbl">Products</div></div>
+      <div class="db-stat"><div class="db-val" id="st-proj">…</div><div class="db-lbl">Projects</div></div>
+      <div class="db-stat"><div class="db-val" id="st-users">…</div><div class="db-lbl">Users</div></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">Details</div>
+    <div class="srow"><span style="color:#888">Total products in database</span><strong id="st-prod2">…</strong></div>
+    <div class="srow"><span style="color:#888">Total projects (all users)</span><strong id="st-proj2">…</strong></div>
+    <div class="srow"><span style="color:#888">Total registered users</span><strong id="st-users2">…</strong></div>
+    <div class="srow"><span style="color:#888">Total inventory lines</span><strong id="st-items2">…</strong></div>
+  </div>
+</div></div>
+</div>
+<div class="appsec" id="sec-database">
+<div class="content">
+    <div class="card"><div class="card-title" id="t-search-edit">Search / edit a product</div>
+      <input class="inp" type="text" id="db-search" placeholder="Name or barcode…" oninput="dbSearch(this.value)"/>
+      <div id="db-results"></div>
+    </div>
+    <div class="card"><div class="card-title" id="t-all-prods">All products</div>
+      <div style="max-height:420px;overflow-y:auto">
+        <table class="rtbl"><thead><tr><th style="width:120px" id="th-code">Code-barres</th><th id="th-pname">Name</th><th style="text-align:right;width:80px" id="th-pprice">Price</th><th style="width:70px"></th></tr></thead><tbody id="db-all-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-p" style="flex:1;min-width:140px" onclick="toggleAddForm()" id="t-add-toggle">+ Add a product</button>
+        <button class="btn-p" style="flex:1;min-width:140px;background:#2563eb" onclick="G('csv-file').click()" id="t-csv-btn">⬆️ Import CSV</button>
+        <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none" onchange="importCSV(this.files[0])"/>
+      </div>
+      <div id="db-add-form" class="hidden" style="margin-top:12px">
+        <input class="inp" type="text" id="db-bc" placeholder="Barcode"/>
+        <input class="inp" type="text" id="db-nm" placeholder="Product name"/>
+        <input class="inp" type="number" id="db-pr" placeholder="Price (DH)"/>
+        <button class="btn-p" onclick="dbAddProd()" id="t-add-prod-btn">+ Add product</button>
+      </div>
+      <p style="font-size:11px;color:#999;margin-top:10px" id="t-csv-hint">CSV: 3 colonnes — code-barres, nom, prix</p>
+    </div>
+</div></div>
+</div>
+<div class="appsec" id="sec-users">
+<div class="content">
+    <div class="card">
+      <div class="card-title" id="t-createuser">Create a user</div>
+      <input class="inp" type="text" id="new-uname" placeholder="Username"/>
+      <input class="inp" type="text" id="new-ufull" placeholder="Full name"/>
+      <input class="inp" type="password" id="new-upin" placeholder="PIN (6 digits)" maxlength="6"/>
+      <select class="inp" id="new-urole"><option value="user">User</option><option value="admin">Administrator</option></select>
+      <p class="hidden" id="user-err" style="color:#d63031;font-size:13px;margin-bottom:8px"></p>
+      <button class="btn-p" onclick="doCreateUser()" id="t-createbtn">Create</button>
+    </div>
+    <div class="card"><div class="card-title" id="t-userslist">Users</div>
+      <table class="utbl"><thead><tr><th id="th-name">User</th><th id="th-role">Role</th><th>PIN</th><th id="th-act">Actions</th></tr></thead><tbody id="users-tbody"></tbody></table>
+    </div>
+</div></div>
+</div>
+<div class="appsec" id="sec-projects">
+<div class="content">
+  <div class="card">
+    <div class="card-title">All projects (download PDF)</div>
+    <input class="inp" type="text" id="proj-search" placeholder="Search by name…" oninput="filterProjects(this.value)"/>
+    <div id="admin-proj-list"><p style="font-size:13px;color:#666">…</p></div>
+  </div>
+</div></div>
+</div>
+<div class="appsec" id="sec-backup">
+<div class="content">
+  <div class="card"><div class="card-title">Export</div>
+    <p style="font-size:13px;color:#888;margin-bottom:12px">Download your data as files you can keep or open in Excel.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="btn-p" onclick="exportProducts('csv')">⬇️ Products CSV</button>
+      <button class="btn-p" onclick="exportProducts('json')">⬇️ Products JSON</button>
+      <button class="btn-p" onclick="exportUsers()">⬇️ Users JSON</button>
+    </div>
+    <button class="btn-p" style="margin-top:10px;background:#0f5132" onclick="exportFull()">💾 Full backup (JSON)</button>
+  </div>
+  <div class="card"><div class="card-title">Import</div>
+    <p style="font-size:13px;color:#888;margin-bottom:12px">Restore products/users from a file. Duplicates are skipped.</p>
+    <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin-bottom:4px">Products (CSV or JSON)</div>
+    <input type="file" id="imp-prod" accept=".csv,.json" onchange="importProducts(this.files[0])" style="margin-bottom:10px"/>
+    <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Users (JSON only — keeps hashed PIN)</div>
+    <input type="file" id="imp-users" accept=".json" onchange="importUsers(this.files[0])" style="margin-bottom:10px"/>
+    <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Full backup (JSON)</div>
+    <input type="file" id="imp-full" accept=".json" onchange="importFull(this.files[0])"/>
+  </div>
+  <div id="backup-log" style="font-size:12px;color:#888"></div>
+</div></div>
+</div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
