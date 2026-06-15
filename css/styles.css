@@ -119,7 +119,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 [dir=rtl] .inp,[dir=rtl] select.inp{direction:rtl;text-align:right}
 [dir=rtl] .rtbl thead th,[dir=rtl] .rtbl tbody td,[dir=rtl] .rtbl tfoot td,[dir=rtl] .utbl th,[dir=rtl] .utbl td{text-align:right}
 [dir=rtl] .num-field{text-align:right}
-[dir=rtl] .av-menu{right:0;left:auto}
+[dir=rtl] .av-menu{left:0;right:auto}
 [dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px;text-align:right;justify-content:flex-end}
 [dir=rtl] .av-menu .av-head{text-align:right}
 /* keypads stay left-to-right (numbers) */
