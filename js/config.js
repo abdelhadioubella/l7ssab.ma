@@ -31,7 +31,7 @@ function setSession(u){LS.set('session',{id:u.id,username:u.username,fullname:u.
 function getSession(){return LS.get('session',null);}
 function clearSession(){LS.del('session');}
 function requireUser(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role==='admin'){location.href=pageUrl('statistics');return null;}return s;}
-function requireAdmin(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role!=='admin'){location.href=pageUrl('inventory');return null;}return s;}
+function requireAdmin(){var s=getSession();if(!s){location.href=pageUrl('index');return null;}if(s.role!=='admin'){location.href=(inPages()?'../app.html':'app.html');return null;}return s;}
 function logout(){clearSession();LS.set('fs',0);location.href=pageUrl('index');}
 
 // ====== DATA LAYER (Supabase) ======
@@ -134,7 +134,7 @@ function buildHeader(opts){
       '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
       '<div class="av-menu" id="av-menu">'+
         '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
-        (opts.role==='admin'?'<button onclick="location.href=\'profile.html\'">👤 My profile</button>':'<button onclick="location.href=\'profile.html\'">👤 '+t('myProfile')+'</button>')+
+        (opts.role==='admin'?'<button onclick="location.href=\'profile.html\'">👤 My profile</button>':'<button onclick="if(typeof showSection===\'function\'){toggleAvMenu();showSection(\'profile\');}else{location.href=\'profile.html\';}">👤 '+t('myProfile')+'</button>')+
         '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+(opts.role==='admin'?'Install':t('installApp'))+'</button>'+
         '<button onclick="logout()">🚪 '+(opts.role==='admin'?'Logout':t('logoutTxt'))+'</button>'+
       '</div>'+
