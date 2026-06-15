@@ -342,12 +342,12 @@ function buildHeader(opts){
   opts=opts||{};
   var s=getSession();var initial=s?(s.fullname||s.username)[0].toUpperCase():'?';
   var roleLabel=s&&s.role==='admin'?'Administrator':'Utilisateur';
-  var langBtn=opts.showLang?'<button class="hdr-btn" onclick="toggleLang&&toggleLang()" id="lang-app-btn">🇫🇷</button>':'';
+  var langBtn=opts.showLang?'<button class="hdr-btn" onclick="toggleLangApp()" id="lang-app-btn">🇫🇷</button>':'';
   var html=''+
   '<div class="hdr">'+
-    '<button class="hdr-btn hamb" onclick="openSidebar()" title="Menu">☰</button>'+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
+      '<button class="hdr-btn" onclick="openCalc()" title="Calculatrice">🧮</button>'+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
@@ -361,44 +361,40 @@ function buildHeader(opts){
       '</div>'+
     '</div>'+
   '</div>';
+  if(opts.role==='admin'){
+    html+='<div class="tabbar">'+
+      '<button class="'+(opts.activeTab==='statistics'?'active':'')+'" onclick="showSection(\'statistics\')">📊 Stats</button>'+
+      '<button class="'+(opts.activeTab==='database'?'active':'')+'" onclick="showSection(\'database\')">🗄️ Database</button>'+
+      '<button class="'+(opts.activeTab==='users'?'active':'')+'" onclick="showSection(\'users\')">👥 Users</button>'+
+      '<button class="'+(opts.activeTab==='projects'?'active':'')+'" onclick="showSection(\'projects\')">📁 Projects</button>'+
+      '<button class="'+(opts.activeTab==='backup'?'active':'')+'" onclick="showSection(\'backup\')">💾 Products</button>'+
+    '</div>';
+  }
   var holder=G('app-header');if(holder)holder.innerHTML=html;
-  buildSidebar(opts);
   applyTheme();
   if(opts.role!=='admin'){applyDir();setLangBtn();}
 }
-// ---- SIDEBAR (navigation + calculator) ----
-function buildSidebar(opts){
-  var holder=G('sidebar-holder');if(!holder)return;
-  var isAdm=(opts.role==='admin');
-  var navItems=isAdm?[
-    ['statistics','📊','Statistics'],['database','🗄️','Database'],['users','👥','Users'],['projects','📁','Projects'],['backup','💾','Backup']
-  ]:[
-    ['inventory','📦',isAr()?'الجرد':'Inventaire'],['profile','👤',isAr()?'حسابي':'Mon profil']
-  ];
-  var nav='';
-  navItems.forEach(function(it){
-    nav+='<button class="sb-item'+(CURSEC===it[0]?' active':'')+'" onclick="closeSidebar();showSection(\''+it[0]+'\')">'+it[1]+' <span>'+it[2]+'</span></button>';
-  });
-  var calcTitle=isAr()?'آلة حاسبة':'Calculatrice';
-  var html=''+
-  '<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>'+
-  '<div class="sidebar" id="sidebar">'+
-    '<div class="sb-head"><span>L7ssab.ma</span><button class="sb-x" onclick="closeSidebar()">×</button></div>'+
-    '<div class="sb-nav">'+nav+'</div>'+
-    '<div class="sb-calc">'+
-      '<div class="sb-calc-title">🧮 '+calcTitle+'</div>'+
-      '<input type="text" id="calc-disp" class="calc-disp" value="0" readonly/>'+
+// ---- FLOATING CALCULATOR (Windows 11 style, app theme) ----
+var _calc='0',_calcTotal=0,_calcOp=null,_calcPrev=null,_calcFresh=true;
+function openCalc(){
+  var h=G('calc-holder');if(!h)return;
+  var title=isAr()?'آلة حاسبة':'Calculatrice';
+  var totLbl=isAr()?'المجموع':'Total';
+  h.innerHTML=''+
+  '<div class="calc-overlay" id="calc-overlay" onclick="if(event.target===this)closeCalc()">'+
+    '<div class="calc-win">'+
+      '<div class="calc-bar"><span>🧮 '+title+'</span><button class="calc-close" onclick="closeCalc()">×</button></div>'+
+      '<input type="text" id="calc-disp" class="calc-disp" value="'+_calc+'" readonly/>'+
       '<div class="calc-sub" id="calc-sub"></div>'+
       '<div class="calc-grid" id="calc-grid"></div>'+
+      '<button class="calc-clear-total" onclick="calcResetTotal()">'+totLbl+' = 0</button>'+
     '</div>'+
   '</div>';
-  holder.innerHTML=html;
   buildCalc();
+  setTimeout(function(){var o=G('calc-overlay');if(o)o.classList.add('show');},10);
 }
-function openSidebar(){var s=G('sidebar'),o=G('sb-overlay');if(s)s.classList.add('open');if(o)o.classList.add('show');}
-function closeSidebar(){var s=G('sidebar'),o=G('sb-overlay');if(s)s.classList.remove('open');if(o)o.classList.remove('show');}
-// ---- CALCULATOR (with running total / subtotal) ----
-var _calc='0',_calcTotal=0,_calcOp=null,_calcPrev=null,_calcFresh=true;
+function closeCalc(){var o=G('calc-overlay');if(o){o.classList.remove('show');setTimeout(function(){var h=G('calc-holder');if(h)h.innerHTML='';},180);}}
+function calcResetTotal(){_calcTotal=0;calcUpd();}
 function buildCalc(){
   var g=G('calc-grid');if(!g)return;
   var keys=['C','±','%','÷','7','8','9','×','4','5','6','-','1','2','3','+','0','.','⌫','='];
@@ -558,13 +554,20 @@ var isAdmin=false;
 
 // ---- LOGIN ----
 var pinV='',pinSel=null;
+// Login page: cycle FR -> AR -> EN
 function toggleLang(){
   LANG=(LANG==='fr')?'ar':(LANG==='ar')?'en':'fr';
   LS.set('lang',LANG);
   document.documentElement.lang=LANG;document.documentElement.dir=(LANG==='ar')?'rtl':'ltr';
   var lb=G('lang-login-btn');if(lb)lb.textContent=langLabel();
   if(typeof renderRemembered==='function')renderRemembered();
-  // if inside the app (user), rebuild header (flips circle to corner) and re-translate everything
+}
+// In-app (simple user): only FR <-> AR
+function toggleLangApp(){
+  // if somehow on EN inside the app, snap to FR first
+  LANG=(LANG==='ar')?'fr':'ar';
+  LS.set('lang',LANG);
+  document.documentElement.lang=LANG;document.documentElement.dir=(LANG==='ar')?'rtl':'ltr';
   if(CU&&!isAdmin){
     buildHeader({title:G('hdr-title')?G('hdr-title').textContent:'📦 L7ssab.ma',role:'user',activeTab:CURSEC,showLang:true});
     applyTR();
@@ -604,6 +607,21 @@ function paintRemembered(r){
 }
 function showUsernameForm(){hide('login-step-plus');hide('login-step-pin');show('login-step-username');var el=G('login-username');if(el){el.value='';setTimeout(function(){el.focus();},80);}}
 function backToPlus(){pinSel=null;pinV='';hide('login-step-username');hide('login-step-pin');show('login-step-plus');renderRemembered();}
+// Delete the selected user from the login screen (removes from database + this device)
+function deleteUserFromLogin(){
+  if(!pinSel)return;
+  var nm=pinSel.fullname||pinSel.username;
+  var msg=LANG==='ar'?('حذف المستخدم "'+nm+'" نهائياً؟'):LANG==='en'?('Permanently delete user "'+nm+'"?'):('Supprimer définitivement l\u2019utilisateur « '+nm+' » ?');
+  confirmModal(LANG==='ar'?'حذف المستخدم':LANG==='en'?'Delete user':'Supprimer l\u2019utilisateur',msg,function(){
+    var uid=pinSel.id;
+    sb.from('app_users').delete().eq('id',uid).then(function(r){
+      if(r&&r.error){showToast('❌ '+r.error.message);return;}
+      forgetUser(uid);
+      showToast('✅ '+(LANG==='ar'?'تم الحذف':LANG==='en'?'Deleted':'Supprimé'));
+      backToPlus();
+    });
+  },LANG==='ar'?'حذف':LANG==='en'?'Delete':'Supprimer');
+}
 function loginCheckUser(){var name=(G('login-username')?G('login-username').value||'':'').trim();if(!name){showToast(isAr()?'أدخل اسم المستخدم':'Entrez un nom');return;}showToast(isAr()?'جاري التحقق…':'Vérification…',1000);dbGetUserByUsername(name).then(function(found){if(!found){showToast(isAr()?'❌ المستخدم غير موجود':'❌ Utilisateur introuvable');return;}startPin(found);});}
 function startPin(found){pinSel=found;pinV='';hide('login-step-username');hide('login-step-plus');show('login-step-pin');var av=G('login-av');if(av){av.textContent=(found.fullname||found.username)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.username));buildPinKeys();updateDots();}
 function buildPinKeys(){var grid=G('pkeys');if(!grid)return;grid.innerHTML='';['1','2','3','4','5','6','7','8','9','ph','0','del'].forEach(function(k){var b=document.createElement('button');if(k==='ph'){b.className='pin-key pin-ph';b.disabled=true;}else if(k==='del'){b.className='pin-key pin-del';b.textContent='⌫';b.onclick=function(){pinV=pinV.slice(0,-1);updateDots();};}else{b.className='pin-key';b.textContent=k;b.onclick=function(){if(pinV.length>=6)return;pinV+=k;updateDots();if(pinV.length===6)setTimeout(checkPin,150);};}grid.appendChild(b);});}
@@ -622,6 +640,7 @@ function enterApp(user){
   CU=user;isAdmin=(user.role==='admin');
   hide('login-page');show('main-app');
   if(isAdmin){LANG='fr';document.documentElement.dir='ltr';document.documentElement.lang='en';}
+  else if(LANG==='en'){LANG='fr';LS.set('lang','fr');document.documentElement.dir='ltr';document.documentElement.lang='fr';} // EN is login-only; users use FR/AR
   loadProducts().then(function(){
     if(isAdmin){buildHeaderFor();showSection('statistics');}
     else{
@@ -641,7 +660,7 @@ function showSection(name){
   CURSEC=name;
   var all=['inventory','products','adjustments','recap','profile','statistics','database','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
-  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Database',users:'Users',projects:'Projects',backup:'Backup'};
+  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Database',users:'Users',projects:'Projects',backup:'Products'};
   // rebuild header so the active admin tab highlights
   buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:!isAdmin});
   applyTR();
@@ -948,7 +967,6 @@ function refreshStats(){
   dbCount('products').then(function(n){setBoth('st-prod','st-prod2',n);});
   dbCount('projects').then(function(n){setBoth('st-proj','st-proj2',n);});
   dbCount('app_users').then(function(n){setBoth('st-users','st-users2',n);});
-  dbCount('project_items').then(function(n){setText('st-items2',String(n));});
 }
 function refreshDB(){loadProducts().then(function(p){renderDBTable(p);});}
 function renderDBTable(prods){var tb=G('db-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name||'—';var c3=document.createElement('td');c3.style.cssText='text-align:right;font-weight:600;color:#1a7a4a;white-space:nowrap';c3.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'barcode',label:'Barcode',value:p.barcode||''},{key:'price',label:'Price (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){refreshDB();showToast('✅ Deleted');});},'Delete');};c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c3);tr.appendChild(c4);tb.appendChild(tr);});}
