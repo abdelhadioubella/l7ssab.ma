@@ -17,45 +17,89 @@ applyTR();
 function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;return p;});}
 function loadItems(){return dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;});}
 
-// ===== SCANNER (simple & reliable) =====
-// The scan input behaves like Notepad: the scanner types into it naturally.
-// We keep the field focused, detect Enter (end of scan) and validate.
+// ===== SCANNER (NumLock-independent) =====
+// Many USB scanners emit the barcode through the NUMPAD. When NumLock is OFF,
+// Windows turns Numpad digits into ArrowLeft/ArrowUp/Clear/Insert/etc.
+// We therefore read e.code (Numpad0..Numpad9) directly to recover the real digits,
+// and we swallow the parasitic navigation keys so they can never move the page.
 function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
 function startScanGuard(){
   if(_scanFocusTimer)return;
-  // keep the scan field focused whenever nothing else is being edited
   _scanFocusTimer=setInterval(function(){
     if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
     var a=document.activeElement,tag=a?a.tagName:'';
     if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();
   },400);
 }
+var _scanCode='', _scanT=0;
+// map a keydown event to the digit it really represents (handles NumLock OFF)
+function digitFromEvent(e){
+  // 1) normal digit typed directly
+  if(e.key&&e.key.length===1&&e.key>='0'&&e.key<='9')return e.key;
+  // 2) numpad physical key -> recover digit from e.code regardless of NumLock
+  if(e.code&&e.code.indexOf('Numpad')===0){
+    var map={Numpad0:'0',Numpad1:'1',Numpad2:'2',Numpad3:'3',Numpad4:'4',Numpad5:'5',Numpad6:'6',Numpad7:'7',Numpad8:'8',Numpad9:'9'};
+    if(map[e.code]!=null)return map[e.code];
+  }
+  // 3) top-row digits via code (Digit0..Digit9)
+  if(e.code&&e.code.indexOf('Digit')===0){var d=e.code.slice(5);if(d>='0'&&d<='9')return d;}
+  return null;
+}
+// keys the scanner emits as "noise" when NumLock is off — never let them act
+function isParasiticKey(e){
+  if(e.code&&e.code.indexOf('Numpad')===0)return true; // any numpad key handled by us
+  var bad={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1};
+  if(bad[e.key])return true;
+  return false;
+}
+function endScan(){
+  var code=_scanCode.trim();
+  if(!code){var fv=(G('scan-inp')&&G('scan-inp').value||'').trim();code=fv;}
+  _scanCode='';
+  var si=G('scan-inp');if(si)si.value=code;
+  if(code.length>=3){markUSBconnected();handleScan(code);}
+  else if(code.length>0){doSearch();}
+}
+document.addEventListener('keydown',function(e){
+  if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+  var a=document.activeElement,tag=a?a.tagName:'';
+  var inScan=(a&&a.id==='scan-inp');
+  var inOther=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')&&!inScan;
+  if(inOther)return; // user typing in name/other field -> leave alone
+
+  var now=Date.now();
+  if(now-_scanT>200)_scanCode=''; // reset between separate scans (human pause)
+  _scanT=now;
+
+  // End of scan
+  if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
+    e.preventDefault();e.stopPropagation();
+    endScan();
+    return false;
+  }
+  // Recover a digit (works even with NumLock off)
+  var d=digitFromEvent(e);
+  if(d!=null){
+    e.preventDefault(); // we manage the value ourselves to avoid arrow-key side effects
+    _scanCode+=d;
+    var s=G('scan-inp');if(s)s.value=_scanCode;
+    return;
+  }
+  // Block parasitic navigation keys (ArrowLeft/Up/Clear/Insert...) so the page never moves
+  if(isParasiticKey(e)){e.preventDefault();e.stopPropagation();return false;}
+  // Backspace must not navigate "back"
+  if(e.key==='Backspace'){if(!inScan){e.preventDefault();_scanCode=_scanCode.slice(0,-1);var sb=G('scan-inp');if(sb)sb.value=_scanCode;}return;}
+  // A normal letter typed by a human in the scan box: let it through for manual search
+  if(inScan&&e.key&&e.key.length===1){_scanCode=''; /* manual typing, suggestions handle it */ }
+},true);
 function setupScanInput(){
   var s=G('scan-inp');if(!s)return;
-  // Enter inside the field = end of scan
-  s.addEventListener('keydown',function(e){
-    if(e.key==='Enter'||e.key==='Tab'){
-      e.preventDefault();
-      var code=(s.value||'').trim();
-      if(code.length>=3){markUSBconnected();handleScan(code);}
-      else if(code.length>0){doSearch();}
-    }
-  });
-  // some scanners send the terminator as a newline character in the value
+  // manual typing -> suggestions; also catch scanners that paste a newline into the value
   s.addEventListener('input',function(){
-    if(/[\r\n\t]/.test(s.value)){
-      var vv=s.value.replace(/[\r\n\t]/g,'').trim();s.value=vv;
-      if(vv.length>=3){markUSBconnected();handleScan(vv);return;}
-    }
+    if(/[\r\n\t]/.test(s.value)){var vv=s.value.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(vv.length>=3){markUSBconnected();handleScan(vv);return;}}
     onScanInput(s.value);
   });
 }
-// Block Backspace/Enter from navigating the browser "back" only when NOT in a text field
-document.addEventListener('keydown',function(e){
-  var a=document.activeElement,tag=a?a.tagName:'';
-  var editable=(tag==='INPUT'||tag==='TEXTAREA'||(a&&a.isContentEditable));
-  if(!editable&&(e.key==='Backspace')){e.preventDefault();}
-});
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
 function markUSBconnected(){var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}}
 function checkUSBDevices(){try{if(navigator.hid&&navigator.hid.getDevices){navigator.hid.getDevices().then(function(devs){if(devs&&devs.length>0)markUSBconnected();}).catch(function(){});}}catch(e){}}
