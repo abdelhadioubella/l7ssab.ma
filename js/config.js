@@ -72,7 +72,29 @@ function toggleFS(){var d=document,el=d.documentElement;if(!isFSnow()){var rq=el
 })();
 
 // PWA registration (shared)
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register(inPages()?'../sw.js':'sw.js').catch(function(){});});}
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register(inPages()?'../sw.js':'sw.js').then(function(reg){
+      // Check for updates on every load
+      reg.update();
+      // When a new SW is found and installed, activate it and reload once for fresh code
+      reg.addEventListener('updatefound',function(){
+        var sw=reg.installing;if(!sw)return;
+        sw.addEventListener('statechange',function(){
+          if(sw.state==='installed'&&navigator.serviceWorker.controller){
+            // new version ready -> reload to use it
+            location.reload();
+          }
+        });
+      });
+    }).catch(function(){});
+    // also reload when the controlling SW changes
+    var _reloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+      if(_reloaded)return;_reloaded=true;location.reload();
+    });
+  });
+}
 var _deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();_deferredPrompt=e;var bs=document.querySelectorAll('.install-btn');for(var i=0;i<bs.length;i++)bs[i].classList.remove('hidden');});
 function doInstall(){if(_deferredPrompt){_deferredPrompt.prompt();_deferredPrompt.userChoice.then(function(){_deferredPrompt=null;});}else{showToast('Menu ⋮ → Installer l\'application',4000);}}
