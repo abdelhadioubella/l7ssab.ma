@@ -17,11 +17,11 @@ applyTR();
 function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;return p;});}
 function loadItems(){return dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;});}
 
-// ===== SCANNER (NumLock-independent) =====
-// Many USB scanners emit the barcode through the NUMPAD. When NumLock is OFF,
-// Windows turns Numpad digits into ArrowLeft/ArrowUp/Clear/Insert/etc.
-// We therefore read e.code (Numpad0..Numpad9) directly to recover the real digits,
-// and we swallow the parasitic navigation keys so they can never move the page.
+// ===== SCANNER (trust the field, block only navigation side-effects) =====
+// The browser already writes the correct barcode into the focused field.
+// Our ONLY jobs are: (1) keep the field focused, (2) prevent the parasitic
+// Arrow/Clear/Insert keys (NumLock-off numpad) from navigating/moving the page,
+// and (3) read the field value when the scan ends (Enter).
 function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
 function startScanGuard(){
   if(_scanFocusTimer)return;
@@ -31,43 +31,29 @@ function startScanGuard(){
     if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();
   },400);
 }
-var _scanCode='', _scanT=0;
-// map a keydown event to the digit it really represents (handles NumLock OFF)
-function digitFromEvent(e){
-  var k=e.key;
-  // 1) a single real digit character "0".."9"
-  if(typeof k==='string'&&k.length===1&&k>='0'&&k<='9')return k;
-  // 2) numpad physical key -> recover digit from e.code regardless of NumLock
-  if(e.code&&/^Numpad[0-9]$/.test(e.code))return e.code.charAt(6);
-  // 3) top-row digit via code "Digit0".."Digit9"
-  if(e.code&&/^Digit[0-9]$/.test(e.code))return e.code.charAt(5);
-  return null;
-}
-// keys the scanner emits as "noise" when NumLock is off — never let them act
-function isParasiticKey(e){
-  if(e.code&&e.code.indexOf('Numpad')===0)return true; // any numpad key handled by us
-  var bad={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1};
-  if(bad[e.key])return true;
-  return false;
-}
 function endScan(){
-  var code=_scanCode.trim();
-  if(!code){var fv=(G('scan-inp')&&G('scan-inp').value||'').trim();code=fv;}
-  _scanCode='';
-  var si=G('scan-inp');if(si)si.value=code;
+  var code=(G('scan-inp')&&G('scan-inp').value||'').trim();
   if(code.length>=3){markUSBconnected();handleScan(code);}
   else if(code.length>0){doSearch();}
+}
+// Keys that a NumLock-off numpad scanner emits as navigation "noise".
+// We must swallow them so they can't move the cursor or navigate the page,
+// but we must NOT add anything to the field (the digit characters arrive separately).
+function isNavNoise(e){
+  if(e.code&&/^Numpad[0-9]$/.test(e.code)){
+    // Numpad key with NumLock off → e.key is Arrow/Clear/etc (not a digit).
+    // If e.key is already a real digit (NumLock on), let it type normally.
+    return !(e.key&&e.key.length===1&&e.key>='0'&&e.key<='9');
+  }
+  var bad={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1};
+  return !!bad[e.key];
 }
 document.addEventListener('keydown',function(e){
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   var a=document.activeElement,tag=a?a.tagName:'';
   var inScan=(a&&a.id==='scan-inp');
   var inOther=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')&&!inScan;
-  if(inOther)return; // user typing in name/other field -> leave alone
-
-  var now=Date.now();
-  if(now-_scanT>200)_scanCode=''; // reset between separate scans (human pause)
-  _scanT=now;
+  if(inOther)return; // user typing elsewhere -> leave alone
 
   // End of scan
   if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
@@ -75,27 +61,21 @@ document.addEventListener('keydown',function(e){
     endScan();
     return false;
   }
-  // Recover a digit (works even with NumLock off)
-  var d=digitFromEvent(e);
-  if(d!=null){
-    e.preventDefault(); // we manage the value ourselves to avoid arrow-key side effects
-    _scanCode+=d;
-    var s=G('scan-inp');if(s)s.value=_scanCode;
-    return;
+  // Swallow navigation-noise keys so the page never moves (do NOT modify the field)
+  if(isNavNoise(e)){e.preventDefault();e.stopPropagation();return false;}
+  // Backspace must not navigate "back" when not in the field
+  if(e.key==='Backspace'&&!inScan){e.preventDefault();return;}
+  // Make sure scanned digits land in the scan field: if focus drifted, redirect it there
+  if(!inScan&&e.key&&e.key.length===1&&e.key>='0'&&e.key<='9'){
+    var s=G('scan-inp');if(s){s.focus();}
   }
-  // Block parasitic navigation keys (ArrowLeft/Up/Clear/Insert...) so the page never moves
-  if(isParasiticKey(e)){e.preventDefault();e.stopPropagation();return false;}
-  // Backspace must not navigate "back"
-  if(e.key==='Backspace'){if(!inScan){e.preventDefault();_scanCode=_scanCode.slice(0,-1);var sb=G('scan-inp');if(sb)sb.value=_scanCode;}return;}
-  // A normal letter typed by a human in the scan box: let it through for manual search
-  if(inScan&&e.key&&e.key.length===1){_scanCode=''; /* manual typing, suggestions handle it */ }
 },true);
 function setupScanInput(){
   var s=G('scan-inp');if(!s)return;
-  // manual typing -> suggestions; also catch scanners that paste a newline into the value
   s.addEventListener('input',function(){
+    // some scanners append a newline/tab into the value -> treat as end of scan
     if(/[\r\n\t]/.test(s.value)){var vv=s.value.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(vv.length>=3){markUSBconnected();handleScan(vv);return;}}
-    onScanInput(s.value);
+    onScanInput(s.value); // live suggestions
   });
 }
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
