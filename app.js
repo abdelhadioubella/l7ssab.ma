@@ -375,63 +375,86 @@ function buildHeader(opts){
   if(opts.role!=='admin'){applyDir();setLangBtn();}
 }
 // ---- FLOATING CALCULATOR (Windows 11 style, app theme) ----
-var _calc='0',_calcTotal=0,_calcOp=null,_calcPrev=null,_calcFresh=true;
+// ===== PROFESSIONAL CALCULATOR (big, with history) =====
+var _calc='0',_calcExpr='',_calcFresh=true,_calcHistory=[];
 function openCalc(){
   var h=G('calc-holder');if(!h)return;
   var title=isAr()?'آلة حاسبة':'Calculatrice';
-  var totLbl=isAr()?'المجموع':'Total';
+  var histTitle=isAr()?'السجل':'Historique';
   h.innerHTML=''+
   '<div class="calc-overlay" id="calc-overlay" onclick="if(event.target===this)closeCalc()">'+
     '<div class="calc-win">'+
-      '<div class="calc-bar"><span>🧮 '+title+'</span><button class="calc-close" onclick="closeCalc()">×</button></div>'+
+      '<div class="calc-bar"><span>🧮 '+title+'</span>'+
+        '<div><button class="calc-hbtn" onclick="toggleCalcHist()" title="'+histTitle+'">🕘</button>'+
+        '<button class="calc-close" onclick="closeCalc()">×</button></div>'+
+      '</div>'+
+      '<div class="calc-hist" id="calc-hist"><div class="calc-hist-head"><span>'+histTitle+'</span><button onclick="clearCalcHist()">🗑</button></div><div id="calc-hist-list"></div></div>'+
+      '<div class="calc-expr" id="calc-expr"></div>'+
       '<input type="text" id="calc-disp" class="calc-disp" value="'+_calc+'" readonly/>'+
-      '<div class="calc-sub" id="calc-sub"></div>'+
       '<div class="calc-grid" id="calc-grid"></div>'+
-      '<button class="calc-clear-total" onclick="calcResetTotal()">'+totLbl+' = 0</button>'+
     '</div>'+
   '</div>';
   buildCalc();
+  renderCalcHist();
   setTimeout(function(){var o=G('calc-overlay');if(o)o.classList.add('show');},10);
 }
 function closeCalc(){var o=G('calc-overlay');if(o){o.classList.remove('show');setTimeout(function(){var h=G('calc-holder');if(h)h.innerHTML='';},180);}}
-function calcResetTotal(){_calcTotal=0;calcUpd();}
+function toggleCalcHist(){var p=G('calc-hist');if(p)p.classList.toggle('open');}
+function clearCalcHist(){_calcHistory=[];renderCalcHist();}
+function renderCalcHist(){
+  var l=G('calc-hist-list');if(!l)return;l.innerHTML='';
+  if(!_calcHistory.length){l.innerHTML='<p class="calc-hist-empty">'+(isAr()?'فارغ':'Vide')+'</p>';return;}
+  for(var i=_calcHistory.length-1;i>=0;i--){
+    (function(h){
+      var d=document.createElement('div');d.className='calc-hist-item';
+      d.innerHTML='<span class="chi-expr">'+esc(h.expr)+'</span><span class="chi-res">'+esc(h.res)+'</span>';
+      d.onclick=function(){_calc=h.res;_calcExpr='';_calcFresh=true;calcUpd();toggleCalcHist();};
+      l.appendChild(d);
+    })(_calcHistory[i]);
+  }
+}
 function buildCalc(){
   var g=G('calc-grid');if(!g)return;
-  var keys=['C','±','%','÷','7','8','9','×','4','5','6','-','1','2','3','+','0','.','⌫','='];
+  // professional layout: C, CE, %, ÷ / 7 8 9 × / 4 5 6 - / 1 2 3 + / ± 0 . =
+  var keys=['C','CE','%','÷','7','8','9','×','4','5','6','-','1','2','3','+','±','0','.','='];
   g.innerHTML='';
   keys.forEach(function(k){
-    var b=document.createElement('button');b.className='calc-k';b.textContent=k;
+    var b=document.createElement('button');b.className='calc-k';b.textContent=(k==='⌫'?'⌫':k);
     if(k==='='){b.className='calc-k calc-eq';}
     else if('÷×-+'.indexOf(k)>=0){b.className='calc-k calc-op';}
-    else if(k==='C'||k==='±'||k==='%'){b.className='calc-k calc-fn';}
+    else if(k==='C'||k==='CE'||k==='%'||k==='±'){b.className='calc-k calc-fn';}
     b.onclick=function(){calcKey(k);};
     g.appendChild(b);
   });
   calcUpd();
 }
-function calcUpd(){var d=G('calc-disp');if(d)d.value=_calc;var s=G('calc-sub');if(s)s.textContent=(isAr()?'المجموع: ':'Total : ')+fmtNum(_calcTotal);}
+function calcUpd(){var d=G('calc-disp');if(d)d.value=_calc;var e=G('calc-expr');if(e)e.textContent=_calcExpr;}
 function fmtNum(n){return (Math.round(n*100)/100).toFixed(2);}
 function calcKey(k){
-  if(k==='C'){_calc='0';_calcOp=null;_calcPrev=null;_calcFresh=true;calcUpd();return;}
+  if(k==='C'){_calc='0';_calcExpr='';_calcFresh=true;calcUpd();return;}
+  if(k==='CE'){_calc='0';_calcFresh=true;calcUpd();return;}
   if(k==='⌫'){_calc=_calc.length>1?_calc.slice(0,-1):'0';calcUpd();return;}
   if(k==='±'){_calc=(parseFloat(_calc)*-1).toString();calcUpd();return;}
-  if(k==='%'){_calc=(parseFloat(_calc)/100).toString();calcUpd();return;}
-  if(k==='.'){if(_calc.indexOf('.')<0)_calc+='.';_calcFresh=false;calcUpd();return;}
+  if(k==='%'){_calc=(parseFloat(_calc)/100).toString();_calcFresh=true;calcUpd();return;}
+  if(k==='.'){if(_calcFresh){_calc='0.';_calcFresh=false;}else if(_calc.indexOf('.')<0)_calc+='.';calcUpd();return;}
   if('0123456789'.indexOf(k)>=0){if(_calcFresh||_calc==='0'){_calc=k;_calcFresh=false;}else _calc+=k;calcUpd();return;}
-  // operators
   if('÷×-+'.indexOf(k)>=0){
-    if(_calcOp&&!_calcFresh){calcEquals();}
-    _calcPrev=parseFloat(_calc);_calcOp=k;_calcFresh=true;return;
+    // chain: if expression already has a pending op, evaluate first
+    if(_calcExpr&&!_calcFresh){calcEquals(true);}
+    _calcExpr=_calc+' '+k+' ';_calcFresh=true;calcUpd();return;
   }
-  if(k==='='){calcEquals();
-    // add the result to the running total
-    _calcTotal+=parseFloat(_calc)||0;calcUpd();return;}
+  if(k==='='){calcEquals(false);return;}
 }
-function calcEquals(){
-  if(_calcOp==null||_calcPrev==null){return;}
-  var a=_calcPrev,b=parseFloat(_calc),r=b;
-  if(_calcOp==='+')r=a+b;else if(_calcOp==='-')r=a-b;else if(_calcOp==='×')r=a*b;else if(_calcOp==='÷')r=b!==0?a/b:0;
-  _calc=(Math.round(r*1e6)/1e6).toString();_calcOp=null;_calcPrev=null;_calcFresh=true;calcUpd();
+function calcEquals(chain){
+  if(!_calcExpr){return;}
+  var m=_calcExpr.trim().split(' ');// [a, op]
+  var a=parseFloat(m[0]),op=m[1],b=parseFloat(_calc),r=b;
+  if(op==='+')r=a+b;else if(op==='-')r=a-b;else if(op==='×')r=a*b;else if(op==='÷')r=b!==0?a/b:0;
+  r=Math.round(r*1e8)/1e8;
+  var fullExpr=m[0]+' '+op+' '+_calc+' =';
+  if(!chain){_calcHistory.push({expr:fullExpr,res:String(r)});if(_calcHistory.length>50)_calcHistory.shift();renderCalcHist();_calcExpr='';}
+  else{_calcExpr=String(r)+' '+op+' ';}
+  _calc=String(r);_calcFresh=true;calcUpd();
 }
 function toggleAvMenu(){var m=G('av-menu');if(m)m.classList.toggle('show');}
 document.addEventListener('click',function(e){var m=G('av-menu');if(m&&m.classList.contains('show')){if(!e.target.closest('#av-menu')&&!e.target.closest('#hdr-av'))m.classList.remove('show');}});
@@ -594,23 +617,8 @@ function paintRemembered(r){
 }
 function showUsernameForm(){
   hide('login-step-plus');hide('login-step-pin');show('login-step-username');
-  // localize labels
-  setText('t-pick-user',LANG==='ar'?'اختر مستخدماً':LANG==='en'?'Choose a user':'Choisissez un utilisateur');
-  setText('t-or-type',LANG==='ar'?'— أو اكتب اسماً —':LANG==='en'?'— or type a name —':'— ou tapez un nom —');
-  var el=G('login-username');if(el)el.value='';
-  // load ALL users from the database so a hidden one can be picked again
-  var list=G('all-users-list');if(list)list.innerHTML='<p style="font-size:13px;color:#888;text-align:center">…</p>';
-  dbGetUsers().then(function(users){
-    if(!list)return;list.innerHTML='';
-    if(!users||!users.length){list.innerHTML='<p style="font-size:13px;color:#888;text-align:center">'+(LANG==='ar'?'لا يوجد مستخدمون':LANG==='en'?'No users':'Aucun utilisateur')+'</p>';return;}
-    users.forEach(function(u){
-      var row=document.createElement('button');
-      row.className='user-pick-row';
-      row.innerHTML='<span class="upr-av" style="background:'+(u.color||'#1a7a4a')+'">'+(u.fullname||u.username)[0].toUpperCase()+'</span><span class="upr-name">'+esc(u.fullname||u.username)+'</span><span class="upr-role">'+(u.role==='admin'?'admin':'')+'</span>';
-      row.onclick=function(){rememberUser(u);startPin(u);};
-      list.appendChild(row);
-    });
-  });
+  setText('t-enter-uname',LANG==='ar'?'أدخل اسم المستخدم':LANG==='en'?'Enter your username':'Entrez votre nom d\u2019utilisateur');
+  var el=G('login-username');if(el){el.value='';setTimeout(function(){el.focus();},80);}
 }
 function backToPlus(){pinSel=null;pinV='';hide('login-step-username');hide('login-step-pin');show('login-step-plus');renderRemembered();}
 // Remove the selected user from the login screen ONLY (not from the database).
@@ -618,12 +626,13 @@ function backToPlus(){pinSel=null;pinV='';hide('login-step-username');hide('logi
 function deleteUserFromLogin(){
   if(!pinSel)return;
   var nm=pinSel.fullname||pinSel.username;
-  var msg=LANG==='ar'?('إخفاء "'+nm+'" من شاشة الدخول؟ (يبقى في النظام)'):LANG==='en'?('Hide "'+nm+'" from the login screen? (stays in the system)'):('Retirer « '+nm+' » de l\u2019\u00e9cran de connexion ? (reste dans le syst\u00e8me)');
-  confirmModal(LANG==='ar'?'إخفاء المستخدم':LANG==='en'?'Hide user':'Retirer l\u2019utilisateur',msg,function(){
+  var title=LANG==='ar'?'إخفاء المستخدم':LANG==='en'?'Hide user':'Masquer l\u2019utilisateur';
+  var msg=LANG==='ar'?('إخفاء "'+nm+'" من شاشة الدخول؟'):LANG==='en'?('Hide "'+nm+'" from the login screen?'):('Masquer « '+nm+' » de l\u2019\u00e9cran de connexion ?');
+  confirmModal(title,msg,function(){
     forgetUser(pinSel.id);
-    showToast('✅ '+(LANG==='ar'?'تمت الإزالة من الدخول':LANG==='en'?'Removed from login':'Retiré du login'));
+    showToast('✅ '+(LANG==='ar'?'تمت الإزالة':LANG==='en'?'Removed':'Retiré'));
     backToPlus();
-  },LANG==='ar'?'إخفاء':LANG==='en'?'Hide':'Retirer');
+  },LANG==='ar'?'إخفاء':LANG==='en'?'Hide':'Masquer');
 }
 function loginCheckUser(){var name=(G('login-username')?G('login-username').value||'':'').trim();if(!name){showToast(isAr()?'أدخل اسم المستخدم':'Entrez un nom');return;}showToast(isAr()?'جاري التحقق…':'Vérification…',1000);dbGetUserByUsername(name).then(function(found){if(!found){showToast(isAr()?'❌ المستخدم غير موجود':'❌ Utilisateur introuvable');return;}startPin(found);});}
 function startPin(found){pinSel=found;pinV='';hide('login-step-username');hide('login-step-plus');show('login-step-pin');var av=G('login-av');if(av){av.textContent=(found.fullname||found.username)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.username));buildPinKeys();updateDots();}
