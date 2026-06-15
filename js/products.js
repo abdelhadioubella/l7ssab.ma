@@ -39,10 +39,11 @@ function startScanGuard(){if(_scanFocusTimer)return;_scanFocusTimer=setInterval(
 // The scan input is kept focused. USB scanners type into it fast and send Enter.
 // We read the FIELD VALUE on Enter, and block any key that could navigate away.
 var _scanBuf='', _scanLast=0;
-var SCAN_DEBUG=false; // set true to log keys in the console for diagnosis
+var SCAN_DEBUG=true; // set true to log keys in the console for diagnosis
 document.addEventListener('keydown',function(e){
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
-  if(SCAN_DEBUG){try{console.log('KEY:',JSON.stringify(e.key),'code:',e.code);}catch(_){}}
+  if(SCAN_DEBUG){try{console.log('KEY:',JSON.stringify(e.key),'code:',e.code);}catch(_){}
+    var dbg=G('scan-debug');if(dbg){dbg.classList.remove('hidden');dbg.textContent=(dbg.textContent+' ['+e.key+']').slice(-120);}}
   var a=document.activeElement,tag=a?a.tagName:'';
   var inField=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA');
   var inScan=(a&&a.id==='scan-inp');

@@ -48,7 +48,28 @@ function dbGetCustomPrice(uid,bc){return sb.from('custom_prices').select('*').eq
 function isFSnow(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
 function toggleFS(){var d=document,el=d.documentElement;if(!isFSnow()){var rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq)rq.call(el);LS.set('fs',1);}else{var ex=d.exitFullscreen||d.webkitExitFullscreen;if(ex)ex.call(d);LS.set('fs',0);}}
 // If the user had fullscreen on, re-enter on the first tap after navigating to a new page
-document.addEventListener('click',function once(){if(LS.get('fs',0)&&!isFSnow()){var el=document.documentElement;var rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq){try{rq.call(el);}catch(e){}}}document.removeEventListener('click',once);},{once:true});
+// Re-enter fullscreen on the first real user interaction after a page load,
+// if the user had it enabled. Browsers require a gesture, so we try on the
+// earliest pointer/key event and stop once we're fullscreen.
+(function(){
+  function tryFS(){
+    if(!LS.get('fs',0)){cleanup();return;}
+    if(isFSnow()){cleanup();return;}
+    var el=document.documentElement;var rq=el.requestFullscreen||el.webkitRequestFullscreen;
+    if(rq){try{rq.call(el);}catch(e){}}
+    if(isFSnow())cleanup();
+  }
+  function cleanup(){
+    document.removeEventListener('pointerdown',tryFS,true);
+    document.removeEventListener('click',tryFS,true);
+    document.removeEventListener('keydown',tryFS,true);
+    document.removeEventListener('touchstart',tryFS,true);
+  }
+  document.addEventListener('pointerdown',tryFS,true);
+  document.addEventListener('click',tryFS,true);
+  document.addEventListener('keydown',tryFS,true);
+  document.addEventListener('touchstart',tryFS,true);
+})();
 
 // PWA registration (shared)
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register(inPages()?'../sw.js':'sw.js').catch(function(){});});}
@@ -129,7 +150,7 @@ function generatePDF(project,items,adjs,authorName,lang){
   function R(x){if(lang==='ar'&&typeof reshapeAr==='function')return reshapeAr(String(x==null?'':x));return String(x==null?'':x);}
   var FONT='helvetica';
   if(lang==='ar'&&typeof loadArabicFont==='function'&&loadArabicFont(doc)){FONT='Amiri';}
-  function F(style){try{doc.setFont(FONT,style||'normal');}catch(e){doc.setFont('helvetica',style||'normal');}}
+  function F(style){var st=(FONT==='Amiri')?'normal':(style||'normal');try{doc.setFont(FONT,st);}catch(e){try{doc.setFont(FONT,'normal');}catch(e2){doc.setFont('helvetica',style||'normal');}}}
   doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);F('bold');doc.text('L7ssab.ma',M,12);
   doc.setFontSize(11);F('normal');doc.text(R(project?project.name:'Rapport'),M,20);
   doc.setFontSize(9);doc.text(R(L.by+' '+(authorName||'-'))+'  |  '+L.gen+' '+now,M,26);
