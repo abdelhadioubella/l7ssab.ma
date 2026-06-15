@@ -217,3 +217,7 @@ html.dark .suggest-item:hover{background:#22302a}
 html.dark .suggest-item .si-name{color:#e8f0ec}
 [dir=rtl] .suggest-item{flex-direction:row-reverse}
 [dir=rtl] .suggest-item .si-name,[dir=rtl] .suggest-item .si-bc{text-align:right}
+
+/* Single-page sections */
+.appsec{display:none}
+.appsec.active{display:block}
