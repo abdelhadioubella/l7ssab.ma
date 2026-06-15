@@ -87,7 +87,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 .pin-ph{background:transparent;border-color:transparent;box-shadow:none;pointer-events:none}
 #np-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:999}
 .np-panel{background:#fff;border-radius:20px 20px 0 0;padding:18px;width:100%;max-width:420px}
-.np-disp{background:#f5f5f5;border-radius:12px;padding:14px 16px;font-size:32px;font-weight:700;text-align:right;margin-bottom:12px;min-height:58px;letter-spacing:1px;border:.5px solid #e0e0e0;color:#111}
+.np-disp{background:#f5f5f5;border-radius:12px;padding:14px 16px;font-size:36px;font-weight:700;text-align:center;margin-bottom:12px;min-height:58px;letter-spacing:1px;border:.5px solid #e0e0e0;color:#111}
 .np-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
 .nk{padding:16px;font-size:20px;font-weight:600;background:#f5f5f5;border:.5px solid #e0e0e0;border-radius:12px;color:#111}
 .nk:active{background:#e8f5ee}
@@ -140,7 +140,6 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 [dir=rtl] .av-menu .av-head{text-align:right}
 /* keypads stay left-to-right (numbers) */
 [dir=rtl] .pin-grid,[dir=rtl] .np-grid{direction:ltr}
-[dir=rtl] .np-disp{text-align:left;direction:ltr}
 [dir=rtl] #login-topbar{right:auto;left:14px}
 
 /* ===== NIGHT MODE ===== */
@@ -310,6 +309,26 @@ html.dark .calc-hist-item{border-top-color:#22302a}
 html.dark .calc-hist-item:hover{background:#22302a}
 html.dark .chi-res{color:#6ee7a8}
 
+
+/* ===== ADMIN SIDEBAR MENU ===== */
+.hamb{font-size:22px!important;margin-right:4px}
+.am-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .2s;z-index:450}
+.am-overlay.show{opacity:1;pointer-events:auto}
+.am-side{position:fixed;top:0;left:0;width:270px;max-width:85vw;height:100%;background:#fff;box-shadow:2px 0 20px rgba(0,0,0,.2);transform:translateX(-100%);transition:transform .25s;z-index:451;display:flex;flex-direction:column}
+.am-side.open{transform:translateX(0)}
+.am-head{background:#1a7a4a;color:#fff;padding:18px 16px;font-size:18px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.am-x{background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
+.am-nav{padding:10px;flex:1}
+.am-item{display:flex;align-items:center;gap:12px;width:100%;padding:14px 14px;background:none;border:none;border-radius:12px;font-size:15px;color:#222;cursor:pointer;text-align:left;margin-bottom:4px}
+.am-item span{flex:1}
+.am-item:hover{background:#f0f7f3}
+.am-item.active{background:#e8f5ee;color:#0f5132;font-weight:700}
+.am-foot{padding:10px;border-top:1px solid #eee}
+html.dark .am-side{background:#18211d}
+html.dark .am-item{color:#e8f5ee}
+html.dark .am-item:hover{background:#22302a}
+html.dark .am-foot{border-top-color:#22302a}
+
 </style>
 </head>
 <body>
@@ -358,6 +377,7 @@ html.dark .chi-res{color:#6ee7a8}
 <div id="main-app" class="hidden">
 <div id="app-header"></div>
 <div id="calc-holder"></div>
+<div id="admin-menu-holder"></div>
 <div class="appsec" id="sec-inventory">
 <div class="content">
   <div class="card">
