@@ -375,8 +375,8 @@ function buildHeader(opts){
   if(opts.role!=='admin'){applyDir();setLangBtn();}
 }
 // ---- FLOATING CALCULATOR (Windows 11 style, app theme) ----
-// ===== PROFESSIONAL CALCULATOR (big, with history) =====
-var _calc='0',_calcExpr='',_calcFresh=true,_calcHistory=[];
+// ===== WINDOWS-STYLE CALCULATOR (memory + history, no scientific) =====
+var _calc='0',_calcExpr='',_calcFresh=true,_calcHistory=[],_calcMem=null;
 function openCalc(){
   var h=G('calc-holder');if(!h)return;
   var title=isAr()?'آلة حاسبة':'Calculatrice';
@@ -388,12 +388,18 @@ function openCalc(){
         '<div><button class="calc-hbtn" onclick="toggleCalcHist()" title="'+histTitle+'">🕘</button>'+
         '<button class="calc-close" onclick="closeCalc()">×</button></div>'+
       '</div>'+
-      '<div class="calc-hist" id="calc-hist"><div class="calc-hist-head"><span>'+histTitle+'</span><button onclick="clearCalcHist()">🗑</button></div><div id="calc-hist-list"></div></div>'+
-      '<div class="calc-expr" id="calc-expr"></div>'+
-      '<input type="text" id="calc-disp" class="calc-disp" value="'+_calc+'" readonly/>'+
-      '<div class="calc-grid" id="calc-grid"></div>'+
+      '<div class="calc-body">'+
+        '<div class="calc-main">'+
+          '<div class="calc-expr" id="calc-expr"></div>'+
+          '<input type="text" id="calc-disp" class="calc-disp" value="'+_calc+'" readonly/>'+
+          '<div class="calc-mem" id="calc-mem-row"></div>'+
+          '<div class="calc-grid" id="calc-grid"></div>'+
+        '</div>'+
+        '<div class="calc-hist" id="calc-hist"><div class="calc-hist-head"><span>'+histTitle+'</span><button onclick="clearCalcHist()">🗑</button></div><div id="calc-hist-list"></div></div>'+
+      '</div>'+
     '</div>'+
   '</div>';
+  buildMemRow();
   buildCalc();
   renderCalcHist();
   setTimeout(function(){var o=G('calc-overlay');if(o)o.classList.add('show');},10);
@@ -408,24 +414,45 @@ function renderCalcHist(){
     (function(h){
       var d=document.createElement('div');d.className='calc-hist-item';
       d.innerHTML='<span class="chi-expr">'+esc(h.expr)+'</span><span class="chi-res">'+esc(h.res)+'</span>';
-      d.onclick=function(){_calc=h.res;_calcExpr='';_calcFresh=true;calcUpd();toggleCalcHist();};
+      d.onclick=function(){_calc=h.res;_calcExpr='';_calcFresh=true;calcUpd();};
       l.appendChild(d);
     })(_calcHistory[i]);
   }
 }
+// memory row: MC MR M+ M- MS
+function buildMemRow(){
+  var m=G('calc-mem-row');if(!m)return;
+  var keys=['MC','MR','M+','M-','MS'];
+  m.innerHTML='';
+  keys.forEach(function(k){
+    var b=document.createElement('button');b.className='calc-mk';b.textContent=k;
+    b.onclick=function(){memKey(k);};
+    m.appendChild(b);
+  });
+}
+function memKey(k){
+  var v=parseFloat(_calc)||0;
+  if(k==='MS'){_calcMem=v;}
+  else if(k==='MC'){_calcMem=null;}
+  else if(k==='MR'){if(_calcMem!=null){_calc=String(_calcMem);_calcFresh=true;calcUpd();}}
+  else if(k==='M+'){_calcMem=(_calcMem||0)+v;}
+  else if(k==='M-'){_calcMem=(_calcMem||0)-v;}
+}
 function buildCalc(){
   var g=G('calc-grid');if(!g)return;
-  // professional layout: C, CE, %, ÷ / 7 8 9 × / 4 5 6 - / 1 2 3 + / ± 0 . =
-  var keys=['C','CE','%','÷','7','8','9','×','4','5','6','-','1','2','3','+','±','0','.','='];
+  // Windows layout (no scientific): %, CE, C, ⌫ / 7 8 9 ÷ / 4 5 6 × / 1 2 3 - / ± 0 . + / =
+  var keys=['%','CE','C','⌫','7','8','9','÷','4','5','6','×','1','2','3','-','±','0','.','+'];
   g.innerHTML='';
   keys.forEach(function(k){
-    var b=document.createElement('button');b.className='calc-k';b.textContent=(k==='⌫'?'⌫':k);
-    if(k==='='){b.className='calc-k calc-eq';}
-    else if('÷×-+'.indexOf(k)>=0){b.className='calc-k calc-op';}
-    else if(k==='C'||k==='CE'||k==='%'||k==='±'){b.className='calc-k calc-fn';}
+    var b=document.createElement('button');b.className='calc-k';b.textContent=k;
+    if('÷×-+'.indexOf(k)>=0){b.className='calc-k calc-op';}
+    else if(k==='%'||k==='CE'||k==='C'||k==='⌫'||k==='±'){b.className='calc-k calc-fn';}
     b.onclick=function(){calcKey(k);};
     g.appendChild(b);
   });
+  // full-width = button
+  var eq=document.createElement('button');eq.className='calc-k calc-eq calc-eq-wide';eq.textContent='=';eq.onclick=function(){calcKey('=');};
+  g.appendChild(eq);
   calcUpd();
 }
 function calcUpd(){var d=G('calc-disp');if(d)d.value=_calc;var e=G('calc-expr');if(e)e.textContent=_calcExpr;}
@@ -439,7 +466,6 @@ function calcKey(k){
   if(k==='.'){if(_calcFresh){_calc='0.';_calcFresh=false;}else if(_calc.indexOf('.')<0)_calc+='.';calcUpd();return;}
   if('0123456789'.indexOf(k)>=0){if(_calcFresh||_calc==='0'){_calc=k;_calcFresh=false;}else _calc+=k;calcUpd();return;}
   if('÷×-+'.indexOf(k)>=0){
-    // chain: if expression already has a pending op, evaluate first
     if(_calcExpr&&!_calcFresh){calcEquals(true);}
     _calcExpr=_calc+' '+k+' ';_calcFresh=true;calcUpd();return;
   }
@@ -447,7 +473,7 @@ function calcKey(k){
 }
 function calcEquals(chain){
   if(!_calcExpr){return;}
-  var m=_calcExpr.trim().split(' ');// [a, op]
+  var m=_calcExpr.trim().split(' ');
   var a=parseFloat(m[0]),op=m[1],b=parseFloat(_calc),r=b;
   if(op==='+')r=a+b;else if(op==='-')r=a-b;else if(op==='×')r=a*b;else if(op==='÷')r=b!==0?a/b:0;
   r=Math.round(r*1e8)/1e8;
