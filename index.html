@@ -504,8 +504,10 @@ html.dark .suggest-item .si-name{color:#e8f0ec}
       <button class="btn-p" onclick="exportProducts('csv')">⬇️ Products CSV</button>
       <button class="btn-p" onclick="exportProducts('json')">⬇️ Products JSON</button>
       <button class="btn-p" onclick="exportUsers()">⬇️ Users JSON</button>
+      <button class="btn-p" onclick="exportProjectsJSON()">⬇️ Projects JSON</button>
     </div>
-    <button class="btn-p" style="margin-top:10px;background:#0f5132" onclick="exportFull()">💾 Full backup (JSON)</button>
+    <button class="btn-p" style="margin-top:10px;background:#1a7a4a" onclick="exportProjectsPDF()">📄 Projects backup (PDF)</button>
+    <button class="btn-p" style="margin-top:10px;background:#0f5132" onclick="exportFull()">💾 Full backup (JSON + PDF)</button>
   </div>
   <div class="card"><div class="card-title">Import</div>
     <p style="font-size:13px;color:#888;margin-bottom:12px">Restore products/users from a file. Duplicates are skipped.</p>

@@ -348,7 +348,7 @@ function buildHeader(opts){
   '<div class="hdr">'+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
-      '<button class="hdr-btn" onclick="location.reload()" title="Rafraîchir">↻</button>'+
+      '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
       langBtn+
@@ -396,7 +396,7 @@ function generatePDF(project,items,adjs,authorName,lang){
     if(/[\u0600-\u06FF]/.test(x)&&typeof reshapeAr==='function')return reshapeAr(x);
     return x;
   }
-  function hasAr(x){return /[\u0600-\u06FF]/.test(String(x==null?'':x));}
+  function hasAr(x){return /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(x==null?'':x));}
   var FONT=(lang==='ar')?'Amiri':'helvetica';
   // Always try to load Amiri so Arabic product names render even in a French PDF
   var amiriOK=(typeof loadArabicFont==='function')&&loadArabicFont(doc);
@@ -495,7 +495,17 @@ var isAdmin=false;
 
 // ---- LOGIN ----
 var pinV='',pinSel=null;
-function toggleLang(){LANG=LANG==='fr'?'ar':'fr';LS.set('lang',LANG);document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';var lb=G('lang-login-btn');if(lb)lb.textContent=LANG==='fr'?'🇫🇷 FR':'🇲🇦 AR';if(typeof renderRemembered==='function')renderRemembered();if(CU&&!isAdmin)applyTR();}
+function toggleLang(){
+  LANG=LANG==='fr'?'ar':'fr';LS.set('lang',LANG);
+  document.documentElement.lang=LANG;document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
+  var lb=G('lang-login-btn');if(lb)lb.textContent=LANG==='fr'?'🇫🇷 FR':'🇲🇦 AR';
+  if(typeof renderRemembered==='function')renderRemembered();
+  // if inside the app (user), rebuild header (flips circle to corner) and re-translate everything
+  if(CU&&!isAdmin){
+    buildHeader({title:G('hdr-title')?G('hdr-title').textContent:'📦 L7ssab.ma',role:'user',activeTab:CURSEC,showLang:true});
+    applyTR();
+  }
+}
 function getRemembered(){return LS.get('remembered',[])||[];}
 function rememberUser(u){var r=getRemembered(),ex=false;for(var i=0;i<r.length;i++){if(r[i].id===u.id){r[i].username=u.username;r[i].fullname=u.fullname;r[i].color=u.color;ex=true;break;}}if(!ex)r.push({id:u.id,username:u.username,fullname:u.fullname||u.username,color:u.color});LS.set('remembered',r);}
 function forgetUser(id){LS.set('remembered',getRemembered().filter(function(x){return x.id!==id;}));renderRemembered();}
@@ -571,6 +581,18 @@ function showSection(name){
   window.scrollTo(0,0);
 }
 function backToApp(){showSection(isAdmin?'statistics':'inventory');}
+// Refresh button: reload data for the CURRENT section (stay where you are)
+function refreshCurrent(){
+  var sec=CURSEC||'inventory';
+  // reload the underlying data, then re-render the same section
+  if(sec==='products'||sec==='adjustments'||sec==='recap'){
+    if(!CP){showSection('inventory');return;}
+    loadProducts().then(function(){loadItems().then(function(){loadAdjs().then(function(){showSection(sec);});});});
+  } else if(sec==='inventory'){
+    loadProducts().then(function(){showSection('inventory');});
+  } else if(sec==='database'){loadProducts().then(function(){showSection('database');});}
+  else { showSection(sec); } // statistics/users/projects/backup/profile re-fetch in their refresh
+}
 
 // ---- TRANSLATIONS (all sections) ----
 function applyTR(){
@@ -910,9 +932,68 @@ function exportFull(){
         products:r[0],app_users:r[1],
         projects:(rr[0].data||[]),project_items:(rr[1].data||[]),adjustments:(rr[2].data||[]),custom_prices:(rr[3].data||[])};
       dl('l7ssab-full-backup-'+today()+'.json',JSON.stringify(backup,null,2),'application/json');
-      logB('✅ Full backup downloaded');
+      logB('✅ Full backup (JSON) downloaded');
+      // also generate a PDF backup of all projects
+      buildProjectsPDF(backup.projects,backup.project_items,backup.adjustments,r[1]);
     });
   });
+}
+// Export all projects (with their items + adjustments) as one JSON file
+function exportProjectsJSON(){
+  Promise.all([
+    sb.from('projects').select('*').limit(100000),
+    sb.from('project_items').select('*').limit(100000),
+    sb.from('adjustments').select('*').limit(100000)
+  ]).then(function(rr){
+    var data={exported_at:new Date().toISOString(),projects:(rr[0].data||[]),project_items:(rr[1].data||[]),adjustments:(rr[2].data||[])};
+    dl('projects-'+today()+'.json',JSON.stringify(data,null,2),'application/json');
+    logB('✅ '+(data.projects.length)+' projects exported (JSON)');
+  });
+}
+// Export all projects as a single multi-page PDF
+function exportProjectsPDF(){
+  Promise.all([
+    sb.from('projects').select('*').limit(100000),
+    sb.from('project_items').select('*').limit(100000),
+    sb.from('adjustments').select('*').limit(100000),
+    dbGetUsers()
+  ]).then(function(rr){
+    buildProjectsPDF(rr[0].data||[],rr[1].data||[],rr[2].data||[],rr[3]||[]);
+  });
+}
+// Build one PDF containing every project (used by both the PDF button and full backup)
+function buildProjectsPDF(projects,allItems,allAdjs,users){
+  if(!projects||!projects.length){logB('❌ No projects to export');return;}
+  var jsPDFLib=(window.jspdf&&window.jspdf.jsPDF)?window.jspdf.jsPDF:(window.jsPDF||null);
+  if(!jsPDFLib){logB('❌ PDF library not loaded');return;}
+  var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});
+  var W=210,M=15;
+  var amiriOK=(typeof loadArabicFont==='function')&&loadArabicFont(doc);
+  function hasAr(x){return /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(x==null?'':x));}
+  function R(x){x=String(x==null?'':x);if(hasAr(x)&&typeof reshapeAr==='function')return reshapeAr(x);return x;}
+  function T(txt,x,y,opt){var s=String(txt==null?'':txt);if(hasAr(s)&&amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}doc.text(s,x,y,opt);try{doc.setFont('helvetica','normal');}catch(e){}}else doc.text(s,x,y,opt);}
+  function uname(uid){for(var i=0;i<(users||[]).length;i++){if(users[i].id===uid)return users[i].fullname||users[i].username;}return '—';}
+  projects.forEach(function(p,idx){
+    if(idx>0)doc.addPage();
+    var items=allItems.filter(function(x){return x.project_id===p.id;});
+    var adjs=allAdjs.filter(function(x){return x.project_id===p.id;});
+    var tP=items.reduce(function(s,x){return s+(parseFloat(x.price)||0)*(parseFloat(x.quantity)||0);},0);
+    var tA=adjs.reduce(function(s,x){return s+(x.type==='+'?1:-1)*(parseFloat(x.amount)||0);},0);
+    var y=36;
+    doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);try{doc.setFont('helvetica','bold');}catch(e){}doc.text('L7ssab.ma',M,12);
+    doc.setFontSize(11);try{doc.setFont('helvetica','normal');}catch(e){}T(R(p.name||'Projet'),M,20);
+    doc.setFontSize(9);doc.text('Owner: '+uname(p.user_id)+'  |  '+new Date(p.created_at).toLocaleDateString('fr-MA'),M,26);
+    doc.setTextColor(26,122,74);doc.setFontSize(11);try{doc.setFont('helvetica','bold');}catch(e){}doc.text('Products ('+items.length+')',M,y);y+=6;
+    doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);
+    doc.text('N',M+2,y+5);doc.text('Product',M+12,y+5);doc.text('Price',M+108,y+5,{align:'right'});doc.text('Qty',M+124,y+5,{align:'right'});doc.text('Total',W-M-2,y+5,{align:'right'});y+=7;
+    try{doc.setFont('helvetica','normal');}catch(e){}doc.setFontSize(8);doc.setTextColor(30,30,30);
+    items.forEach(function(x,i){var pr=parseFloat(x.price)||0,q=parseFloat(x.quantity)||0;if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.text(String(i+1),M+2,y+4.5);T(R((x.name||'-').substring(0,40)),M+12,y+4.5);doc.text(pr.toFixed(2),M+108,y+4.5,{align:'right'});doc.text(String(q),M+124,y+4.5,{align:'right'});doc.text((pr*q).toFixed(2),W-M-2,y+4.5,{align:'right'});y+=6;if(y>275){doc.addPage();y=15;}});
+    doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');try{doc.setFont('helvetica','bold');}catch(e){}doc.setTextColor(15,81,50);doc.text('Subtotal products',M+2,y+5);doc.text(tP.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=10;
+    if(adjs.length>0){doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text('Adjustments ('+adjs.length+')',M,y);y+=6;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.text('Description',M+2,y+5);doc.text('Type',M+118,y+5);doc.text('Amount',W-M-2,y+5,{align:'right'});y+=7;try{doc.setFont('helvetica','normal');}catch(e){}doc.setFontSize(8);adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.setTextColor(30,30,30);T(R((a.description||'-').substring(0,46)),M+2,y+4.5);doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;if(y>275){doc.addPage();y=15;}});y+=4;}
+    doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,11,'F');doc.setTextColor(255,255,255);doc.setFontSize(12);try{doc.setFont('helvetica','bold');}catch(e){}doc.text('TOTAL',M+4,y+7);doc.text((tP+tA).toFixed(2)+' DH',W-M-4,y+7,{align:'right'});
+  });
+  doc.save('projects-backup-'+today()+'.pdf');
+  logB('✅ Projects PDF ('+projects.length+' projects) downloaded');
 }
 function readFile(file,cb){var r=new FileReader();r.onload=function(e){cb(e.target.result||'');};r.readAsText(file);}
 function parseProductsFile(text,name){
