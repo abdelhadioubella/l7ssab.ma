@@ -1,18 +1,4 @@
 var CU=requireUser();
-
-// Guard: prevent Backspace (and Alt+Left) from navigating the browser "back",
-// which would leave the products page. Scanners sometimes emit stray keys.
-document.addEventListener('keydown',function(e){
-  if(e.key==='Backspace'){
-    var a=document.activeElement,tag=a?a.tagName:'';
-    var editable=(tag==='INPUT'||tag==='TEXTAREA'||(a&&a.isContentEditable));
-    if(!editable){e.preventDefault();}
-  }
-},true);
-// Extra safety net: trap the history "back" so a stray scanner key can never
-// leave this page. We push a dummy state; if a back fires, we re-push and stay.
-try{history.pushState({l7:1},'',location.href);
-window.addEventListener('popstate',function(){history.pushState({l7:1},'',location.href);});}catch(e){}
 var CP=requireProject();
 var dP=0,dQ=0,eI=0,npT=null,npV='',npD=true,btDev=null,_scanInputTimer=null,_scanFocusTimer=null;
 var CACHE={products:[],items:[]};
@@ -31,68 +17,48 @@ applyTR();
 function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;return p;});}
 function loadItems(){return dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;});}
 
-// scanner
+// ===== SCANNER (simple & reliable) =====
+// The scan input behaves like Notepad: the scanner types into it naturally.
+// We keep the field focused, detect Enter (end of scan) and validate.
 function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
-function startScanGuard(){if(_scanFocusTimer)return;_scanFocusTimer=setInterval(function(){if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;var a=document.activeElement,tag=a?a.tagName:'';if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();},250);}
-
-// ===== SCANNER (robust, field-based) =====
-// The scan input is kept focused. USB scanners type into it fast and send Enter.
-// We read the FIELD VALUE on Enter, and block any key that could navigate away.
-var _scanBuf='', _scanLast=0;
-var SCAN_DEBUG=true; // set true to log keys in the console for diagnosis
-document.addEventListener('keydown',function(e){
-  if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
-  if(SCAN_DEBUG){try{console.log('KEY:',JSON.stringify(e.key),'code:',e.code);}catch(_){}
-    var dbg=G('scan-debug');if(dbg){dbg.classList.remove('hidden');dbg.textContent=(dbg.textContent+' ['+e.key+']').slice(-120);}}
-  var a=document.activeElement,tag=a?a.tagName:'';
-  var inField=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA');
-  var inScan=(a&&a.id==='scan-inp');
-  // user deliberately typing in another field (product name, etc.) -> leave alone
-  if(inField&&!inScan)return;
-
-  // ENTER / TAB = end of scan (or search). Always stop default so it can't navigate.
-  if(e.key==='Enter'||e.key==='Tab'){
-    e.preventDefault();e.stopPropagation();
-    var fieldVal=(G('scan-inp')&&G('scan-inp').value||'').trim();
-    var code=fieldVal||_scanBuf.trim();_scanBuf='';
-    if(code.length>=3){markUSBconnected();handleScan(code);}
-    else if(code.length>0){doSearch();}
-    return false;
-  }
-  // BACKSPACE outside a field must never trigger browser "back"
-  if(e.key==='Backspace'){
-    if(!inScan){e.preventDefault();e.stopPropagation();
-      _scanBuf=_scanBuf.slice(0,-1);var s=G('scan-inp');if(s)s.value=_scanBuf;}
-    return;
-  }
-  // printable character
-  if(e.key&&e.key.length===1){
-    if(inScan){
-      // human/scanner typing into the focused field: let it fill naturally,
-      // suggestions appear via oninput. Auto-submit a fast burst.
-      var now=Date.now();if(now-_scanLast>120)_scanLast=now;else _scanLast=now;
-      clearTimeout(_scanInputTimer);
-      _scanInputTimer=setTimeout(function(){
-        var v=(G('scan-inp')&&G('scan-inp').value||'').trim();
-        // only auto-fire if it looks like a scanned barcode (mostly digits, >=6 long)
-        if(v.length>=6&&/^[0-9A-Za-z\-]+$/.test(v)){markUSBconnected();handleScan(v);}
-      },160);
-      return;
+function startScanGuard(){
+  if(_scanFocusTimer)return;
+  // keep the scan field focused whenever nothing else is being edited
+  _scanFocusTimer=setInterval(function(){
+    if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+    var a=document.activeElement,tag=a?a.tagName:'';
+    if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();
+  },400);
+}
+function setupScanInput(){
+  var s=G('scan-inp');if(!s)return;
+  // Enter inside the field = end of scan
+  s.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key==='Tab'){
+      e.preventDefault();
+      var code=(s.value||'').trim();
+      if(code.length>=3){markUSBconnected();handleScan(code);}
+      else if(code.length>0){doSearch();}
     }
-    // focus was lost: redirect the keystroke into the field and keep focus there
-    e.preventDefault();
-    var si=G('scan-inp');if(si){si.value=(si.value||'')+e.key;si.focus();}
-    clearTimeout(_scanInputTimer);
-    _scanInputTimer=setTimeout(function(){
-      var v=(G('scan-inp')&&G('scan-inp').value||'').trim();
-      if(v.length>=6&&/^[0-9A-Za-z\-]+$/.test(v)){markUSBconnected();handleScan(v);}
-    },160);
-  }
-},true);
+  });
+  // some scanners send the terminator as a newline character in the value
+  s.addEventListener('input',function(){
+    if(/[\r\n\t]/.test(s.value)){
+      var vv=s.value.replace(/[\r\n\t]/g,'').trim();s.value=vv;
+      if(vv.length>=3){markUSBconnected();handleScan(vv);return;}
+    }
+    onScanInput(s.value);
+  });
+}
+// Block Backspace/Enter from navigating the browser "back" only when NOT in a text field
+document.addEventListener('keydown',function(e){
+  var a=document.activeElement,tag=a?a.tagName:'';
+  var editable=(tag==='INPUT'||tag==='TEXTAREA'||(a&&a.isContentEditable));
+  if(!editable&&(e.key==='Backspace')){e.preventDefault();}
+});
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
 function markUSBconnected(){var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}}
 function checkUSBDevices(){try{if(navigator.hid&&navigator.hid.getDevices){navigator.hid.getDevices().then(function(devs){if(devs&&devs.length>0)markUSBconnected();}).catch(function(){});}}catch(e){}}
-function setupScanInput(){var s=G('scan-inp');if(!s)return;s.addEventListener('input',function(){if(/[\r\n\t]/.test(s.value)){var vv=s.value.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(vv.length>=4){markUSBconnected();handleScan(vv);}}});}
 function connectBT(){if(!navigator.bluetooth){showToast('Web Bluetooth non supporté.');return;}navigator.bluetooth.requestDevice({acceptAllDevices:true}).then(function(dev){btDev=dev;dev.addEventListener('gattserverdisconnected',function(){btDev=null;setBT(false,'');});setBT(true,dev.name||'BT');showToast('✅ BT');}).catch(function(){});}
 function setBT(on,name){var d2=G('bt-mini-dot'),l2=G('bt-mini-lbl'),b2=G('bt-mini-btn');if(d2)d2.style.background=on?'#1a7a4a':'#ccc';if(l2)l2.textContent=on?('Bluetooth · '+(name||(isAr()?'متصل':'Connecté'))):'Bluetooth';if(b2){b2.textContent=on?(isAr()?'قطع':'Déconnecter'):(isAr()?'ربط':'Connecter');b2.onclick=on?function(){if(btDev&&btDev.gatt&&btDev.gatt.connected)btDev.gatt.disconnect();btDev=null;setBT(false,'');}:connectBT;}}
 function doScan(){var c=(G('scan-inp').value||'').trim();if(c)handleScan(c);}
