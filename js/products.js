@@ -34,15 +34,13 @@ function startScanGuard(){
 var _scanCode='', _scanT=0;
 // map a keydown event to the digit it really represents (handles NumLock OFF)
 function digitFromEvent(e){
-  // 1) normal digit typed directly
-  if(e.key&&e.key.length===1&&e.key>='0'&&e.key<='9')return e.key;
+  var k=e.key;
+  // 1) a single real digit character "0".."9"
+  if(typeof k==='string'&&k.length===1&&k>='0'&&k<='9')return k;
   // 2) numpad physical key -> recover digit from e.code regardless of NumLock
-  if(e.code&&e.code.indexOf('Numpad')===0){
-    var map={Numpad0:'0',Numpad1:'1',Numpad2:'2',Numpad3:'3',Numpad4:'4',Numpad5:'5',Numpad6:'6',Numpad7:'7',Numpad8:'8',Numpad9:'9'};
-    if(map[e.code]!=null)return map[e.code];
-  }
-  // 3) top-row digits via code (Digit0..Digit9)
-  if(e.code&&e.code.indexOf('Digit')===0){var d=e.code.slice(5);if(d>='0'&&d<='9')return d;}
+  if(e.code&&/^Numpad[0-9]$/.test(e.code))return e.code.charAt(6);
+  // 3) top-row digit via code "Digit0".."Digit9"
+  if(e.code&&/^Digit[0-9]$/.test(e.code))return e.code.charAt(5);
   return null;
 }
 // keys the scanner emits as "noise" when NumLock is off — never let them act
