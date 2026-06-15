@@ -344,10 +344,10 @@ function buildHeader(opts){
   var roleLabel=s&&s.role==='admin'?'Administrator':'Utilisateur';
   var langBtn=opts.showLang?'<button class="hdr-btn" onclick="toggleLangApp()" id="lang-app-btn">🇫🇷</button>':'';
   var html=''+
-  '<div class="hdr">'+
+  '<div class="hdr" dir="ltr">'+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
-      '<button class="hdr-btn" onclick="openCalc()" title="Calculatrice">🧮</button>'+
+      (opts.role==='admin'?'':'<button class="hdr-btn" onclick="openCalc()" title="Calculatrice">🧮</button>')+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
@@ -364,10 +364,10 @@ function buildHeader(opts){
   if(opts.role==='admin'){
     html+='<div class="tabbar">'+
       '<button class="'+(opts.activeTab==='statistics'?'active':'')+'" onclick="showSection(\'statistics\')">📊 Stats</button>'+
-      '<button class="'+(opts.activeTab==='database'?'active':'')+'" onclick="showSection(\'database\')">🗄️ Database</button>'+
+      '<button class="'+(opts.activeTab==='database'?'active':'')+'" onclick="showSection(\'database\')">🗄️ Products</button>'+
       '<button class="'+(opts.activeTab==='users'?'active':'')+'" onclick="showSection(\'users\')">👥 Users</button>'+
       '<button class="'+(opts.activeTab==='projects'?'active':'')+'" onclick="showSection(\'projects\')">📁 Projects</button>'+
-      '<button class="'+(opts.activeTab==='backup'?'active':'')+'" onclick="showSection(\'backup\')">💾 Products</button>'+
+      '<button class="'+(opts.activeTab==='backup'?'active':'')+'" onclick="showSection(\'backup\')">💾 Backup</button>'+
     '</div>';
   }
   var holder=G('app-header');if(holder)holder.innerHTML=html;
@@ -577,20 +577,7 @@ function langLabel(){return LANG==='fr'?'🇫🇷 FR':LANG==='ar'?'🇲🇦 AR':
 function getRemembered(){return LS.get('remembered',[])||[];}
 function rememberUser(u){var r=getRemembered(),ex=false;for(var i=0;i<r.length;i++){if(r[i].id===u.id){r[i].username=u.username;r[i].fullname=u.fullname;r[i].color=u.color;ex=true;break;}}if(!ex)r.push({id:u.id,username:u.username,fullname:u.fullname||u.username,color:u.color});LS.set('remembered',r);}
 function forgetUser(id){LS.set('remembered',getRemembered().filter(function(x){return x.id!==id;}));renderRemembered();}
-function renderRemembered(){
-  var c=G('remembered-circles');if(!c)return;
-  var r=getRemembered();
-  // verify each remembered user still exists in the database; drop the deleted ones
-  if(r.length){
-    Promise.all(r.map(function(rm){return dbGetUserByUsername(rm.username).then(function(f){return f?rm:null;}).catch(function(){return rm;});})).then(function(res){
-      var alive=res.filter(function(x){return x;});
-      if(alive.length!==r.length){LS.set('remembered',alive);}
-      paintRemembered(alive);
-    });
-  } else {
-    paintRemembered([]);
-  }
-}
+function renderRemembered(){paintRemembered(getRemembered());}
 function paintRemembered(r){
   var c=G('remembered-circles');if(!c)return;c.innerHTML='';
   var lbl=G('t-quicklogin');if(lbl)lbl.textContent=r.length?(LANG==='ar'?'اختر حسابك':LANG==='en'?'Choose your account':'Choisissez votre compte'):(LANG==='ar'?'اضغط + للاتصال':LANG==='en'?'Tap + to sign in':'Cliquez + pour vous connecter');
@@ -605,22 +592,38 @@ function paintRemembered(r){
   });
   var aw=document.createElement('div');aw.className='ucw';var ab=document.createElement('div');ab.className='add-uc';ab.textContent='+';ab.onclick=showUsernameForm;var al=document.createElement('span');al.className='uc-name';al.style.color='#1a7a4a';al.textContent=LANG==='ar'?'إضافة':LANG==='en'?'Add':'Ajouter';aw.appendChild(ab);aw.appendChild(al);c.appendChild(aw);
 }
-function showUsernameForm(){hide('login-step-plus');hide('login-step-pin');show('login-step-username');var el=G('login-username');if(el){el.value='';setTimeout(function(){el.focus();},80);}}
+function showUsernameForm(){
+  hide('login-step-plus');hide('login-step-pin');show('login-step-username');
+  // localize labels
+  setText('t-pick-user',LANG==='ar'?'اختر مستخدماً':LANG==='en'?'Choose a user':'Choisissez un utilisateur');
+  setText('t-or-type',LANG==='ar'?'— أو اكتب اسماً —':LANG==='en'?'— or type a name —':'— ou tapez un nom —');
+  var el=G('login-username');if(el)el.value='';
+  // load ALL users from the database so a hidden one can be picked again
+  var list=G('all-users-list');if(list)list.innerHTML='<p style="font-size:13px;color:#888;text-align:center">…</p>';
+  dbGetUsers().then(function(users){
+    if(!list)return;list.innerHTML='';
+    if(!users||!users.length){list.innerHTML='<p style="font-size:13px;color:#888;text-align:center">'+(LANG==='ar'?'لا يوجد مستخدمون':LANG==='en'?'No users':'Aucun utilisateur')+'</p>';return;}
+    users.forEach(function(u){
+      var row=document.createElement('button');
+      row.className='user-pick-row';
+      row.innerHTML='<span class="upr-av" style="background:'+(u.color||'#1a7a4a')+'">'+(u.fullname||u.username)[0].toUpperCase()+'</span><span class="upr-name">'+esc(u.fullname||u.username)+'</span><span class="upr-role">'+(u.role==='admin'?'admin':'')+'</span>';
+      row.onclick=function(){rememberUser(u);startPin(u);};
+      list.appendChild(row);
+    });
+  });
+}
 function backToPlus(){pinSel=null;pinV='';hide('login-step-username');hide('login-step-pin');show('login-step-plus');renderRemembered();}
-// Delete the selected user from the login screen (removes from database + this device)
+// Remove the selected user from the login screen ONLY (not from the database).
+// To bring them back, tap "+" and pick them from the list of all users.
 function deleteUserFromLogin(){
   if(!pinSel)return;
   var nm=pinSel.fullname||pinSel.username;
-  var msg=LANG==='ar'?('حذف المستخدم "'+nm+'" نهائياً؟'):LANG==='en'?('Permanently delete user "'+nm+'"?'):('Supprimer définitivement l\u2019utilisateur « '+nm+' » ?');
-  confirmModal(LANG==='ar'?'حذف المستخدم':LANG==='en'?'Delete user':'Supprimer l\u2019utilisateur',msg,function(){
-    var uid=pinSel.id;
-    sb.from('app_users').delete().eq('id',uid).then(function(r){
-      if(r&&r.error){showToast('❌ '+r.error.message);return;}
-      forgetUser(uid);
-      showToast('✅ '+(LANG==='ar'?'تم الحذف':LANG==='en'?'Deleted':'Supprimé'));
-      backToPlus();
-    });
-  },LANG==='ar'?'حذف':LANG==='en'?'Delete':'Supprimer');
+  var msg=LANG==='ar'?('إخفاء "'+nm+'" من شاشة الدخول؟ (يبقى في النظام)'):LANG==='en'?('Hide "'+nm+'" from the login screen? (stays in the system)'):('Retirer « '+nm+' » de l\u2019\u00e9cran de connexion ? (reste dans le syst\u00e8me)');
+  confirmModal(LANG==='ar'?'إخفاء المستخدم':LANG==='en'?'Hide user':'Retirer l\u2019utilisateur',msg,function(){
+    forgetUser(pinSel.id);
+    showToast('✅ '+(LANG==='ar'?'تمت الإزالة من الدخول':LANG==='en'?'Removed from login':'Retiré du login'));
+    backToPlus();
+  },LANG==='ar'?'إخفاء':LANG==='en'?'Hide':'Retirer');
 }
 function loginCheckUser(){var name=(G('login-username')?G('login-username').value||'':'').trim();if(!name){showToast(isAr()?'أدخل اسم المستخدم':'Entrez un nom');return;}showToast(isAr()?'جاري التحقق…':'Vérification…',1000);dbGetUserByUsername(name).then(function(found){if(!found){showToast(isAr()?'❌ المستخدم غير موجود':'❌ Utilisateur introuvable');return;}startPin(found);});}
 function startPin(found){pinSel=found;pinV='';hide('login-step-username');hide('login-step-plus');show('login-step-pin');var av=G('login-av');if(av){av.textContent=(found.fullname||found.username)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.username));buildPinKeys();updateDots();}
@@ -660,7 +663,7 @@ function showSection(name){
   CURSEC=name;
   var all=['inventory','products','adjustments','recap','profile','statistics','database','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
-  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Database',users:'Users',projects:'Projects',backup:'Products'};
+  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',users:'Users',projects:'Projects',backup:'Backup'};
   // rebuild header so the active admin tab highlights
   buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:!isAdmin});
   applyTR();

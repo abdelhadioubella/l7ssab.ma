@@ -135,7 +135,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 [dir=rtl] .inp,[dir=rtl] select.inp{direction:rtl;text-align:right}
 [dir=rtl] .rtbl thead th,[dir=rtl] .rtbl tbody td,[dir=rtl] .rtbl tfoot td,[dir=rtl] .utbl th,[dir=rtl] .utbl td{text-align:right}
 [dir=rtl] .num-field{text-align:right}
-[dir=rtl] .av-menu{left:0;right:auto}
+[dir=rtl] .av-menu{right:0;left:auto}
 [dir=rtl] .av-menu button{flex-direction:row-reverse;display:flex;gap:6px;text-align:right;justify-content:flex-end}
 [dir=rtl] .av-menu .av-head{text-align:right}
 /* keypads stay left-to-right (numbers) */
@@ -188,7 +188,6 @@ html.dark .b-user{background:#1f2a25;color:#9fb3a9;border-color:#33473e}
 .hdr-btn{font-size:17px;padding:8px 13px;border-radius:10px;min-width:42px}
 .hdr-av{width:42px;height:42px;font-size:18px}
 .hdr-title{font-size:17px}
-[dir=rtl] .hdr-right{flex-direction:row-reverse}
 /* RTL button styling for Arabic pages */
 [dir=rtl] .btn-p,[dir=rtl] .btn-g,[dir=rtl] .btn-r,[dir=rtl] .btn-b,[dir=rtl] .btn-grn{direction:rtl}
 [dir=rtl] .proj-btns{flex-direction:row-reverse;justify-content:flex-end}
@@ -268,6 +267,18 @@ html.dark .calc-op{background:#1c2622;color:#6ee7a8}
 html.dark .calc-fn{background:#161e1a;color:#9bb3a8}
 html.dark .calc-clear-total{background:#1c2622;color:#6ee7a8}
 
+
+/* user pick list (login +) */
+.user-pick-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;background:#f7f7f7;border:none;border-radius:12px;margin-bottom:6px;cursor:pointer;text-align:left}
+.user-pick-row:hover{background:#eef7f1}
+.upr-av{width:36px;height:36px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.upr-name{flex:1;font-size:15px;font-weight:600;color:#222}
+.upr-role{font-size:11px;color:#1a7a4a;font-weight:700;text-transform:uppercase}
+[dir=rtl] .user-pick-row{text-align:right;flex-direction:row-reverse}
+html.dark .user-pick-row{background:#1c2622}
+html.dark .user-pick-row:hover{background:#22302a}
+html.dark .upr-name{color:#e8f5ee}
+
 </style>
 </head>
 <body>
@@ -290,7 +301,9 @@ html.dark .calc-clear-total{background:#1c2622;color:#6ee7a8}
       <div class="user-circles" id="remembered-circles"></div>
     </div>
     <div id="login-step-username" class="hidden">
-      <p style="font-size:13px;font-weight:600;color:#1a7a4a;margin-bottom:10px" id="t-enter-uname">Entrez votre nom d'utilisateur</p>
+      <p style="font-size:13px;font-weight:600;color:#1a7a4a;margin-bottom:10px" id="t-pick-user">Choisissez un utilisateur</p>
+      <div id="all-users-list" style="max-height:240px;overflow-y:auto;margin-bottom:12px"></div>
+      <p style="font-size:12px;color:#888;text-align:center;margin:10px 0 6px" id="t-or-type">— ou tapez un nom —</p>
       <input class="inp" type="text" id="login-username" placeholder="Nom d'utilisateur" onkeydown="if(event.key==='Enter')loginCheckUser()"/>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <button class="btn-g" onclick="backToPlus()">Annuler</button>
@@ -309,7 +322,7 @@ html.dark .calc-clear-total{background:#1c2622;color:#6ee7a8}
       </div>
       <div class="pin-grid" id="pkeys"></div>
       <button class="btn-g" style="width:100%;margin-top:12px" onclick="backToPlus()">← Retour</button>
-      <button class="btn-r" style="width:100%;margin-top:8px" id="login-del-btn" onclick="deleteUserFromLogin()">🗑 Supprimer cet utilisateur</button>
+      <button class="btn-r" style="width:100%;margin-top:8px" id="login-del-btn" onclick="deleteUserFromLogin()">🗑 Retirer du login</button>
     </div>
   </div>
 </div>
