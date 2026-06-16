@@ -354,7 +354,7 @@ function buildHeader(opts){
     (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
-      (opts.role==='admin'?'':'<button class="hdr-btn" onclick="showSection(\'calendar\')" title="Calendrier">📅</button>')+
+      (opts.role==='admin'?'':'<button class="hdr-btn" onclick="openCalendar()" title="Calendrier">📅</button>')+
       (opts.role==='admin'?'':'<button class="hdr-btn" onclick="openCalc()" title="Calculatrice">🧮</button>')+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
@@ -542,9 +542,9 @@ function generatePDF(project,items,adjs,authorName,lang){
   doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);F('bold');
   doc.text('N',M+2,y+5);doc.text(R(L.pname),M+12,y+5);doc.text(R(L.price),M+108,y+5,{align:'right'});doc.text(R(L.qte),M+124,y+5,{align:'right'});doc.text(R(L.total),W-M-2,y+5,{align:'right'});y+=7;
   F('normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
-  items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.text(String(i+1),M+2,y+4.5);var nm=(p.name||'-').substring(0,40);if(hasAr(nm)){/* Arabic name: render reshaped and RIGHT-ALIGNED at the end of the name column */ if(amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}}doc.text(R(nm),M+104,y+4.5,{align:'right'});F('normal');}else{doc.text(nm,M+12,y+4.5);}doc.text(pr.toFixed(2),M+108,y+4.5,{align:'right'});doc.text(String(q),M+124,y+4.5,{align:'right'});doc.text((pr*q).toFixed(2),W-M-2,y+4.5,{align:'right'});y+=6;if(y>270){doc.addPage();y=15;}});
+  items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.text(String(i+1),M+2,y+4.5);var nm=(p.name||'-').substring(0,40);if(hasAr(nm)){if(amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}}if(lang==='ar'){doc.text(R(nm),M+104,y+4.5,{align:'right'});}else{doc.text(R(nm),M+12,y+4.5);}F('normal');}else{doc.text(nm,M+12,y+4.5);}doc.text(pr.toFixed(2),M+108,y+4.5,{align:'right'});doc.text(String(q),M+124,y+4.5,{align:'right'});doc.text((pr*q).toFixed(2),W-M-2,y+4.5,{align:'right'});y+=6;if(y>270){doc.addPage();y=15;}});
   doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(R(L.subP),M+2,y+5);doc.text(tP.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=10;
-  if(adjs.length>0){doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text(R(L.adjs)+' ('+adjs.length+')',M,y);y+=6;doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.text(R(L.desc),M+2,y+5);doc.text(R(L.type),M+118,y+5);doc.text(R(L.amount),W-M-2,y+5,{align:'right'});y+=7;F('normal');doc.setFontSize(8);adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.setTextColor(30,30,30);var ad=(a.description||'-').substring(0,46);if(hasAr(ad)){if(amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}}doc.text(R(ad),M+114,y+4.5,{align:'right'});F('normal');}else{doc.text(ad,M+2,y+4.5);}doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;});doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(R(L.subA),M+2,y+5);doc.text((tA>=0?'+':'')+tA.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=12;}
+  if(adjs.length>0){doc.setTextColor(26,122,74);doc.setFontSize(11);doc.text(R(L.adjs)+' ('+adjs.length+')',M,y);y+=6;doc.setDrawColor(26,122,74);doc.line(M,y,W-M,y);y+=4;doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,7,'F');doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.text(R(L.desc),M+2,y+5);doc.text(R(L.type),M+118,y+5);doc.text(R(L.amount),W-M-2,y+5,{align:'right'});y+=7;F('normal');doc.setFontSize(8);adjs.forEach(function(a,i){var ap=parseFloat(a.amount)||0,col=a.type==='+'?[26,122,74]:[214,48,49];if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}doc.setTextColor(30,30,30);var ad=(a.description||'-').substring(0,46);if(hasAr(ad)){if(amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}}if(lang==='ar'){doc.text(R(ad),M+114,y+4.5,{align:'right'});}else{doc.text(R(ad),M+2,y+4.5);}F('normal');}else{doc.text(ad,M+2,y+4.5);}doc.setTextColor(col[0],col[1],col[2]);doc.text(a.type,M+118,y+4.5);doc.text((a.type==='+'?'+':'-')+ap.toFixed(2)+' DH',W-M-2,y+4.5,{align:'right'});y+=6;});doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,7,'F');F('bold');doc.setTextColor(15,81,50);doc.text(R(L.subA),M+2,y+5);doc.text((tA>=0?'+':'')+tA.toFixed(2)+' DH',W-M-2,y+5,{align:'right'});y+=12;}
   if(y>240){doc.addPage();y=15;}doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,14,'F');doc.setTextColor(255,255,255);doc.setFontSize(13);F('bold');doc.text(R(L.grand),M+4,y+9);doc.text(grand.toFixed(2)+' DH',W-M-4,y+9,{align:'right'});y+=20;
   if(y>250){doc.addPage();y=15;}doc.setTextColor(100,100,100);doc.setFontSize(9);F('normal');var sw=(W-2*M)/2-5;doc.line(M,y+12,M+sw,y+12);doc.line(M+sw+10,y+12,W-M,y+12);doc.text(R(L.signR),M+sw/2,y+17,{align:'center'});doc.text(R(L.signC),M+sw+10+sw/2,y+17,{align:'center'});
   doc.setFontSize(8);doc.setTextColor(180,180,180);doc.text('L7ssab.ma (c) '+new Date().getFullYear(),W/2,290,{align:'center'});
@@ -713,9 +713,9 @@ function buildHeaderFor(){
 function showSection(name){
   if(!isAdmin&&(name==='products'||name==='adjustments'||name==='recap')&&!CP){name='inventory';}
   CURSEC=name;
-  var all=['inventory','products','adjustments','recap','profile','calendar','statistics','database','users','projects','backup'];
+  var all=['inventory','products','adjustments','recap','profile','statistics','database','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
-  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),calendar:(isAr()?'التقويم':'Calendrier'),statistics:'Statistics',database:'Products',users:'Users',projects:'Projects',backup:'Backup'};
+  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',users:'Users',projects:'Projects',backup:'Backup'};
   // rebuild header so the active admin tab highlights
   buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:!isAdmin});
   applyTR();
@@ -725,7 +725,6 @@ function showSection(name){
   else if(name==='adjustments')refreshAdjs();
   else if(name==='recap')refreshRecap();
   else if(name==='profile')refreshProfile();
-  else if(name==='calendar')refreshCalendar();
   else if(name==='statistics')refreshStats();
   else if(name==='database')refreshDB();
   else if(name==='users')refreshUsers();
@@ -734,24 +733,48 @@ function showSection(name){
   window.scrollTo(0,0);
 }
 function backToApp(){showSection(isAdmin?'statistics':'inventory');}
-// ===== CALENDAR (per-user notes, saved in Supabase) =====
+// ===== CALENDAR (per-user notes, saved in Supabase, floating popup) =====
 var _calYear,_calMonth,_calNotes={},_calSelDate=null;
-function refreshCalendar(){
+function openCalendar(){
+  var h=G('cal-holder');if(!h)return;
   var now=new Date();
   if(_calYear==null){_calYear=now.getFullYear();_calMonth=now.getMonth();}
-  // load this user's notes
+  var title=isAr()?'التقويم':'Calendrier';
+  h.innerHTML=''+
+  '<div class="cal-overlay" id="cal-overlay" onclick="if(event.target===this)closeCalendar()">'+
+    '<div class="cal-win">'+
+      '<div class="cal-bar"><span>📅 '+title+'</span><button class="cal-close" onclick="closeCalendar()">×</button></div>'+
+      '<div class="cal-head">'+
+        '<button class="cal-nav" onclick="calPrevMonth()">‹</button>'+
+        '<button class="cal-month" id="cal-month-label" onclick="openMonthYearPicker()"></button>'+
+        '<button class="cal-nav" onclick="calNextMonth()">›</button>'+
+      '</div>'+
+      '<div class="cal-picker hidden" id="cal-picker"></div>'+
+      '<div class="cal-weekdays" id="cal-weekdays"></div>'+
+      '<div class="cal-grid" id="cal-grid"></div>'+
+      '<div class="cal-note-box hidden" id="cal-note-card">'+
+        '<div class="cal-note-title" id="cal-note-title"></div>'+
+        '<textarea id="cal-note-text" class="inp" rows="4" placeholder="…" style="resize:vertical"></textarea>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'+
+          '<button class="btn-g" onclick="closeCalNote()" id="cal-note-cancel">Annuler</button>'+
+          '<button class="btn-p" style="margin-top:0" onclick="saveCalNote()" id="cal-note-save">Enregistrer</button>'+
+        '</div>'+
+        '<button class="btn-r" style="width:100%;margin-top:8px" onclick="deleteCalNote()" id="cal-note-del">🗑</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
   if(CU){dbGetCalNotes(CU.id).then(function(rows){_calNotes={};rows.forEach(function(r){_calNotes[r.date]=r.note;});renderCalendar();});}
   else renderCalendar();
+  setTimeout(function(){var o=G('cal-overlay');if(o)o.classList.add('show');},10);
 }
+function closeCalendar(){var o=G('cal-overlay');if(o){o.classList.remove('show');setTimeout(function(){var h=G('cal-holder');if(h)h.innerHTML='';},180);}}
 function calMonthName(m){
   var fr=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   var ar=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','غشت','شتنبر','أكتوبر','نونبر','دجنبر'];
   return (isAr()?ar:fr)[m];
 }
 function renderCalendar(){
-  setText('cal-month-label',calMonthName(_calMonth)+' '+_calYear);
-  setText('cal-hint',isAr()?'اضغط على يوم لإضافة ملاحظة':'Cliquez sur un jour pour ajouter une note');
-  // weekday headers
+  var lbl=G('cal-month-label');if(lbl)lbl.textContent=calMonthName(_calMonth)+' '+_calYear+' ▾';
   var wd=G('cal-weekdays');if(wd){var days=isAr()?['أحد','إثن','ثلا','أرب','خمي','جمع','سبت']:['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];wd.innerHTML='';days.forEach(function(d){var s=document.createElement('span');s.textContent=d;wd.appendChild(s);});}
   var grid=G('cal-grid');if(!grid)return;grid.innerHTML='';
   var first=new Date(_calYear,_calMonth,1).getDay();
@@ -761,15 +784,33 @@ function renderCalendar(){
   for(var d=1;d<=daysInMonth;d++){
     (function(d){
       var ds=fmtDate(_calYear,_calMonth,d);
+      var note=(_calNotes[ds]||'').trim();
       var cell=document.createElement('div');cell.className='cal-cell';
       if(ds===todayStr)cell.className+=' today';
-      if(_calNotes[ds]&&_calNotes[ds].trim())cell.className+=' has-note';
-      cell.innerHTML='<span class="cal-day">'+d+'</span>'+((_calNotes[ds]&&_calNotes[ds].trim())?'<span class="cal-dot"></span>':'');
+      if(note)cell.className+=' has-note';
+      // short preview: first 3 words
+      var preview='';
+      if(note){var words=note.split(/\s+/).slice(0,3).join(' ');preview='<span class="cal-prev">'+esc(words)+(note.split(/\s+/).length>3?'…':'')+'</span>';}
+      cell.innerHTML='<span class="cal-day">'+d+'</span>'+preview;
       cell.onclick=function(){openCalNote(ds,d);};
       grid.appendChild(cell);
     })(d);
   }
 }
+// month + year picker
+function openMonthYearPicker(){
+  var p=G('cal-picker');if(!p)return;
+  if(!p.classList.contains('hidden')){p.classList.add('hidden');return;}
+  var html='<div class="cal-pick-years" id="cal-pick-years">';
+  var cy=new Date().getFullYear();
+  for(var y=cy-3;y<=cy+3;y++){html+='<button class="cal-py'+(y===_calYear?' sel':'')+'" onclick="pickYear('+y+')">'+y+'</button>';}
+  html+='</div><div class="cal-pick-months">';
+  for(var m=0;m<12;m++){html+='<button class="cal-pm'+(m===_calMonth?' sel':'')+'" onclick="pickMonth('+m+')">'+calMonthName(m).substring(0,3)+'</button>';}
+  html+='</div>';
+  p.innerHTML=html;p.classList.remove('hidden');
+}
+function pickYear(y){_calYear=y;openMonthYearPicker();openMonthYearPicker();renderCalendar();}
+function pickMonth(m){_calMonth=m;var p=G('cal-picker');if(p)p.classList.add('hidden');renderCalendar();}
 function fmtDate(y,m,d){var mm=(m+1)<10?'0'+(m+1):(m+1);var dd=d<10?'0'+d:d;return y+'-'+mm+'-'+dd;}
 function calPrevMonth(){_calMonth--;if(_calMonth<0){_calMonth=11;_calYear--;}renderCalendar();}
 function calNextMonth(){_calMonth++;if(_calMonth>11){_calMonth=0;_calYear++;}renderCalendar();}
@@ -777,9 +818,8 @@ function openCalNote(ds,d){
   _calSelDate=ds;
   show('cal-note-card');
   setText('cal-note-title',(isAr()?'ملاحظة ليوم ':'Note du ')+d+' '+calMonthName(_calMonth)+' '+_calYear);
-  var ta=G('cal-note-text');if(ta){ta.value=_calNotes[ds]||'';ta.focus();}
-  setText('cal-note-cancel',isAr()?'إلغاء':'Annuler');setText('cal-note-save',isAr()?'حفظ':'Enregistrer');setText('cal-note-del',isAr()?'🗑 حذف الملاحظة':'🗑 Supprimer la note');
-  G('cal-note-card').scrollIntoView({behavior:'smooth',block:'center'});
+  var ta=G('cal-note-text');if(ta){ta.value=_calNotes[ds]||'';ta.placeholder=isAr()?'اكتب ملاحظتك…':'Écrivez votre note…';ta.focus();}
+  setText('cal-note-cancel',isAr()?'إلغاء':'Annuler');setText('cal-note-save',isAr()?'حفظ':'Enregistrer');setText('cal-note-del',isAr()?'🗑 حذف':'🗑 Supprimer');
 }
 function closeCalNote(){hide('cal-note-card');_calSelDate=null;}
 function saveCalNote(){
@@ -1122,9 +1162,10 @@ function exportProducts(fmt){
   });
 }
 function exportUsers(){
-  dbGetUsers().then(function(u){
-    dl('users-'+today()+'.json',JSON.stringify(u,null,2),'application/json');
-    logB('✅ '+u.length+' users exported (JSON, keeps hashed PIN)');
+  Promise.all([dbGetUsers(),sb.from('calendar_notes').select('*').limit(100000)]).then(function(r){
+    var data={type:'l7ssab-users',exported_at:new Date().toISOString(),app_users:r[0],calendar_notes:((r[1]&&r[1].data)||[])};
+    dl('users-'+today()+'.json',JSON.stringify(data,null,2),'application/json');
+    logB('✅ '+r[0].length+' users + calendars exported (JSON, keeps hashed PIN)');
   });
 }
 function exportFull(){
@@ -1133,13 +1174,14 @@ function exportFull(){
       sb.from('projects').select('*').limit(100000),
       sb.from('project_items').select('*').limit(100000),
       sb.from('adjustments').select('*').limit(100000),
-      sb.from('custom_prices').select('*').limit(100000)
+      sb.from('custom_prices').select('*').limit(100000),
+      sb.from('calendar_notes').select('*').limit(100000)
     ]).then(function(rr){
       var backup={version:1,exported_at:new Date().toISOString(),
         products:r[0],app_users:r[1],
-        projects:(rr[0].data||[]),project_items:(rr[1].data||[]),adjustments:(rr[2].data||[]),custom_prices:(rr[3].data||[])};
+        projects:(rr[0].data||[]),project_items:(rr[1].data||[]),adjustments:(rr[2].data||[]),custom_prices:(rr[3].data||[]),calendar_notes:(rr[4].data||[])};
       dl('l7ssab-full-backup-'+today()+'.json',JSON.stringify(backup,null,2),'application/json');
-      logB('✅ Full backup downloaded (restores projects → reopen a project to get its PDF)');
+      logB('✅ Full backup downloaded (projects + calendars). Reopen a project to get its PDF.');
     });
   });
 }
@@ -1163,29 +1205,21 @@ function importProjects(file){
     var data;try{data=JSON.parse(text);}catch(e){logB('❌ Invalid JSON');return;}
     var projects=data.projects||[],items=data.project_items||[],adjs=data.adjustments||[];
     if(!projects.length){logB('❌ No projects in file');return;}
-    logB('⏳ Restoring '+projects.length+' projects…');
-    var idMap={}; // old project id -> new project id
-    // insert projects one by one to remap ids
-    var chain=Promise.resolve();
-    projects.forEach(function(p){
-      chain=chain.then(function(){
-        return sb.from('projects').insert({user_id:p.user_id,name:p.name,created_at:p.created_at||new Date().toISOString(),updated_at:p.updated_at||new Date().toISOString()}).select().then(function(r){
-          if(r.data&&r.data[0])idMap[p.id]=r.data[0].id;
-        });
-      });
-    });
-    chain.then(function(){
-      // remap and insert items
-      var newItems=items.map(function(it){return {project_id:idMap[it.project_id],barcode:it.barcode||'',name:it.name,price:parseFloat(it.price)||0,quantity:parseFloat(it.quantity)||0};}).filter(function(x){return x.project_id;});
-      var newAdjs=adjs.map(function(a){return {project_id:idMap[a.project_id],description:a.description||'',type:a.type||'+',amount:parseFloat(a.amount)||0};}).filter(function(x){return x.project_id;});
+    logB('⏳ Restoring '+projects.length+' projects (no duplicates)…');
+    // Upsert by ID: a project already present (same id) is NOT duplicated, just updated.
+    var pRows=projects.map(function(p){return {id:p.id,user_id:p.user_id,name:p.name,created_at:p.created_at||new Date().toISOString(),updated_at:p.updated_at||new Date().toISOString()};});
+    var iRows=items.map(function(it){var o={project_id:it.project_id,barcode:it.barcode||'',name:it.name,price:parseFloat(it.price)||0,quantity:parseFloat(it.quantity)||0};if(it.id)o.id=it.id;return o;});
+    var aRows=adjs.map(function(a){var o={project_id:a.project_id,description:a.description||'',type:a.type||'+',amount:parseFloat(a.amount)||0};if(a.id)o.id=a.id;return o;});
+    sb.from('projects').upsert(pRows,{onConflict:'id'}).then(function(r0){
+      if(r0&&r0.error){logB('❌ '+r0.error.message);return;}
       var ops=[];
-      if(newItems.length)ops.push(sb.from('project_items').insert(newItems));
-      if(newAdjs.length)ops.push(sb.from('adjustments').insert(newAdjs));
+      if(iRows.length)ops.push(sb.from('project_items').upsert(iRows,{onConflict:'id'}));
+      if(aRows.length)ops.push(sb.from('adjustments').upsert(aRows,{onConflict:'id'}));
       Promise.all(ops).then(function(){
-        logB('✅ Restored '+projects.length+' projects, '+newItems.length+' items, '+newAdjs.length+' adjustments. Open a project to download its PDF.');
+        logB('✅ Restored '+projects.length+' projects (existing IDs updated, no duplicates).');
         if(G('imp-projects'))G('imp-projects').value='';
         if(typeof refreshAdminProjects==='function')refreshAdminProjects();
-      });
+      }).catch(function(e){logB('❌ '+(e.message||'error'));});
     });
   });
 }
@@ -1201,8 +1235,8 @@ function parseProductsFile(text,name){
   return out;
 }
 function importProducts(file){if(!file)return;readFile(file,function(text){var rows=parseProductsFile(text,file.name);if(!rows||!rows.length){logB('❌ File empty or invalid');return;}logB('⏳ Importing '+rows.length+'…');sb.from('products').insert(rows).then(function(r){if(r.error){logB('❌ '+r.error.message);return;}logB('✅ '+rows.length+' products imported');});G('imp-prod').value='';});}
-function importUsers(file){if(!file)return;readFile(file,function(text){var arr;try{arr=JSON.parse(text);}catch(e){logB('❌ Users import must be JSON');return;}var rows=arr.map(function(x){return {username:x.username,fullname:x.fullname||x.username,role:x.role||'user',pin_hash:x.pin_hash,color:x.color||'#1a7a4a'};}).filter(function(x){return x.username&&x.pin_hash;});if(!rows.length){logB('❌ No valid users (need username + pin_hash)');return;}logB('⏳ Importing users…');sb.from('app_users').upsert(rows,{onConflict:'username'}).then(function(r){if(r.error){logB('❌ '+r.error.message);return;}logB('✅ '+rows.length+' users imported');});G('imp-users').value='';});}
-function importFull(file){if(!file)return;readFile(file,function(text){var b;try{b=JSON.parse(text);}catch(e){logB('❌ Invalid JSON');return;}confirmModal('Restore full backup','This will ADD all data from the backup (existing kept). Continue?',function(){var steps=[];if(b.products&&b.products.length)steps.push(sb.from('products').upsert(b.products.map(function(x){return {id:x.id,barcode:x.barcode||'',name:x.name,price:x.price};}),{onConflict:'id'}));if(b.app_users&&b.app_users.length)steps.push(sb.from('app_users').upsert(b.app_users,{onConflict:'username'}));if(b.projects&&b.projects.length)steps.push(sb.from('projects').upsert(b.projects,{onConflict:'id'}));if(b.project_items&&b.project_items.length)steps.push(sb.from('project_items').upsert(b.project_items,{onConflict:'id'}));if(b.adjustments&&b.adjustments.length)steps.push(sb.from('adjustments').upsert(b.adjustments,{onConflict:'id'}));if(b.custom_prices&&b.custom_prices.length)steps.push(sb.from('custom_prices').upsert(b.custom_prices,{onConflict:'id'}));logB('⏳ Restoring…');Promise.all(steps).then(function(){logB('✅ Full backup restored');}).catch(function(e){logB('❌ '+(e.message||'error'));});},'Restore');G('imp-full').value='';});}
+function importUsers(file){if(!file)return;readFile(file,function(text){var parsed;try{parsed=JSON.parse(text);}catch(e){logB('❌ Users import must be JSON');return;}var arr=Array.isArray(parsed)?parsed:(parsed.app_users||[]);var cals=(parsed&&parsed.calendar_notes)||[];var rows=arr.map(function(x){var o={username:x.username,fullname:x.fullname||x.username,role:x.role||'user',pin_hash:x.pin_hash,color:x.color||'#1a7a4a'};if(x.id)o.id=x.id;return o;}).filter(function(x){return x.username&&x.pin_hash;});if(!rows.length){logB('❌ No valid users (need username + pin_hash)');return;}logB('⏳ Importing users + calendars…');sb.from('app_users').upsert(rows,{onConflict:'username'}).then(function(r){if(r.error){logB('❌ '+r.error.message);return;}var done='✅ '+rows.length+' users imported';if(cals.length){sb.from('calendar_notes').upsert(cals.map(function(c){var o={user_id:c.user_id,date:c.date,note:c.note||''};if(c.id)o.id=c.id;return o;}),{onConflict:'user_id,date'}).then(function(){logB(done+' + '+cals.length+' calendar notes');});}else{logB(done);}});G('imp-users').value='';});}
+function importFull(file){if(!file)return;readFile(file,function(text){var b;try{b=JSON.parse(text);}catch(e){logB('❌ Invalid JSON');return;}confirmModal('Restore full backup','This will ADD all data from the backup (existing kept, no duplicates). Continue?',function(){var steps=[];if(b.products&&b.products.length)steps.push(sb.from('products').upsert(b.products.map(function(x){return {id:x.id,barcode:x.barcode||'',name:x.name,price:x.price};}),{onConflict:'id'}));if(b.app_users&&b.app_users.length)steps.push(sb.from('app_users').upsert(b.app_users,{onConflict:'username'}));if(b.projects&&b.projects.length)steps.push(sb.from('projects').upsert(b.projects,{onConflict:'id'}));if(b.project_items&&b.project_items.length)steps.push(sb.from('project_items').upsert(b.project_items,{onConflict:'id'}));if(b.adjustments&&b.adjustments.length)steps.push(sb.from('adjustments').upsert(b.adjustments,{onConflict:'id'}));if(b.custom_prices&&b.custom_prices.length)steps.push(sb.from('custom_prices').upsert(b.custom_prices,{onConflict:'id'}));if(b.calendar_notes&&b.calendar_notes.length)steps.push(sb.from('calendar_notes').upsert(b.calendar_notes.map(function(c){var o={user_id:c.user_id,date:c.date,note:c.note||''};if(c.id)o.id=c.id;return o;}),{onConflict:'user_id,date'}));logB('⏳ Restoring…');Promise.all(steps).then(function(){logB('✅ Full backup restored (projects + calendars, no duplicates)');}).catch(function(e){logB('❌ '+(e.message||'error'));});},'Restore');G('imp-full').value='';});}
 
 // ================= INIT (single file) =================
 // service worker with auto-update
