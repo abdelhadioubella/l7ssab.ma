@@ -342,7 +342,7 @@ html.dark .am-foot{border-top-color:#22302a}
 /* ===== CALENDAR POPUP ===== */
 .cal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;z-index:500;padding:16px;overflow-y:auto}
 .cal-overlay.show{opacity:1;pointer-events:auto}
-.cal-win{background:#fff;border-radius:18px;box-shadow:0 22px 60px rgba(0,0,0,.4);width:560px;max-width:96vw;max-height:94vh;overflow-y:auto;transform:scale(.97);transition:transform .18s}
+.cal-win{background:#fff;border-radius:18px;box-shadow:0 22px 60px rgba(0,0,0,.4);width:720px;max-width:97vw;max-height:95vh;overflow-y:auto;transform:scale(.97);transition:transform .18s}
 .cal-overlay.show .cal-win{transform:scale(1)}
 .cal-bar{background:#1a7a4a;color:#fff;padding:14px 18px;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2}
 .cal-close{background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
@@ -361,13 +361,13 @@ html.dark .am-foot{border-top-color:#22302a}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:0 18px;margin-bottom:6px}
 .cal-weekdays span{text-align:center;font-size:12px;font-weight:600;color:#999}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:0 18px 16px}
-.cal-cell{min-height:64px;border-radius:10px;background:#f7f9f8;display:flex;flex-direction:column;align-items:center;cursor:pointer;position:relative;transition:background .1s;padding:5px 3px;overflow:hidden}
+.cal-cell{min-height:84px;border-radius:10px;background:#f7f9f8;display:flex;flex-direction:column;align-items:center;cursor:pointer;position:relative;transition:background .1s;padding:5px 3px;overflow:hidden}
 .cal-cell:hover{background:#e8f5ee}
 .cal-cell.empty{background:transparent;cursor:default}
 .cal-cell.today{border:2px solid #1a7a4a}
 .cal-cell.has-note{background:#e8f5ee}
-.cal-day{font-size:14px;color:#333;font-weight:600;align-self:flex-start;padding-left:2px}
-.cal-prev{font-size:9px;color:#1a7a4a;text-align:center;line-height:1.1;margin-top:2px;word-break:break-word;font-weight:600}
+.cal-day{font-size:16px;color:#333;font-weight:600;align-self:flex-start;padding-left:2px}
+.cal-prev{font-size:11px;color:#1a7a4a;text-align:center;line-height:1.1;margin-top:2px;word-break:break-word;font-weight:600}
 .cal-note-box{margin:0 18px 18px;background:#f7f9f8;border-radius:12px;padding:14px}
 .cal-note-title{font-size:14px;font-weight:700;color:#1a7a4a;margin-bottom:10px}
 html.dark .cal-win{background:#18211d}
@@ -641,7 +641,12 @@ html.dark .cal-py.sel,html.dark .cal-pm.sel{background:#1a7a4a;color:#fff}
 <div class="content">
   <div class="card">
     <div class="card-title">All projects (download PDF)</div>
-    <input class="inp" type="text" id="proj-search" placeholder="Search by name…" oninput="filterProjects(this.value)"/>
+    <input class="inp" type="text" id="proj-search" placeholder="Search by name…" oninput="applyProjFilters()"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+      <div><label style="font-size:11px;color:#888">From</label><input class="inp" type="date" id="proj-from" onchange="applyProjFilters()" style="margin-bottom:0"/></div>
+      <div><label style="font-size:11px;color:#888">To</label><input class="inp" type="date" id="proj-to" onchange="applyProjFilters()" style="margin-bottom:0"/></div>
+    </div>
+    <button class="btn-g" style="margin-bottom:10px;padding:8px" onclick="clearProjFilters()">✕ Clear filters</button>
     <div id="admin-proj-list"><p style="font-size:13px;color:#666">…</p></div>
   </div>
 </div></div>
