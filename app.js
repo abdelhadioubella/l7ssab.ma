@@ -284,6 +284,12 @@ function dbGetUserByUsername(u){return sb.from('app_users').select('*').ilike('u
 function dbGetUserById(id){return sb.from('app_users').select('*').eq('id',id).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
 function dbGetUsers(){return sb.from('app_users').select('*').order('created_at',{ascending:true}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
 function dbGetProducts(){return sb.from('products').select('*').order('name',{ascending:true}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
+// ---- CALENDAR (per-user notes) ----
+function dbGetCalNotes(uid){return sb.from('calendar_notes').select('*').eq('user_id',uid).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
+function dbSaveCalNote(uid,date,note){
+  return sb.from('calendar_notes').upsert({user_id:uid,date:date,note:note},{onConflict:'user_id,date'}).then(function(r){return r;});
+}
+function dbDeleteCalNote(uid,date){return sb.from('calendar_notes').delete().eq('user_id',uid).eq('date',date).then(function(r){return r;});}
 function dbGetProjects(uid){return sb.from('projects').select('*').eq('user_id',uid).order('updated_at',{ascending:false}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
 function dbGetItems(pid){return sb.from('project_items').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
 function dbGetAdjs(pid){return sb.from('adjustments').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
@@ -348,18 +354,19 @@ function buildHeader(opts){
     (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
+      (opts.role==='admin'?'':'<button class="hdr-btn" onclick="showSection(\'calendar\')" title="Calendrier">📅</button>')+
       (opts.role==='admin'?'':'<button class="hdr-btn" onclick="openCalc()" title="Calculatrice">🧮</button>')+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
       langBtn+
-      '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
+      (opts.role==='admin'?'':'<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
       '<div class="av-menu" id="av-menu">'+
         '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
-        (opts.role==='admin'?'<button onclick="toggleAvMenu();showSection(\'profile\')">👤 My profile</button>':'<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>')+
-        '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+(opts.role==='admin'?'Install':t('installApp'))+'</button>'+
-        '<button onclick="logout()">🚪 '+(opts.role==='admin'?'Logout':t('logoutTxt'))+'</button>'+
-      '</div>'+
+        '<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>'+
+        '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
+        '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
+      '</div>')+
     '</div>'+
   '</div>';
   var holder=G('app-header');if(holder)holder.innerHTML=html;
@@ -706,9 +713,9 @@ function buildHeaderFor(){
 function showSection(name){
   if(!isAdmin&&(name==='products'||name==='adjustments'||name==='recap')&&!CP){name='inventory';}
   CURSEC=name;
-  var all=['inventory','products','adjustments','recap','profile','statistics','database','users','projects','backup'];
+  var all=['inventory','products','adjustments','recap','profile','calendar','statistics','database','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
-  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',users:'Users',projects:'Projects',backup:'Backup'};
+  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),calendar:(isAr()?'التقويم':'Calendrier'),statistics:'Statistics',database:'Products',users:'Users',projects:'Projects',backup:'Backup'};
   // rebuild header so the active admin tab highlights
   buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:!isAdmin});
   applyTR();
@@ -718,6 +725,7 @@ function showSection(name){
   else if(name==='adjustments')refreshAdjs();
   else if(name==='recap')refreshRecap();
   else if(name==='profile')refreshProfile();
+  else if(name==='calendar')refreshCalendar();
   else if(name==='statistics')refreshStats();
   else if(name==='database')refreshDB();
   else if(name==='users')refreshUsers();
@@ -726,6 +734,67 @@ function showSection(name){
   window.scrollTo(0,0);
 }
 function backToApp(){showSection(isAdmin?'statistics':'inventory');}
+// ===== CALENDAR (per-user notes, saved in Supabase) =====
+var _calYear,_calMonth,_calNotes={},_calSelDate=null;
+function refreshCalendar(){
+  var now=new Date();
+  if(_calYear==null){_calYear=now.getFullYear();_calMonth=now.getMonth();}
+  // load this user's notes
+  if(CU){dbGetCalNotes(CU.id).then(function(rows){_calNotes={};rows.forEach(function(r){_calNotes[r.date]=r.note;});renderCalendar();});}
+  else renderCalendar();
+}
+function calMonthName(m){
+  var fr=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var ar=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','غشت','شتنبر','أكتوبر','نونبر','دجنبر'];
+  return (isAr()?ar:fr)[m];
+}
+function renderCalendar(){
+  setText('cal-month-label',calMonthName(_calMonth)+' '+_calYear);
+  setText('cal-hint',isAr()?'اضغط على يوم لإضافة ملاحظة':'Cliquez sur un jour pour ajouter une note');
+  // weekday headers
+  var wd=G('cal-weekdays');if(wd){var days=isAr()?['أحد','إثن','ثلا','أرب','خمي','جمع','سبت']:['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];wd.innerHTML='';days.forEach(function(d){var s=document.createElement('span');s.textContent=d;wd.appendChild(s);});}
+  var grid=G('cal-grid');if(!grid)return;grid.innerHTML='';
+  var first=new Date(_calYear,_calMonth,1).getDay();
+  var daysInMonth=new Date(_calYear,_calMonth+1,0).getDate();
+  var today=new Date();var todayStr=fmtDate(today.getFullYear(),today.getMonth(),today.getDate());
+  for(var i=0;i<first;i++){var e=document.createElement('div');e.className='cal-cell empty';grid.appendChild(e);}
+  for(var d=1;d<=daysInMonth;d++){
+    (function(d){
+      var ds=fmtDate(_calYear,_calMonth,d);
+      var cell=document.createElement('div');cell.className='cal-cell';
+      if(ds===todayStr)cell.className+=' today';
+      if(_calNotes[ds]&&_calNotes[ds].trim())cell.className+=' has-note';
+      cell.innerHTML='<span class="cal-day">'+d+'</span>'+((_calNotes[ds]&&_calNotes[ds].trim())?'<span class="cal-dot"></span>':'');
+      cell.onclick=function(){openCalNote(ds,d);};
+      grid.appendChild(cell);
+    })(d);
+  }
+}
+function fmtDate(y,m,d){var mm=(m+1)<10?'0'+(m+1):(m+1);var dd=d<10?'0'+d:d;return y+'-'+mm+'-'+dd;}
+function calPrevMonth(){_calMonth--;if(_calMonth<0){_calMonth=11;_calYear--;}renderCalendar();}
+function calNextMonth(){_calMonth++;if(_calMonth>11){_calMonth=0;_calYear++;}renderCalendar();}
+function openCalNote(ds,d){
+  _calSelDate=ds;
+  show('cal-note-card');
+  setText('cal-note-title',(isAr()?'ملاحظة ليوم ':'Note du ')+d+' '+calMonthName(_calMonth)+' '+_calYear);
+  var ta=G('cal-note-text');if(ta){ta.value=_calNotes[ds]||'';ta.focus();}
+  setText('cal-note-cancel',isAr()?'إلغاء':'Annuler');setText('cal-note-save',isAr()?'حفظ':'Enregistrer');setText('cal-note-del',isAr()?'🗑 حذف الملاحظة':'🗑 Supprimer la note');
+  G('cal-note-card').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeCalNote(){hide('cal-note-card');_calSelDate=null;}
+function saveCalNote(){
+  if(!_calSelDate||!CU)return;
+  var note=(G('cal-note-text')?G('cal-note-text').value:'')||'';
+  dbSaveCalNote(CU.id,_calSelDate,note).then(function(){
+    _calNotes[_calSelDate]=note;showToast('✅ '+(isAr()?'تم الحفظ':'Enregistré'));closeCalNote();renderCalendar();
+  });
+}
+function deleteCalNote(){
+  if(!_calSelDate||!CU)return;
+  dbDeleteCalNote(CU.id,_calSelDate).then(function(){
+    delete _calNotes[_calSelDate];showToast('✅ '+(isAr()?'تم الحذف':'Supprimé'));closeCalNote();renderCalendar();
+  });
+}
 // Refresh button: reload data for the CURRENT section (stay where you are)
 function refreshCurrent(){
   var sec=CURSEC||'inventory';
