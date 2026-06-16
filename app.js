@@ -252,6 +252,51 @@ var SUPABASE_URL='https://yvpyrmreurcksdqqyvqy.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2cHlybXJldXJja3NkcXF5dnF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNjk0MTcsImV4cCI6MjA5Njc0NTQxN30.EwyuLfQG3g8oUV90pVFdRz5nR0GY4yeS-JUiO5Oo-14';
 var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+// ====== OFFLINE WRITE QUEUE + AUTO-SYNC ======
+// When offline, writes are queued in localStorage and replayed to Supabase when internet returns.
+var SYNC_KEY='l7_syncqueue';
+function getQueue(){try{var v=localStorage.getItem(SYNC_KEY);return v?JSON.parse(v):[];}catch(e){return [];}}
+function setQueue(q){try{localStorage.setItem(SYNC_KEY,JSON.stringify(q));}catch(e){}}
+function queueWrite(table,op,payload,opts){var q=getQueue();q.push({table:table,op:op,payload:payload,opts:opts||{},ts:Date.now()});setQueue(q);updateSyncBadge();}
+// Run one queued op against Supabase. Returns a promise.
+function runQueuedOp(item){
+  var q=sb.from(item.table);
+  if(item.op==='insert')return q.insert(item.payload);
+  if(item.op==='upsert')return q.upsert(item.payload,item.opts||{});
+  if(item.op==='update'){var u=q.update(item.payload.values).eq(item.payload.col,item.payload.val);if(item.payload.col2)u=u.eq(item.payload.col2,item.payload.val2);return u;}
+  if(item.op==='delete'){var d=q.delete().eq(item.payload.col,item.payload.val);if(item.payload.col2)d=d.eq(item.payload.col2,item.payload.val2);return d;}
+  return Promise.resolve();
+}
+var _syncing=false;
+function syncQueue(){
+  if(_syncing)return Promise.resolve();
+  var q=getQueue();if(!q.length)return Promise.resolve();
+  _syncing=true;
+  showToast('🔄 '+(isAr&&isAr()?'مزامنة…':'Synchronisation…'),1500);
+  var chain=Promise.resolve();var ok=0;
+  q.forEach(function(item){chain=chain.then(function(){return runQueuedOp(item).then(function(r){if(!(r&&r.error))ok++;});});});
+  return chain.then(function(){
+    setQueue([]); // clear after replay
+    _syncing=false;updateSyncBadge();
+    if(ok>0){showToast('✅ '+ok+' '+(isAr&&isAr()?'تغييرات تمت مزامنتها':'modifications synchronisées'));}
+    // refresh current view with fresh server data
+    if(typeof refreshCurrent==='function')try{refreshCurrent();}catch(e){}
+  }).catch(function(){_syncing=false;});
+}
+function updateSyncBadge(){var n=getQueue().length;var b=G('sync-badge');if(b){if(n>0){b.textContent='⏳ '+n;b.classList.remove('hidden');}else b.classList.add('hidden');}}
+// Wrapped write helpers: try online first; if it fails (offline), queue it.
+function sbInsert(table,payload){return sb.from(table).insert(payload).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'insert',payload);return {queued:true};});}
+function sbUpsert(table,payload,opts){return sb.from(table).upsert(payload,opts||{}).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'upsert',payload,opts);return {queued:true};});}
+function sbUpdate(table,values,col,val){return sb.from(table).update(values).eq(col,val).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'update',{values:values,col:col,val:val});return {queued:true};});}
+function sbDelete(table,col,val){return sb.from(table).delete().eq(col,val).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'delete',{col:col,val:val});return {queued:true};});}
+// Auto-sync when the browser regains connectivity
+if(typeof window!=='undefined'){
+  window.addEventListener('online',function(){showToast('🌐 '+(isAr&&isAr()?'عاد الاتصال':'Connexion rétablie'),1500);syncQueue();});
+  // also try on load if we're online and have a pending queue
+  setTimeout(function(){if(navigator.onLine&&getQueue().length)syncQueue();updateSyncBadge();},2500);
+}
+
+
 // ====== PATH HELPER (root vs /pages/) ======
 function inPages(){return location.pathname.indexOf('/pages/')>=0;}
 function pageUrl(name){ // name like 'inventory' or 'index'
@@ -282,18 +327,30 @@ function clearSession(){LS.del('session');}
 // ====== DATA LAYER (Supabase) ======
 function dbGetUserByUsername(u){return sb.from('app_users').select('*').ilike('username',u).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
 function dbGetUserById(id){return sb.from('app_users').select('*').eq('id',id).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
-function dbGetUsers(){return sb.from('app_users').select('*').order('created_at',{ascending:true}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
-function dbGetProducts(){return sb.from('products').select('*').order('name',{ascending:true}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
-// ---- CALENDAR (per-user notes) ----
-function dbGetCalNotes(uid){return sb.from('calendar_notes').select('*').eq('user_id',uid).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
-function dbSaveCalNote(uid,date,note){
-  return sb.from('calendar_notes').upsert({user_id:uid,date:date,note:note},{onConflict:'user_id,date'}).then(function(r){return r;});
+// ---- OFFLINE CACHE: every read tries Supabase, caches to localStorage, falls back to cache when offline ----
+function offlineGet(key,promise,fallback){
+  return promise.then(function(data){
+    // success online -> cache for offline use
+    try{localStorage.setItem('l7cache_'+key,JSON.stringify(data));}catch(e){}
+    return data;
+  }).catch(function(){
+    // offline / error -> use cached copy if any
+    try{var c=localStorage.getItem('l7cache_'+key);if(c!=null)return JSON.parse(c);}catch(e){}
+    return fallback;
+  });
 }
-function dbDeleteCalNote(uid,date){return sb.from('calendar_notes').delete().eq('user_id',uid).eq('date',date).then(function(r){return r;});}
-function dbGetProjects(uid){return sb.from('projects').select('*').eq('user_id',uid).order('updated_at',{ascending:false}).limit(100000).then(function(r){return r.error?[]:(r.data||[]);});}
-function dbGetItems(pid){return sb.from('project_items').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
-function dbGetAdjs(pid){return sb.from('adjustments').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){return r.error?[]:(r.data||[]);});}
-function dbGetCustomPrice(uid,bc){return sb.from('custom_prices').select('*').eq('user_id',uid).eq('barcode',bc).limit(1).then(function(r){return (r.data&&r.data[0])||null;});}
+function dbGetUsers(){return offlineGet('users',sb.from('app_users').select('*').order('created_at',{ascending:true}).limit(100000).then(function(r){if(r.error)throw r.error;return r.data||[];}),[]);}
+function dbGetProducts(){return offlineGet('products',sb.from('products').select('*').order('name',{ascending:true}).limit(100000).then(function(r){if(r.error)throw r.error;return r.data||[];}),[]);}
+// ---- CALENDAR (per-user notes) ----
+function dbGetCalNotes(uid){return offlineGet('cal_'+uid,sb.from('calendar_notes').select('*').eq('user_id',uid).limit(100000).then(function(r){if(r.error)throw r.error;return r.data||[];}),[]);}
+function dbSaveCalNote(uid,date,note){
+  return sbUpsert('calendar_notes',{user_id:uid,date:date,note:note},{onConflict:'user_id,date'});
+}
+function dbDeleteCalNote(uid,date){return sb.from('calendar_notes').delete().eq('user_id',uid).eq('date',date).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite('calendar_notes','delete',{col:'user_id',val:uid,col2:'date',val2:date});return {queued:true};});}
+function dbGetProjects(uid){return offlineGet('projects_'+uid,sb.from('projects').select('*').eq('user_id',uid).order('updated_at',{ascending:false}).limit(100000).then(function(r){if(r.error)throw r.error;return r.data||[];}),[]);}
+function dbGetItems(pid){return offlineGet('items_'+pid,sb.from('project_items').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){if(r.error)throw r.error;return r.data||[];}),[]);}
+function dbGetAdjs(pid){return offlineGet('adjs_'+pid,sb.from('adjustments').select('*').eq('project_id',pid).order('created_at',{ascending:true}).then(function(r){if(r.error)throw r.error;return r.data||[];}),[]);}
+function dbGetCustomPrice(uid,bc){return sb.from('custom_prices').select('*').eq('user_id',uid).eq('barcode',bc).limit(1).then(function(r){return (r.data&&r.data[0])||null;}).catch(function(){return null;});}
 
 // ====== SHARED UI bits ======
 function isFSnow(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
@@ -355,6 +412,7 @@ function buildHeader(opts){
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
       (opts.role==='admin'?'':'<button class="hdr-btn" onclick="openCalendar()" title="Calendrier">📅</button>')+
+      '<button class="hdr-btn hidden" id="sync-badge" onclick="syncQueue()" title="Synchroniser" style="background:#f59e0b;color:#fff"></button>'+
       (opts.role==='admin'?'':'<button class="hdr-btn" onclick="openCalc()" title="Calculatrice">🧮</button>')+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
@@ -371,6 +429,7 @@ function buildHeader(opts){
   '</div>';
   var holder=G('app-header');if(holder)holder.innerHTML=html;
   if(opts.role==='admin')buildAdminMenu(opts.activeTab);
+  if(typeof updateSyncBadge==='function')updateSyncBadge();
   applyTheme();
   if(opts.role!=='admin'){applyDir();setLangBtn();}
 }
@@ -709,7 +768,7 @@ function deleteUserFromLogin(){
   },LANG==='ar'?'إخفاء':LANG==='en'?'Hide':'Masquer');
 }
 function loginCheckUser(){var name=(G('login-username')?G('login-username').value||'':'').trim();if(!name){showToast(isAr()?'أدخل اسم المستخدم':'Entrez un nom');return;}showToast(isAr()?'جاري التحقق…':'Vérification…',1000);dbGetUserByUsername(name).then(function(found){if(!found){showToast(isAr()?'❌ المستخدم غير موجود':'❌ Utilisateur introuvable');return;}startPin(found);});}
-function startPin(found){pinSel=found;pinV='';hide('login-step-username');hide('login-step-plus');show('login-step-pin');var av=G('login-av');if(av){av.textContent=(found.fullname||found.username)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.username));buildPinKeys();updateDots();}
+function startPin(found){if(found.enabled===false){showToast(isAr()?'🔴 هذا الحساب معطّل':LANG==='en'?'🔴 This account is disabled':'🔴 Ce compte est désactivé');return;}pinSel=found;pinV='';hide('login-step-username');hide('login-step-plus');show('login-step-pin');var av=G('login-av');if(av){av.textContent=(found.fullname||found.username)[0].toUpperCase();av.style.background=found.color||'#1a7a4a';}setText('login-greeting',(isAr()?'مرحباً ':'Bonjour ')+(found.fullname||found.username));buildPinKeys();updateDots();}
 function buildPinKeys(){var grid=G('pkeys');if(!grid)return;grid.innerHTML='';['1','2','3','4','5','6','7','8','9','ph','0','del'].forEach(function(k){var b=document.createElement('button');if(k==='ph'){b.className='pin-key pin-ph';b.disabled=true;}else if(k==='del'){b.className='pin-key pin-del';b.textContent='⌫';b.onclick=function(){pinV=pinV.slice(0,-1);updateDots();};}else{b.className='pin-key';b.textContent=k;b.onclick=function(){if(pinV.length>=6)return;pinV+=k;updateDots();if(pinV.length===6)setTimeout(checkPin,150);};}grid.appendChild(b);});}
 function updateDots(){for(var i=0;i<6;i++){var d=G('pd'+i);if(!d)continue;d.classList.remove('filled','error');if(i<pinV.length)d.classList.add('filled');}}
 function checkPin(){
@@ -856,14 +915,23 @@ function closeCalNote(){hide('cal-note-card');_calSelDate=null;}
 function saveCalNote(){
   if(!_calSelDate||!CU)return;
   var note=(G('cal-note-text')?G('cal-note-text').value:'')||'';
-  dbSaveCalNote(CU.id,_calSelDate,note).then(function(){
-    _calNotes[_calSelDate]=note;showToast('✅ '+(isAr()?'تم الحفظ':'Enregistré'));closeCalNote();renderCalendar();
+  dbSaveCalNote(CU.id,_calSelDate,note).then(function(r){
+    _calNotes[_calSelDate]=note;
+    // update offline cache copy too
+    try{var ck='l7cache_cal_'+CU.id;var arr=JSON.parse(localStorage.getItem(ck)||'[]');var found=false;arr.forEach(function(x){if(x.date===_calSelDate){x.note=note;found=true;}});if(!found)arr.push({user_id:CU.id,date:_calSelDate,note:note});localStorage.setItem(ck,JSON.stringify(arr));}catch(e){}
+    if(r&&r.queued){showToast('⏳ '+(isAr()?'سيُحفظ عند عودة الاتصال':'Sera enregistré au retour d\u2019internet'));}
+    else{showToast('✅ '+(isAr()?'تم الحفظ':'Enregistré'));}
+    closeCalNote();renderCalendar();
   });
 }
 function deleteCalNote(){
   if(!_calSelDate||!CU)return;
-  dbDeleteCalNote(CU.id,_calSelDate).then(function(){
-    delete _calNotes[_calSelDate];showToast('✅ '+(isAr()?'تم الحذف':'Supprimé'));closeCalNote();renderCalendar();
+  dbDeleteCalNote(CU.id,_calSelDate).then(function(r){
+    delete _calNotes[_calSelDate];
+    try{var ck='l7cache_cal_'+CU.id;var arr=JSON.parse(localStorage.getItem(ck)||'[]').filter(function(x){return x.date!==_calSelDate;});localStorage.setItem(ck,JSON.stringify(arr));}catch(e){}
+    if(r&&r.queued){showToast('⏳ '+(isAr()?'سيُحذف عند عودة الاتصال':'Sera supprimé au retour d\u2019internet'));}
+    else{showToast('✅ '+(isAr()?'تم الحذف':'Supprimé'));}
+    closeCalNote();renderCalendar();
   });
 }
 // Refresh button: reload data for the CURRENT section (stay where you are)
@@ -1179,7 +1247,7 @@ function dbSearch(q){var res=G('db-results');if(!res)return;res.innerHTML='';if(
 function toggleAddForm(){var f=G('db-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('db-bc');if(b)b.focus();}}
 function dbAddProd(){var bc=(G('db-bc')?G('db-bc').value||'':'').trim();var nm=(G('db-nm')?G('db-nm').value||'':'').trim();var pr=parseFloat(G('db-pr')?G('db-pr').value||'0':'0')||0;if(!nm){showToast('❌ Name required');return;}sb.from('products').insert({barcode:bc,name:nm,price:pr}).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(G('db-bc'))G('db-bc').value='';if(G('db-nm'))G('db-nm').value='';if(G('db-pr'))G('db-pr').value='';showToast('✅ Added: '+nm);refreshDB();});}
 function importCSV(file){if(!file)return;var reader=new FileReader();reader.onload=function(e){var text=e.target.result||'';var lines=text.split(/\r\n|\n|\r/);var rows=[];var start=0;if(lines.length>0){var h=lines[0].toLowerCase();if(h.indexOf('barcode')>=0||h.indexOf('code')>=0||h.indexOf('name')>=0||h.indexOf('nom')>=0||h.indexOf('price')>=0||h.indexOf('prix')>=0)start=1;}for(var i=start;i<lines.length;i++){var line=lines[i].trim();if(!line)continue;var cols=line.split(/[,;]/);if(cols.length<2)continue;var bc=(cols[0]||'').trim().replace(/^"|"$/g,'');var nm=(cols[1]||'').trim().replace(/^"|"$/g,'');var pr=parseFloat((cols[2]||'0').trim().replace(/^"|"$/g,'').replace(',','.'))||0;if(!nm)continue;rows.push({barcode:bc,name:nm,price:pr});}if(!rows.length){showToast('❌ CSV invalide');return;}showToast('⏳ Import…');sb.from('products').insert(rows).then(function(r){if(r.error){showToast('❌ '+r.error.message,4000);return;}showToast('✅ '+rows.length+' produits ajoutés',4000);refreshDB();});var fi=G('csv-file');if(fi)fi.value='';};reader.readAsText(file);}
-function refreshUsers(){var tb=G('users-tbody');if(!tb)return;tb.innerHTML='<tr><td colspan="4" style="color:#888;padding:10px">…</td></tr>';dbGetUsers().then(function(users){setText('db-uc',String(users.length));tb.innerHTML='';users.forEach(function(u){var tr=document.createElement('tr');var av=document.createElement('div');av.style.cssText='width:28px;height:28px;border-radius:50%;background:'+(u.color||'#1a7a4a')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0';av.textContent=(u.fullname||u.username)[0].toUpperCase();var td1=document.createElement('td');td1.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 8px';var w=document.createElement('div');w.innerHTML='<div style="font-weight:600">'+esc(u.username)+'</div>'+(u.fullname&&u.fullname!==u.username?'<div style="font-size:11px;color:#888">'+esc(u.fullname)+'</div>':'');td1.appendChild(av);td1.appendChild(w);var td2=document.createElement('td');var bd=document.createElement('span');bd.className=u.role==='admin'?'badge b-admin':'badge b-user';bd.textContent=u.role==='admin'?'Administrator':'User';td2.appendChild(bd);var td3=document.createElement('td');td3.style.cssText='color:#999;font-size:12px';td3.textContent='••••';var td4=document.createElement('td');var eb=document.createElement('button');eb.className='btn-b';eb.style.marginRight='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit user',confirmText:'Save',fields:[{key:'username',label:'Username (login)',value:u.username||''},{key:'fullname',label:'Full name',value:u.fullname||''},{key:'pin',label:'New PIN (6 digits, empty = keep)',value:'',type:'password',maxlength:6}],onConfirm:function(v){var newU=(v.username||'').trim();if(!newU){showToast('❌ Username required');return;}var upd={fullname:(v.fullname||'').trim()};function applyUpd(){function done(){sb.from('app_users').update(upd).eq('id',u.id).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}closeModal();showToast('✅ Updated');refreshUsers();});}if(v.pin&&v.pin.length===6){hashPIN(v.pin).then(function(h){upd.pin_hash=h;done();});}else if(v.pin&&v.pin.length>0){showToast('❌ PIN must be 6 digits');}else done();}if(newU!==u.username){dbGetUserByUsername(newU).then(function(ex){if(ex){showToast('❌ Username already taken');return;}upd.username=newU;applyUpd();});}else{applyUpd();}}});};var db=document.createElement('button');db.className='btn-r';db.textContent='🗑';if(u.role==='admin'||u.id===CU.id){db.disabled=true;db.style.opacity='.4';}else db.onclick=function(){confirmModal('Delete user','Delete "'+(u.fullname||u.username)+'" ?',function(){sb.from('app_users').delete().eq('id',u.id).then(function(){showToast('✅ Deleted');refreshUsers();});},'Delete');};td4.appendChild(eb);td4.appendChild(db);tr.appendChild(td1);tr.appendChild(td2);tr.appendChild(td3);tr.appendChild(td4);tb.appendChild(tr);});});}
+function refreshUsers(){var tb=G('users-tbody');if(!tb)return;tb.innerHTML='<tr><td colspan="4" style="color:#888;padding:10px">…</td></tr>';dbGetUsers().then(function(users){setText('db-uc',String(users.length));tb.innerHTML='';users.forEach(function(u){var tr=document.createElement('tr');var av=document.createElement('div');av.style.cssText='width:28px;height:28px;border-radius:50%;background:'+(u.color||'#1a7a4a')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0';av.textContent=(u.fullname||u.username)[0].toUpperCase();var td1=document.createElement('td');td1.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 8px';var w=document.createElement('div');w.innerHTML='<div style="font-weight:600">'+esc(u.username)+'</div>'+(u.fullname&&u.fullname!==u.username?'<div style="font-size:11px;color:#888">'+esc(u.fullname)+'</div>':'');td1.appendChild(av);td1.appendChild(w);var td2=document.createElement('td');var bd=document.createElement('span');bd.className=u.role==='admin'?'badge b-admin':'badge b-user';bd.textContent=u.role==='admin'?'Administrator':'User';td2.appendChild(bd);var td3=document.createElement('td');td3.style.cssText='color:#999;font-size:12px';td3.textContent='••••';var td4=document.createElement('td');var eb=document.createElement('button');eb.className='btn-b';eb.style.marginRight='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit user',confirmText:'Save',fields:[{key:'username',label:'Username (login)',value:u.username||''},{key:'fullname',label:'Full name',value:u.fullname||''},{key:'pin',label:'New PIN (6 digits, empty = keep)',value:'',type:'password',maxlength:6}],onConfirm:function(v){var newU=(v.username||'').trim();if(!newU){showToast('❌ Username required');return;}var upd={fullname:(v.fullname||'').trim()};function applyUpd(){function done(){sb.from('app_users').update(upd).eq('id',u.id).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}closeModal();showToast('✅ Updated');refreshUsers();});}if(v.pin&&v.pin.length===6){hashPIN(v.pin).then(function(h){upd.pin_hash=h;done();});}else if(v.pin&&v.pin.length>0){showToast('❌ PIN must be 6 digits');}else done();}if(newU!==u.username){dbGetUserByUsername(newU).then(function(ex){if(ex){showToast('❌ Username already taken');return;}upd.username=newU;applyUpd();});}else{applyUpd();}}});};var db=document.createElement('button');db.className='btn-r';db.textContent='🗑';if(u.role==='admin'||u.id===CU.id){db.disabled=true;db.style.opacity='.4';}else db.onclick=function(){confirmModal('Delete user','Delete "'+(u.fullname||u.username)+'" ?',function(){sb.from('app_users').delete().eq('id',u.id).then(function(){showToast('✅ Deleted');refreshUsers();});},'Delete');};var enabled=(u.enabled!==false);var tb2=document.createElement('button');tb2.className='btn-b';tb2.style.marginRight='4px';tb2.textContent=enabled?'🟢':'🔴';tb2.title=enabled?'Enabled':'Disabled';if(u.role==='admin'){tb2.disabled=true;tb2.style.opacity='.4';}else tb2.onclick=function(){var nv=!enabled;sb.from('app_users').update({enabled:nv}).eq('id',u.id).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}showToast(nv?'✅ User enabled':'🔴 User disabled');refreshUsers();});};td4.appendChild(tb2);td4.appendChild(eb);td4.appendChild(db);tr.appendChild(td1);tr.appendChild(td2);tr.appendChild(td3);tr.appendChild(td4);tb.appendChild(tr);});});}
 function doCreateUser(){var name=(G('new-uname')?G('new-uname').value||'':'').trim();var full=(G('new-ufull')?G('new-ufull').value||'':'').trim();var pin=(G('new-upin')?G('new-upin').value||'':'').trim();var role=(G('new-urole')?G('new-urole').value:'user');var err=G('user-err');if(!name||pin.length!==6){if(err){err.textContent='Username and 6-digit PIN required';err.classList.remove('hidden');}return;}dbGetUserByUsername(name).then(function(ex){if(ex){if(err){err.textContent='User already exists';err.classList.remove('hidden');}return;}var cols=['#1a7a4a','#2563eb','#7c3aed','#d63031','#f59e0b','#0891b2','#059669'];hashPIN(pin).then(function(h){sb.from('app_users').insert({username:name,fullname:full||name,role:role,pin_hash:h,color:cols[Math.floor(Math.random()*cols.length)]}).then(function(r){if(r.error){if(err){err.textContent=r.error.message;err.classList.remove('hidden');}return;}if(G('new-uname'))G('new-uname').value='';if(G('new-ufull'))G('new-ufull').value='';if(G('new-upin'))G('new-upin').value='';if(err)err.classList.add('hidden');showToast('✅ Created: '+name);refreshUsers();});});});}
 function refreshAdminProjects(){
   // join projects with user fullname
