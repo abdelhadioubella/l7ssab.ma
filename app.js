@@ -1431,6 +1431,14 @@ function caisseMoinsLabel(t){
 }
 
 function openCaisse(){CAISSE.page='produits';renderCaisse();show('caisse-ov');}
+// Open the caisse flow at a specific page (used from inside a project).
+// Imports the project's current items as the caisse "produits" so the bilan includes them.
+function openCaisseAt(page){
+  // pull project items into caisse produits
+  CAISSE.produits=[];
+  (CACHE.items||[]).forEach(function(it){CAISSE.produits.push({barcode:it.barcode||'',name:it.name,price:parseFloat(it.price)||0,qty:parseFloat(it.quantity)||1});});
+  CAISSE.page=page||'cigarettes';renderCaisse();show('caisse-ov');
+}
 function closeCaisse(){hide('caisse-ov');}
 function caisseGo(p){CAISSE.page=p;renderCaisse();}
 
@@ -1454,22 +1462,21 @@ function benefice(){
 }
 
 // ---------- main render ----------
-var CAISSE_FLOW=['produits','cigarettes','recharge','credit','change','cash','moins','pris','capital','bilan','partage','recap'];
+var CAISSE_FLOW=['cigarettes','recharge','credit','change','cash','moins','pris','capital','bilan','partage','recap'];
 function renderCaisse(){
   var c=G('caisse-body');if(!c)return;
   var p=CAISSE.page;
   var idx=CAISSE_FLOW.indexOf(p);
   var html='';
-  // header: back arrow goes to the PREVIOUS page in the flow (or closes if first)
   var prev=(idx>0)?CAISSE_FLOW[idx-1]:null;
+  // back arrow: previous flow page, or close (return to project Products) if first
   html+='<div class="cs-top"><button class="cs-back" onclick="'+(prev?'caisseGo(\''+prev+'\')':'closeCaisse()')+'">‹</button><span class="cs-title">'+caisseTitle(p)+'</span><button class="cs-x" onclick="closeCaisse()">×</button></div>';
   html+='<div class="cs-content" id="cs-content">'+caissePage(p);
-  // flow nav row (Retour / Suivant) — only on flow pages, not the final recap which has its own PDF button
   if(idx>=0){
     var next=(idx<CAISSE_FLOW.length-1)?CAISSE_FLOW[idx+1]:null;
     html+='<div class="cs-nav">';
     if(prev)html+='<button class="cs-nav-back" onclick="caisseGo(\''+prev+'\')">← Retour</button>';
-    else html+='<button class="cs-nav-back" onclick="closeCaisse()">✕ Fermer</button>';
+    else html+='<button class="cs-nav-back" onclick="closeCaisse()">← Produits</button>';
     if(next)html+='<button class="cs-nav-next" onclick="caisseGo(\''+next+'\')">Suivant →</button>';
     html+='</div>';
   }

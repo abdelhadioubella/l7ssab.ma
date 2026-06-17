@@ -542,7 +542,6 @@ html.dark .cs-nav-back{background:#1c2622;color:#9bb3a8}
 <div id="cal-holder"></div>
 <div class="appsec" id="sec-inventory">
 <div class="content">
-  <button class="btn-p" style="margin-bottom:14px;font-size:16px;padding:16px" onclick="openCaisse()">🧾 Caisse / Bilan journalier →</button>
   <div class="card">
     <div class="card-title" id="t-newproj">Nouveau projet</div>
     <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…"/>
@@ -619,7 +618,7 @@ html.dark .cs-nav-back{background:#1c2622;color:#9bb3a8}
     <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
     <div class="nav-row">
       <button class="btn-g" onclick="showSection('inventory')" id="t-back1">← Retour</button>
-      <button class="btn-p" style="margin-top:0" onclick="showSection('recap')" id="t-next1">Suivant →</button>
+      <button class="btn-p" style="margin-top:0" onclick="openCaisseAt('cigarettes')" id="t-next1">Suivant →</button>
     </div>
 </div></div>
 </div>
