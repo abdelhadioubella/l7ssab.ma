@@ -413,6 +413,71 @@ html.dark .filter-clear{background:#2c3a34;color:#9bb3a8}
 [dir=rtl] .fd-sep{transform:scaleX(-1)}
 @media(max-width:480px){.filter-search{min-width:100%}.filter-dates{width:100%;justify-content:space-between}.filter-dates input[type=date]{width:auto;flex:1}}
 
+
+/* ===== CAISSE MODULE ===== */
+#caisse-ov{position:fixed;inset:0;background:#f0faf5;z-index:600;overflow-y:auto}
+html.dark #caisse-ov{background:#0f1614}
+.caisse-win{max-width:640px;margin:0 auto;min-height:100%}
+.cs-top{background:#1a7a4a;color:#fff;height:56px;display:flex;align-items:center;gap:10px;padding:0 12px;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.cs-back{background:rgba(255,255,255,.18);border:none;color:#fff;width:38px;height:38px;border-radius:10px;font-size:24px;cursor:pointer;line-height:1}
+.cs-title{flex:1;font-size:17px;font-weight:700}
+.cs-x{background:none;border:none;color:#fff;font-size:28px;cursor:pointer;line-height:1;padding:0 4px}
+.cs-content{padding:16px}
+.cs-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cs-tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 10px;background:#fff;border:1px solid #e3e8e6;border-radius:16px;cursor:pointer;font-size:14px;font-weight:600;color:#0f5132;transition:transform .1s,box-shadow .1s}
+.cs-tile:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.cs-emo{font-size:30px}
+html.dark .cs-tile{background:#18211d;border-color:#2a3a33;color:#cfe}
+.cs-mini{margin-top:16px;text-align:center;font-size:13px;color:#666;background:#fff;border-radius:12px;padding:12px}
+html.dark .cs-mini{background:#18211d;color:#9bb3a8}
+.cs-row2{margin-bottom:10px}
+.cs-sugg{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.cs-sg{text-align:left;padding:10px 12px;background:#fff;border:1px solid #e3e8e6;border-radius:10px;cursor:pointer;font-size:14px}
+.cs-sg:hover{background:#eef7f1}
+html.dark .cs-sg{background:#18211d;border-color:#2a3a33;color:#cfe}
+.cs-line{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid #e8eeeb;border-radius:12px;padding:10px 12px;margin-bottom:6px}
+html.dark .cs-line{background:#18211d;border-color:#2a3a33}
+.cs-line-info{display:flex;flex-direction:column}
+.cs-line-info b{font-size:14px;color:#222}
+.cs-line-info span{font-size:12px;color:#888}
+html.dark .cs-line-info b{color:#e8f0ec}
+.cs-line-act{display:flex;gap:5px;align-items:center}
+.cs-line-act button{padding:7px 10px;border:none;border-radius:8px;background:#eef5f1;color:#0f5132;font-size:13px;font-weight:600;cursor:pointer}
+.cs-line-act .cs-del{background:#ffeaea;color:#d63031}
+html.dark .cs-line-act button{background:#1c2622;color:#6ee7a8}
+.cs-empty{text-align:center;color:#aaa;font-size:13px;padding:14px}
+.cs-total{margin-top:12px;background:#e8f5ee;border-radius:12px;padding:14px;text-align:center;font-size:15px;color:#0f5132}
+.cs-total b{font-size:18px}
+.cs-total-strike{background:#f4f6f5;color:#999;text-decoration:line-through;font-size:13px;padding:8px}
+html.dark .cs-total{background:#1c2622;color:#6ee7a8}
+.cs-remise-box{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:14px;color:#555}
+.cs-remise{background:#fff3e0;color:#e65100;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;font-size:14px}
+.cs-denoms{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.cs-denom{padding:14px 0;background:#fff;border:1px solid #e3e8e6;border-radius:12px;cursor:pointer;font-weight:700;color:#333;font-size:14px}
+.cs-denom.sel{background:#1a7a4a;color:#fff;border-color:#1a7a4a}
+html.dark .cs-denom{background:#18211d;border-color:#2a3a33;color:#cfe}
+.cs-field{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e3e8e6;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;font-size:14px;color:#555}
+.cs-field b{font-size:17px;color:#0f5132}
+html.dark .cs-field{background:#18211d;border-color:#2a3a33;color:#9bb3a8}
+.cs-add-btn{width:100%;padding:14px;background:#1a7a4a;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;margin:10px 0}
+.cs-bigbox{display:flex;flex-direction:column;align-items:center;gap:10px;background:#fff;border:2px solid #1a7a4a;border-radius:16px;padding:34px;cursor:pointer;margin-bottom:10px}
+.cs-bigbox span{font-size:15px;color:#666}
+.cs-bigbox b{font-size:38px;color:#0f5132}
+html.dark .cs-bigbox{background:#18211d}
+html.dark .cs-bigbox b{color:#6ee7a8}
+.cs-hint{text-align:center;color:#aaa;font-size:12px;margin-top:8px}
+.cs-signbox{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e3e8e6;border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:14px;color:#555}
+.cs-sign{width:46px;height:46px;border:none;border-radius:10px;background:#ffeaea;color:#d63031;font-size:22px;font-weight:700;cursor:pointer}
+html.dark .cs-signbox{background:#18211d;border-color:#2a3a33}
+.cs-brow{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #eee;font-size:14px;color:#444}
+.cs-brow b{font-size:15px}
+.cs-brow.strong{background:#e8f5ee;font-weight:700;color:#0f5132;border-radius:10px;margin:6px 0;border:none;font-size:15px}
+.cs-brow.strong b{font-size:17px}
+html.dark .cs-brow{border-color:#222;color:#cfe}
+html.dark .cs-brow.strong{background:#1c2622;color:#6ee7a8}
+.cs-recap{background:#fff;border-radius:14px;padding:12px;margin-bottom:12px}
+html.dark .cs-recap{background:#18211d}
+
 </style>
 </head>
 <body>
@@ -464,6 +529,7 @@ html.dark .filter-clear{background:#2c3a34;color:#9bb3a8}
 <div id="main-app" class="hidden">
 <div id="app-header"></div>
 <div id="calc-holder"></div>
+<div id="caisse-ov" class="hidden"><div class="caisse-win"><div id="caisse-body"></div></div></div>
 <div id="admin-menu-holder"></div>
 <div id="cal-holder"></div>
 <div class="appsec" id="sec-inventory">
@@ -544,7 +610,7 @@ html.dark .filter-clear{background:#2c3a34;color:#9bb3a8}
     <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
     <div class="nav-row">
       <button class="btn-g" onclick="showSection('inventory')" id="t-back1">← Retour</button>
-      <button class="btn-p" style="margin-top:0" onclick="showSection('adjustments')" id="t-next1">Suivant →</button>
+      <button class="btn-p" style="margin-top:0" onclick="showSection('recap')" id="t-next1">Suivant →</button>
     </div>
 </div></div>
 </div>
@@ -578,7 +644,7 @@ html.dark .filter-clear{background:#2c3a34;color:#9bb3a8}
     </div>
     <button class="btn-p" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%" onclick="genPDF()"><span style="font-size:20px">📄</span><span id="t-dlpdf">Télécharger PDF</span></button>
     <div class="nav-row">
-      <button class="btn-g" onclick="showSection('adjustments')" id="t-back3">← Retour</button>
+      <button class="btn-g" onclick="showSection('products')" id="t-back3">← Retour</button>
       <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" id="t-newinv">🔄 Nouvel inventaire</button>
     </div>
 </div></div>

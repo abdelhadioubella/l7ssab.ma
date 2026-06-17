@@ -419,6 +419,7 @@ function buildHeader(opts){
       (opts.role==='admin'?'':'<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
       '<div class="av-menu" id="av-menu">'+
         '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
+        '<button onclick="toggleAvMenu();openCaisse()">🧾 '+(isAr()?'الصندوق':'Caisse')+'</button>'+
         '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
         '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
         '<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>'+
@@ -705,6 +706,8 @@ function confirmModal(title,msg,onYes,yesText){
 // ============================================================
 var CU=null, CP=null, CURSEC='';
 var dP=0,dQ=0,eI=0,npT=null,npV='',npD=true,btDev=null,_scanInputTimer=null,_scanFocusTimer=null;
+var _npCb=null; // generic numpad callback: openNPcb(label, current, function(value){...})
+function openNPcb(label,current,cb){_npCb=cb;npT='__cb__';npD=true;npV=(current!=null&&current!=='')?String(current):'';setText('np-lbl',label||'');G('np-disp').textContent=npV||'0';var db=G('np-dot-btn');if(db)db.style.display='block';var grid=G('np-grid');if(grid){grid.innerHTML='';['7','8','9','4','5','6','1','2','3','C','0','⌫'].forEach(function(k){var b=document.createElement('button');b.className='nk'+(k==='C'?' nk-c':'');b.textContent=k;b.onclick=function(){if(k==='C')npV='';else if(k==='⌫')npV=npV.slice(0,-1);else npV+=k;G('np-disp').textContent=npV||'0';};grid.appendChild(b);});}show('np-ov');}
 var CACHE={products:[],items:[],adjs:[]};
 var isAdmin=false;
 
@@ -1172,7 +1175,7 @@ function updateNFs(){var p=G('nf-dp'),q=G('nf-dq');if(p){p.className=dP>0?'nf-va
 function openNP(target,label,decimal){npT=target;npD=(decimal!==false);npV='';setText('np-lbl',label||'');G('np-disp').textContent='0';var db=G('np-dot-btn');if(db)db.style.display=npD?'block':'none';var grid=G('np-grid');if(grid){grid.innerHTML='';['7','8','9','4','5','6','1','2','3','C','0','⌫'].forEach(function(k){var b=document.createElement('button');b.className='nk'+(k==='C'?' nk-c':'');b.textContent=k;b.onclick=function(){if(k==='C')npV='';else if(k==='⌫')npV=npV.slice(0,-1);else npV+=k;G('np-disp').textContent=npV||'0';};grid.appendChild(b);});}show('np-ov');}
 function npDot(){if(npV.indexOf('.')<0){npV+='.';G('np-disp').textContent=npV||'0';}}
 function closeNP(){hide('np-ov');npT=null;npV='';}
-function confirmNP(){var v=parseFloat(npV)||0,tgt=npT;closeNP();if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
+function confirmNP(){var v=parseFloat(npV)||0,tgt=npT;closeNP();if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)cb(v);return;}if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
 // items
 function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(bc&&dP)saveCP(bc,dP);sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
 function refreshEdit(){var items=CACHE.items;var card=G('edit-card');if(!card)return;if(!items.length){card.classList.add('hidden');G('run-total').classList.add('hidden');return;}card.classList.remove('hidden');if(eI>=items.length)eI=items.length-1;var cur=items[eI];setText('edit-title',t('eProd')+' '+(eI+1)+' '+t('of')+' '+items.length);var ni=G('edit-name');if(ni){ni.value=cur.name||'';ni.onchange=function(){cur.name=this.value;sb.from('project_items').update({name:this.value}).eq('id',cur.id).then(function(){});};}var pr=parseFloat(cur.price)||0,q=parseFloat(cur.quantity)||0;var pv=G('nf-ep'),qv=G('nf-eq');if(pv){pv.className=pr>0?'nf-val':'nf-ph';pv.textContent=pr>0?pr.toFixed(2)+' DH':t('tap');}if(qv){qv.className=q>0?'nf-val':'nf-ph';qv.textContent=q>0?String(q):t('tap');}var sub=G('edit-sub'),sv=G('edit-sub-val');if(sub&&sv){if(pr>0&&q>0){sub.classList.remove('hidden');sv.textContent=fmt(pr*q);}else sub.classList.add('hidden');}}
@@ -1401,3 +1404,350 @@ startScanGuard();setupScanInput();checkUSBDevices();
   if(s){enterApp(s);}
   else{show('login-page');hide('main-app');renderRemembered();applyDir();setLangBtn&&setLangBtn();var lb=G('lang-login-btn');if(lb)lb.textContent=langLabel();}
 })();
+
+// ===================== CAISSE MODULE =====================
+// ============================================================
+//  MODULE CAISSE (bilan journalier + partage bénéfice)
+//  Pages: produits, cigarettes, recharge, crédit, change, cash,
+//  moins (dépenses), argent pris, capital, bilan, partage, PDF.
+//  Saved to Supabase: only products lines & cigarette lines.
+// ============================================================
+var CAISSE={
+  page:'menu',
+  produits:[],      // {name, price, qty}
+  cigarettes:[],    // {barcode, name, price, qty}
+  cigRemise:5,      // %
+  recharge:{lines:[], remise:6.5}, // lines:{denom, qty, dealer, montant}
+  credit:0,
+  change:0,
+  cash:0,
+  moins:[],         // {type, montant, sign}
+  pris:[],          // {name, montant}
+  capital:0,
+  partners:[]       // {name}
+};
+var CAISSE_MOINS_TYPES=['credit_fourn','impot','eau_elec','loyer'];
+function caisseMoinsLabel(t){
+  var m={credit_fourn:'Crédit de fournisseur',impot:'Les impôts',eau_elec:'Eau + Électricité',loyer:'Loyer'};
+  return m[t]||t;
+}
+
+function openCaisse(){CAISSE.page='menu';renderCaisse();show('caisse-ov');}
+function closeCaisse(){hide('caisse-ov');}
+function caisseGo(p){CAISSE.page=p;renderCaisse();}
+
+// ---------- number helpers ----------
+function nfmt(n){n=Math.round((parseFloat(n)||0)*100)/100;return n.toFixed(2);}
+function sumProduits(){var t=0;CAISSE.produits.forEach(function(x){t+=(parseFloat(x.price)||0)*(parseFloat(x.qty)||1);});return t;}
+function sumCigBrut(){var t=0;CAISSE.cigarettes.forEach(function(x){t+=(parseFloat(x.price)||0)*(parseFloat(x.qty)||1);});return t;}
+function sumCigNet(){return sumCigBrut()*(1-(parseFloat(CAISSE.cigRemise)||0)/100);}
+function sumRechargeBrut(){var t=0;CAISSE.recharge.lines.forEach(function(l){t+=(parseFloat(l.montant)||0);});return t;}
+function sumRechargeNet(){return sumRechargeBrut()*(1-(parseFloat(CAISSE.recharge.remise)||0)/100);}
+function sumMoins(){var t=0;CAISSE.moins.forEach(function(m){t+=(m.sign==='+'?1:-1)*(parseFloat(m.montant)||0);});return t;} // signed; usually negative contributions
+function sumPris(){var t=0;CAISSE.pris.forEach(function(p){t+=(parseFloat(p.montant)||0);});return t;}
+
+function totalVentes(){return sumProduits()+sumCigNet()+sumRechargeNet()+(parseFloat(CAISSE.credit)||0)+(parseFloat(CAISSE.change)||0);}
+function premierTotal(){return totalVentes()+(parseFloat(CAISSE.cash)||0);}
+// Bénéfice = ventes + cash - moins + pris - capital
+// (sumMoins is already signed; "moins" defaults to negative, so we ADD the signed value)
+function totalMoinsAbs(){var t=0;CAISSE.moins.forEach(function(m){t+=(m.sign==='+'?1:-1)*(parseFloat(m.montant)||0);});return t;}
+function benefice(){
+  return premierTotal()+totalMoinsAbs()+sumPris()-(parseFloat(CAISSE.capital)||0);
+}
+
+// ---------- main render ----------
+function renderCaisse(){
+  var c=G('caisse-body');if(!c)return;
+  var p=CAISSE.page;
+  var html='';
+  // header
+  html+='<div class="cs-top"><button class="cs-back" onclick="'+(p==='menu'?'closeCaisse()':'caisseGo(\'menu\')')+'">‹</button><span class="cs-title">'+caisseTitle(p)+'</span><button class="cs-x" onclick="closeCaisse()">×</button></div>';
+  html+='<div class="cs-content" id="cs-content">'+caissePage(p)+'</div>';
+  c.innerHTML=html;
+}
+function caisseTitle(p){
+  var t={menu:'Caisse',produits:'Produits',cigarettes:'Cigarettes',recharge:'Recharge',credit:'Crédit',change:'Change',cash:'Cash',moins:'Moins (dépenses)',pris:'Argent pris',capital:'Capital',bilan:'Bilan / Bénéfice',partage:'Partage',recap:'Récapitulatif'};
+  return t[p]||'Caisse';
+}
+
+// ---------- pages ----------
+function caissePage(p){
+  if(p==='menu')return pageMenu();
+  if(p==='produits')return pageProduits();
+  if(p==='cigarettes')return pageCigarettes();
+  if(p==='recharge')return pageRecharge();
+  if(p==='credit')return pageSimpleBox('credit','Crédit (DH)');
+  if(p==='change')return pageSimpleBox('change','Change — Montant (DH)');
+  if(p==='cash')return pageSimpleBox('cash','Cash (DH)');
+  if(p==='moins')return pageMoins();
+  if(p==='pris')return pagePris();
+  if(p==='capital')return pageSimpleBox('capital','Capital (DH)');
+  if(p==='bilan')return pageBilan();
+  if(p==='partage')return pagePartage();
+  if(p==='recap')return pageRecap();
+  return '';
+}
+
+function pageMenu(){
+  var items=[
+    ['produits','📦','Produits'],['cigarettes','🚬','Cigarettes'],['recharge','📱','Recharge'],
+    ['credit','💳','Crédit'],['change','💱','Change'],['cash','💵','Cash'],
+    ['moins','➖','Moins (dépenses)'],['pris','🤝','Argent pris'],['capital','🏦','Capital'],
+    ['bilan','📊','Bilan / Bénéfice']
+  ];
+  var h='<div class="cs-grid">';
+  items.forEach(function(it){h+='<button class="cs-tile" onclick="caisseGo(\''+it[0]+'\')"><span class="cs-emo">'+it[1]+'</span><span>'+it[2]+'</span></button>';});
+  h+='</div>';
+  h+='<div class="cs-mini">Ventes: <b>'+nfmt(totalVentes())+' DH</b> · Bénéfice: <b>'+nfmt(benefice())+' DH</b></div>';
+  return h;
+}
+
+// ----- PRODUITS (search/scan like inventory) -----
+function pageProduits(){
+  var h='<div class="cs-row2"><input class="inp" id="cs-prod-search" placeholder="Scanner ou chercher un produit…" oninput="csProdSearch(this.value)" onkeydown="if(event.key===\'Enter\')csProdScan(this.value)"/></div>';
+  h+='<div id="cs-prod-sugg" class="cs-sugg"></div>';
+  h+='<div id="cs-prod-list">'+renderCsProdList()+'</div>';
+  h+='<div class="cs-total">Total Produits : <b>'+nfmt(sumProduits())+' DH</b></div>';
+  return h;
+}
+function renderCsProdList(){
+  if(!CAISSE.produits.length)return '<p class="cs-empty">Aucun produit</p>';
+  var h='';
+  CAISSE.produits.forEach(function(x,i){
+    h+='<div class="cs-line"><div class="cs-line-info"><b>'+esc(x.name)+'</b><span>'+nfmt(x.price)+' DH × '+(x.qty||1)+'</span></div>'+
+       '<div class="cs-line-act"><button onclick="csProdQty('+i+')">'+(x.qty||1)+'×</button>'+
+       '<button onclick="csProdPrice('+i+')">'+nfmt(x.price)+'</button>'+
+       '<button class="cs-del" onclick="csProdDel('+i+')">🗑</button></div></div>';
+  });
+  return h;
+}
+function csProdSearch(q){
+  var box=G('cs-prod-sugg');if(!box)return;q=(q||'').trim().toLowerCase();
+  if(!q){box.innerHTML='';return;}
+  var m=(CACHE.products||[]).filter(function(p){return ((p.name||'').toLowerCase().indexOf(q)>=0)||((p.barcode||'').indexOf(q)>=0);}).slice(0,8);
+  box.innerHTML=m.map(function(p){return '<button class="cs-sg" onclick="csProdAdd(\''+(p.barcode||'')+'\',\''+escJs(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nfmt(p.price)+' DH</button>';}).join('');
+}
+function csProdScan(code){
+  code=(code||'').trim();if(!code)return;
+  var f=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===code){f=CACHE.products[i];break;}}
+  if(f){csProdAdd(f.barcode,f.name,f.price);}
+  else{csProdAdd(code,code,0);}
+  var s=G('cs-prod-search');if(s)s.value='';
+}
+function csProdAdd(bc,name,price){
+  // merge same name
+  var found=null;CAISSE.produits.forEach(function(x){if(x.name===name)found=x;});
+  if(found){found.qty=(found.qty||1)+1;}
+  else CAISSE.produits.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});
+  var s=G('cs-prod-search');if(s)s.value='';var sg=G('cs-prod-sugg');if(sg)sg.innerHTML='';
+  refreshCaissePage();
+}
+function csProdQty(i){openNPcb('Quantité',CAISSE.produits[i].qty,function(v){CAISSE.produits[i].qty=v||1;refreshCaissePage();});}
+function csProdPrice(i){openNPcb('Prix (DH)',CAISSE.produits[i].price,function(v){CAISSE.produits[i].price=v;refreshCaissePage();});}
+function csProdDel(i){CAISSE.produits.splice(i,1);refreshCaissePage();}
+
+// ----- CIGARETTES (scan + remise %) -----
+function pageCigarettes(){
+  var h='<div class="cs-row2"><input class="inp" id="cs-cig-search" placeholder="Scanner ou chercher…" oninput="csCigSearch(this.value)" onkeydown="if(event.key===\'Enter\')csCigScan(this.value)"/></div>';
+  h+='<div id="cs-cig-sugg" class="cs-sugg"></div>';
+  h+='<div id="cs-cig-list">'+renderCsCigList()+'</div>';
+  var brut=sumCigBrut(),net=sumCigNet();
+  h+='<div class="cs-remise-box"><span>Remise par défaut</span><button class="cs-remise" onclick="csCigRemise()">− '+nfmt(CAISSE.cigRemise)+' %</button></div>';
+  h+='<div class="cs-total cs-total-strike">Total brut : '+nfmt(brut)+' DH</div>';
+  h+='<div class="cs-total">Total (− '+nfmt(CAISSE.cigRemise)+'%) : <b>'+nfmt(net)+' DH</b></div>';
+  return h;
+}
+function renderCsCigList(){
+  if(!CAISSE.cigarettes.length)return '<p class="cs-empty">Aucune cigarette</p>';
+  var h='';
+  CAISSE.cigarettes.forEach(function(x,i){
+    h+='<div class="cs-line"><div class="cs-line-info"><b>'+esc(x.name)+'</b><span>'+nfmt(x.price)+' DH × '+(x.qty||1)+'</span></div>'+
+       '<div class="cs-line-act"><button onclick="csCigQty('+i+')">'+(x.qty||1)+'×</button>'+
+       '<button onclick="csCigPrice('+i+')">'+nfmt(x.price)+'</button>'+
+       '<button class="cs-del" onclick="csCigDel('+i+')">🗑</button></div></div>';
+  });
+  return h;
+}
+function csCigSearch(q){
+  var box=G('cs-cig-sugg');if(!box)return;q=(q||'').trim().toLowerCase();
+  if(!q){box.innerHTML='';return;}
+  var m=(CACHE.products||[]).filter(function(p){return ((p.name||'').toLowerCase().indexOf(q)>=0)||((p.barcode||'').indexOf(q)>=0);}).slice(0,8);
+  box.innerHTML=m.map(function(p){return '<button class="cs-sg" onclick="csCigAdd(\''+(p.barcode||'')+'\',\''+escJs(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nfmt(p.price)+' DH</button>';}).join('');
+}
+function csCigScan(code){code=(code||'').trim();if(!code)return;var f=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===code){f=CACHE.products[i];break;}}if(f)csCigAdd(f.barcode,f.name,f.price);else csCigAdd(code,code,0);var s=G('cs-cig-search');if(s)s.value='';}
+function csCigAdd(bc,name,price){var found=null;CAISSE.cigarettes.forEach(function(x){if(x.name===name)found=x;});if(found)found.qty=(found.qty||1)+1;else CAISSE.cigarettes.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});var s=G('cs-cig-search');if(s)s.value='';var sg=G('cs-cig-sugg');if(sg)sg.innerHTML='';refreshCaissePage();}
+function csCigQty(i){openNPcb('Quantité',CAISSE.cigarettes[i].qty,function(v){CAISSE.cigarettes[i].qty=v||1;refreshCaissePage();});}
+function csCigPrice(i){openNPcb('Prix (DH)',CAISSE.cigarettes[i].price,function(v){CAISSE.cigarettes[i].price=v;refreshCaissePage();});}
+function csCigDel(i){CAISSE.cigarettes.splice(i,1);refreshCaissePage();}
+function csCigRemise(){openNPcb('Remise %',CAISSE.cigRemise,function(v){CAISSE.cigRemise=v;refreshCaissePage();});}
+
+// ----- RECHARGE (denom select + qty + dealer + montant + remise 6.5) -----
+function pageRecharge(){
+  var denoms=[5,10,20,30,50,100,200];
+  var h='<div class="cs-denoms">';
+  denoms.forEach(function(d){h+='<button class="cs-denom'+(CAISSE._rDenom===d?' sel':'')+'" onclick="csRSetDenom('+d+')">'+d+' DH</button>';});
+  h+='</div>';
+  h+='<div class="cs-field" onclick="csRQty()"><span>Quantité</span><b>'+(CAISSE._rQty||0)+'</b></div>';
+  h+='<input class="inp" id="cs-r-dealer" placeholder="Dealer / Distributeur" value="'+esc(CAISSE._rDealer||'')+'" oninput="CAISSE._rDealer=this.value"/>';
+  h+='<div class="cs-field" onclick="csRMontant()"><span>Montant (DH)</span><b>'+nfmt(CAISSE._rMontant||0)+'</b></div>';
+  h+='<button class="cs-add-btn" onclick="csRAdd()">+ Ajouter la ligne</button>';
+  h+='<div id="cs-r-list">'+renderCsRList()+'</div>';
+  var brut=sumRechargeBrut(),net=sumRechargeNet();
+  h+='<div class="cs-remise-box"><span>Remise par défaut</span><button class="cs-remise" onclick="csRRemise()">− '+nfmt(CAISSE.recharge.remise)+' %</button></div>';
+  h+='<div class="cs-total cs-total-strike">Total brut : '+nfmt(brut)+' DH</div>';
+  h+='<div class="cs-total">Total (− '+nfmt(CAISSE.recharge.remise)+'%) : <b>'+nfmt(net)+' DH</b></div>';
+  return h;
+}
+function csRSetDenom(d){CAISSE._rDenom=d;refreshCaissePage();}
+function csRQty(){openNPcb('Quantité',CAISSE._rQty,function(v){CAISSE._rQty=v;refreshCaissePage();});}
+function csRMontant(){openNPcb('Montant (DH)',CAISSE._rMontant,function(v){CAISSE._rMontant=v;refreshCaissePage();});}
+function csRRemise(){openNPcb('Remise %',CAISSE.recharge.remise,function(v){CAISSE.recharge.remise=v;refreshCaissePage();});}
+function csRAdd(){
+  var montant=parseFloat(CAISSE._rMontant)||0;
+  if(!montant&&CAISSE._rDenom&&CAISSE._rQty)montant=CAISSE._rDenom*CAISSE._rQty;
+  if(!montant){showToast('❌ Montant vide');return;}
+  CAISSE.recharge.lines.push({denom:CAISSE._rDenom||0,qty:CAISSE._rQty||0,dealer:CAISSE._rDealer||'',montant:montant});
+  CAISSE._rDenom=null;CAISSE._rQty=0;CAISSE._rDealer='';CAISSE._rMontant=0;
+  refreshCaissePage();
+}
+function renderCsRList(){
+  if(!CAISSE.recharge.lines.length)return '<p class="cs-empty">Aucune ligne</p>';
+  var h='';CAISSE.recharge.lines.forEach(function(l,i){h+='<div class="cs-line"><div class="cs-line-info"><b>'+nfmt(l.montant)+' DH</b><span>'+(l.denom?l.denom+'×'+l.qty+' · ':'')+esc(l.dealer||'-')+'</span></div><div class="cs-line-act"><button class="cs-del" onclick="csRDel('+i+')">🗑</button></div></div>';});return h;
+}
+function csRDel(i){CAISSE.recharge.lines.splice(i,1);refreshCaissePage();}
+
+// ----- SIMPLE BOX pages (credit, change, cash, capital) -----
+function pageSimpleBox(key,label){
+  var val=CAISSE[key]||0;
+  var h='<div class="cs-bigbox" onclick="csSimpleEdit(\''+key+'\',\''+escJs(label)+'\')"><span>'+esc(label)+'</span><b id="cs-bigval">'+nfmt(val)+' DH</b></div>';
+  h+='<p class="cs-hint">Cliquez sur la case pour saisir le montant</p>';
+  return h;
+}
+function csSimpleEdit(key,label){openNPcb(label,CAISSE[key],function(v){CAISSE[key]=v;refreshCaissePage();});}
+
+// ----- MOINS (select type + montant + sign) -----
+function pageMoins(){
+  var h='<select class="inp" id="cs-moins-type">';
+  CAISSE_MOINS_TYPES.forEach(function(t){h+='<option value="'+t+'">'+caisseMoinsLabel(t)+'</option>';});
+  h+='<option value="__new__">+ Ajouter un autre choix…</option></select>';
+  h+='<input class="inp hidden" id="cs-moins-new" placeholder="Nom de la dépense"/>';
+  h+='<div class="cs-field" onclick="csMoinsMontant()"><span>Montant (DH)</span><b id="cs-moins-m">'+nfmt(CAISSE._mMontant||0)+'</b></div>';
+  h+='<div class="cs-signbox"><span>Signe</span><button class="cs-sign" id="cs-moins-sign" onclick="csMoinsSign()">'+ (CAISSE._mSign||'-') +'</button></div>';
+  h+='<button class="cs-add-btn" onclick="csMoinsAdd()">+ Ajouter</button>';
+  h+='<div id="cs-moins-list">'+renderCsMoinsList()+'</div>';
+  h+='<div class="cs-total">Total Moins : <b>'+nfmt(totalMoinsAbs())+' DH</b></div>';
+  return h;
+}
+function csMoinsMontant(){openNPcb('Montant (DH)',CAISSE._mMontant,function(v){CAISSE._mMontant=v;refreshCaissePage();});}
+function csMoinsSign(){CAISSE._mSign=(CAISSE._mSign==='+'?'-':'+');refreshCaissePage();}
+function csMoinsAdd(){
+  var sel=G('cs-moins-type');var type=sel?sel.value:'';
+  var label=caisseMoinsLabel(type);
+  if(type==='__new__'){var nn=G('cs-moins-new');label=(nn&&nn.value||'').trim();if(!label){showToast('❌ Nom vide');return;}}
+  var m=parseFloat(CAISSE._mMontant)||0;if(!m){showToast('❌ Montant vide');return;}
+  CAISSE.moins.push({type:type,label:label,montant:m,sign:CAISSE._mSign||'-'});
+  CAISSE._mMontant=0;CAISSE._mSign='-';refreshCaissePage();
+}
+function renderCsMoinsList(){if(!CAISSE.moins.length)return '<p class="cs-empty">Aucune dépense</p>';var h='';CAISSE.moins.forEach(function(m,i){h+='<div class="cs-line"><div class="cs-line-info"><b>'+(m.sign==='+'?'+':'−')+nfmt(m.montant)+' DH</b><span>'+esc(m.label)+'</span></div><div class="cs-line-act"><button class="cs-del" onclick="csMoinsDel('+i+')">🗑</button></div></div>';});return h;}
+function csMoinsDel(i){CAISSE.moins.splice(i,1);refreshCaissePage();}
+
+// ----- PRIS (name + montant + add) -----
+function pagePris(){
+  var h='<input class="inp" id="cs-pris-name" placeholder="Nom"/>';
+  h+='<div class="cs-field" onclick="csPrisMontant()"><span>Montant (DH)</span><b>'+nfmt(CAISSE._pMontant||0)+'</b></div>';
+  h+='<button class="cs-add-btn" onclick="csPrisAdd()">+ Ajouter</button>';
+  h+='<div id="cs-pris-list">'+renderCsPrisList()+'</div>';
+  h+='<div class="cs-total">Total argent pris : <b>'+nfmt(sumPris())+' DH</b></div>';
+  return h;
+}
+function csPrisMontant(){openNPcb('Montant (DH)',CAISSE._pMontant,function(v){CAISSE._pMontant=v;refreshCaissePage();});}
+function csPrisAdd(){var nn=G('cs-pris-name');var name=(nn&&nn.value||'').trim();var m=parseFloat(CAISSE._pMontant)||0;if(!name){showToast('❌ Nom vide');return;}if(!m){showToast('❌ Montant vide');return;}CAISSE.pris.push({name:name,montant:m});CAISSE._pMontant=0;refreshCaissePage();}
+function renderCsPrisList(){if(!CAISSE.pris.length)return '<p class="cs-empty">Personne</p>';var h='';CAISSE.pris.forEach(function(p,i){h+='<div class="cs-line"><div class="cs-line-info"><b>'+nfmt(p.montant)+' DH</b><span>'+esc(p.name)+'</span></div><div class="cs-line-act"><button class="cs-del" onclick="csPrisDel('+i+')">🗑</button></div></div>';});return h;}
+function csPrisDel(i){CAISSE.pris.splice(i,1);refreshCaissePage();}
+
+// ----- BILAN (full breakdown) -----
+function pageBilan(){
+  var prod=sumProduits(),cig=sumCigNet(),rech=sumRechargeNet(),cred=parseFloat(CAISSE.credit)||0,chg=parseFloat(CAISSE.change)||0;
+  var ventes=totalVentes(),cash=parseFloat(CAISSE.cash)||0,prem=premierTotal();
+  var moins=totalMoinsAbs(),pris=sumPris(),cap=parseFloat(CAISSE.capital)||0,ben=benefice();
+  function row(l,v,strong){return '<div class="cs-brow'+(strong?' strong':'')+'"><span>'+l+'</span><b>'+nfmt(v)+' DH</b></div>';}
+  var h='';
+  h+=row('Produits',prod)+row('Cigarettes (net)',cig)+row('Recharge (net)',rech)+row('Crédit',cred)+row('Change',chg);
+  h+=row('TOTAL VENTES',ventes,true);
+  h+=row('Cash',cash);
+  h+=row('PREMIER TOTAL (ventes + cash)',prem,true);
+  h+=row('Moins (dépenses)',moins);
+  h+=row('Argent pris',pris);
+  h+=row('Capital',-cap);
+  h+=row('BÉNÉFICE',ben,true);
+  h+='<button class="cs-add-btn" onclick="caisseGo(\'partage\')">Partager le bénéfice →</button>';
+  return h;
+}
+
+// ----- PARTAGE (partners, equal split) -----
+function pagePartage(){
+  var h='<input class="inp" id="cs-partner-name" placeholder="Nom de l\'associé"/>';
+  h+='<button class="cs-add-btn" onclick="csPartnerAdd()">+ Ajouter un associé</button>';
+  h+='<div id="cs-partner-list">'+renderCsPartners()+'</div>';
+  var ben=benefice(),n=CAISSE.partners.length;
+  if(n>0){
+    var part=ben/n;
+    h+='<div class="cs-total">Bénéfice : <b>'+nfmt(ben)+' DH</b> ÷ '+n+' = <b>'+nfmt(part)+' DH</b> / personne</div>';
+    h+='<button class="cs-add-btn" onclick="caisseGo(\'recap\')">Voir le récapitulatif →</button>';
+  }else{
+    h+='<p class="cs-hint">Ajoutez au moins un associé.</p>';
+  }
+  return h;
+}
+function csPartnerAdd(){var nn=G('cs-partner-name');var name=(nn&&nn.value||'').trim();if(!name){showToast('❌ Nom vide');return;}CAISSE.partners.push({name:name});refreshCaissePage();}
+function renderCsPartners(){if(!CAISSE.partners.length)return '<p class="cs-empty">Aucun associé</p>';var ben=benefice(),n=CAISSE.partners.length,part=n?ben/n:0;var h='';CAISSE.partners.forEach(function(p,i){h+='<div class="cs-line"><div class="cs-line-info"><b>'+esc(p.name)+'</b><span>'+nfmt(part)+' DH</span></div><div class="cs-line-act"><button class="cs-del" onclick="csPartnerDel('+i+')">🗑</button></div></div>';});return h;}
+function csPartnerDel(i){CAISSE.partners.splice(i,1);refreshCaissePage();}
+
+// ----- RECAP (summary + PDF) -----
+function pageRecap(){
+  var ben=benefice(),n=CAISSE.partners.length,part=n?ben/n:0;
+  var h='<div class="cs-recap">';
+  h+='<div class="cs-brow strong"><span>BÉNÉFICE TOTAL</span><b>'+nfmt(ben)+' DH</b></div>';
+  CAISSE.partners.forEach(function(p){h+='<div class="cs-brow"><span>'+esc(p.name)+'</span><b>'+nfmt(part)+' DH</b></div>';});
+  h+='</div>';
+  h+='<button class="cs-add-btn" onclick="caissePDF()">📄 Télécharger le PDF récapitulatif</button>';
+  return h;
+}
+
+// ---------- helper to re-render just the content (keep scroll) ----------
+function refreshCaissePage(){var c=G('cs-content');if(c)c.innerHTML=caissePage(CAISSE.page);}
+
+// ---------- PDF ----------
+function caissePDF(){
+  var jsPDFLib=(window.jspdf&&window.jspdf.jsPDF)?window.jspdf.jsPDF:(window.jsPDF||null);
+  if(!jsPDFLib){showToast('❌ PDF lib');return;}
+  var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});
+  var W=210,M=15,y=36;
+  doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);try{doc.setFont('helvetica','bold');}catch(e){}
+  doc.text('L7ssab.ma — Récapitulatif',M,14);
+  doc.setFontSize(9);try{doc.setFont('helvetica','normal');}catch(e){}
+  doc.text('Généré le '+new Date().toLocaleDateString('fr-MA')+' '+new Date().toLocaleTimeString('fr-MA'),M,21);
+  function line(label,val,strong){if(strong){doc.setFillColor(232,245,238);doc.rect(M,y-5,W-2*M,8,'F');try{doc.setFont('helvetica','bold');}catch(e){}doc.setTextColor(15,81,50);}else{try{doc.setFont('helvetica','normal');}catch(e){}doc.setTextColor(40,40,40);}doc.setFontSize(strong?11:10);doc.text(label,M+2,y);doc.text(nfmt(val)+' DH',W-M-2,y,{align:'right'});y+=strong?10:7;}
+  line('Produits',sumProduits());
+  line('Cigarettes (net -'+nfmt(CAISSE.cigRemise)+'%)',sumCigNet());
+  line('Recharge (net -'+nfmt(CAISSE.recharge.remise)+'%)',sumRechargeNet());
+  line('Crédit',parseFloat(CAISSE.credit)||0);
+  line('Change',parseFloat(CAISSE.change)||0);
+  line('TOTAL VENTES',totalVentes(),true);
+  line('Cash',parseFloat(CAISSE.cash)||0);
+  line('PREMIER TOTAL',premierTotal(),true);
+  line('Moins (dépenses)',totalMoinsAbs());
+  line('Argent pris',sumPris());
+  line('Capital',-(parseFloat(CAISSE.capital)||0));
+  line('BÉNÉFICE',benefice(),true);
+  y+=4;
+  if(CAISSE.partners.length){
+    try{doc.setFont('helvetica','bold');}catch(e){}doc.setTextColor(26,122,74);doc.setFontSize(12);doc.text('Partage du bénéfice ('+CAISSE.partners.length+' associés)',M,y);y+=8;
+    var part=benefice()/CAISSE.partners.length;
+    CAISSE.partners.forEach(function(p){line(p.name,part);});
+  }
+  doc.save('recap-caisse-'+new Date().toISOString().substring(0,10)+'.pdf');
+  showToast('✅ PDF téléchargé');
+}
+
+function escJs(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
