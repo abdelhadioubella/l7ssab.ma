@@ -21,8 +21,8 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 .hidden{display:none!important}
 .hdr{background:#1a7a4a;color:#fff;height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;position:sticky;top:0;z-index:98;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .hdr-title{font-size:16px;font-weight:700;flex:1;text-align:left;direction:ltr}
-.hdr-right{display:flex;gap:8px;align-items:center;position:relative}
-.hdr-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:5px 10px;font-size:13px}
+.hdr-right{display:flex;gap:6px;align-items:center;position:relative;overflow-x:auto;max-width:100%}
+.hdr-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;min-width:38px;height:38px;padding:0 8px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
 .hdr-av{width:36px;height:36px;border-radius:50%;background:#fff;color:#1a7a4a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;cursor:pointer;border:2px solid rgba(255,255,255,.6)}
 .av-menu{position:absolute;top:46px;right:0;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);overflow:hidden;width:190px;display:none;z-index:300}
 .av-menu.show{display:block}
@@ -380,6 +380,19 @@ html.dark .cal-note-box{background:#1f2925}
 html.dark .cal-py,html.dark .cal-pm{background:#1f2925;color:#cfe}
 html.dark .cal-py.sel,html.dark .cal-pm.sel{background:#1a7a4a;color:#fff}
 [dir=rtl] .cal-nav{transform:scaleX(-1)}
+
+
+/* uniform + scrollable header for phone/tablet */
+.hdr-right::-webkit-scrollbar{height:0;display:none}
+.hdr-right{scrollbar-width:none}
+.hamb{min-width:38px;height:38px;font-size:20px!important}
+/* admin side menu scrolls on small screens */
+.am-side{-webkit-overflow-scrolling:touch}
+@media (max-width:560px){
+  .hdr{padding:0 8px}
+  .hdr-btn{min-width:34px;height:34px;font-size:14px}
+  .hdr-title{font-size:15px}
+}
 
 </style>
 </head>
