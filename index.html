@@ -478,6 +478,14 @@ html.dark .cs-brow.strong{background:#1c2622;color:#6ee7a8}
 .cs-recap{background:#fff;border-radius:14px;padding:12px;margin-bottom:12px}
 html.dark .cs-recap{background:#18211d}
 
+
+/* caisse flow navigation */
+.cs-nav{display:flex;gap:10px;margin-top:18px}
+.cs-nav-back{flex:1;padding:14px;background:#eef0ef;color:#555;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}
+.cs-nav-next{flex:2;padding:14px;background:#1a7a4a;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+.cs-nav-next:hover{background:#15613b}
+html.dark .cs-nav-back{background:#1c2622;color:#9bb3a8}
+
 </style>
 </head>
 <body>
@@ -534,6 +542,7 @@ html.dark .cs-recap{background:#18211d}
 <div id="cal-holder"></div>
 <div class="appsec" id="sec-inventory">
 <div class="content">
+  <button class="btn-p" style="margin-bottom:14px;font-size:16px;padding:16px" onclick="openCaisse()">🧾 Caisse / Bilan journalier →</button>
   <div class="card">
     <div class="card-title" id="t-newproj">Nouveau projet</div>
     <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…"/>
@@ -611,19 +620,6 @@ html.dark .cs-recap{background:#18211d}
     <div class="nav-row">
       <button class="btn-g" onclick="showSection('inventory')" id="t-back1">← Retour</button>
       <button class="btn-p" style="margin-top:0" onclick="showSection('recap')" id="t-next1">Suivant →</button>
-    </div>
-</div></div>
-</div>
-<div class="appsec" id="sec-adjustments">
-<div class="content">
-    <div class="card">
-      <p style="font-size:14px;color:#666;margin-bottom:14px" id="t-adjdesc">Ajoutez frais, remises ou corrections.</p>
-      <div id="adj-list"></div>
-      <button class="btn-p" style="background:transparent;color:#1a7a4a;border:1.5px dashed #1a7a4a" onclick="addAdj()" id="t-addline">+ Ajouter une ligne</button>
-    </div>
-    <div class="nav-row">
-      <button class="btn-g" onclick="showSection('products')" id="t-back2">← Retour</button>
-      <button class="btn-p" style="margin-top:0" onclick="showSection('recap')" id="t-next2">Suivant →</button>
     </div>
 </div></div>
 </div>

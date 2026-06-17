@@ -419,7 +419,6 @@ function buildHeader(opts){
       (opts.role==='admin'?'':'<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
       '<div class="av-menu" id="av-menu">'+
         '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
-        '<button onclick="toggleAvMenu();openCaisse()">🧾 '+(isAr()?'الصندوق':'Caisse')+'</button>'+
         '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
         '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
         '<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>'+
@@ -804,9 +803,9 @@ function buildHeaderFor(){
 
 // ---- UNIFIED ROUTER (user + admin sections) ----
 function showSection(name){
-  if(!isAdmin&&(name==='products'||name==='adjustments'||name==='recap')&&!CP){name='inventory';}
+  if(!isAdmin&&(name==='products'||name==='recap')&&!CP){name='inventory';}
   CURSEC=name;
-  var all=['inventory','products','adjustments','recap','profile','statistics','database','users','projects','backup'];
+  var all=['inventory','products','recap','profile','statistics','database','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
   var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(CP?CP.name:''),adjustments:t('adj'),recap:t('recap'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',users:'Users',projects:'Projects',backup:'Backup'};
   // rebuild header so the active admin tab highlights
@@ -815,7 +814,6 @@ function showSection(name){
   // per-section refresh
   if(name==='inventory')refreshProjs();
   else if(name==='products'){refreshEdit();updateRT();updateNFs();setTimeout(focusScan,120);}
-  else if(name==='adjustments')refreshAdjs();
   else if(name==='recap')refreshRecap();
   else if(name==='profile')refreshProfile();
   else if(name==='statistics')refreshStats();
@@ -941,7 +939,7 @@ function deleteCalNote(){
 function refreshCurrent(){
   var sec=CURSEC||'inventory';
   // reload the underlying data, then re-render the same section
-  if(sec==='products'||sec==='adjustments'||sec==='recap'){
+  if(sec==='products'||sec==='recap'){
     if(!CP){showSection('inventory');return;}
     loadProducts().then(function(){loadItems().then(function(){loadAdjs().then(function(){showSection(sec);});});});
   } else if(sec==='inventory'){
@@ -1432,7 +1430,7 @@ function caisseMoinsLabel(t){
   return m[t]||t;
 }
 
-function openCaisse(){CAISSE.page='menu';renderCaisse();show('caisse-ov');}
+function openCaisse(){CAISSE.page='produits';renderCaisse();show('caisse-ov');}
 function closeCaisse(){hide('caisse-ov');}
 function caisseGo(p){CAISSE.page=p;renderCaisse();}
 
@@ -1456,13 +1454,26 @@ function benefice(){
 }
 
 // ---------- main render ----------
+var CAISSE_FLOW=['produits','cigarettes','recharge','credit','change','cash','moins','pris','capital','bilan','partage','recap'];
 function renderCaisse(){
   var c=G('caisse-body');if(!c)return;
   var p=CAISSE.page;
+  var idx=CAISSE_FLOW.indexOf(p);
   var html='';
-  // header
-  html+='<div class="cs-top"><button class="cs-back" onclick="'+(p==='menu'?'closeCaisse()':'caisseGo(\'menu\')')+'">‹</button><span class="cs-title">'+caisseTitle(p)+'</span><button class="cs-x" onclick="closeCaisse()">×</button></div>';
-  html+='<div class="cs-content" id="cs-content">'+caissePage(p)+'</div>';
+  // header: back arrow goes to the PREVIOUS page in the flow (or closes if first)
+  var prev=(idx>0)?CAISSE_FLOW[idx-1]:null;
+  html+='<div class="cs-top"><button class="cs-back" onclick="'+(prev?'caisseGo(\''+prev+'\')':'closeCaisse()')+'">‹</button><span class="cs-title">'+caisseTitle(p)+'</span><button class="cs-x" onclick="closeCaisse()">×</button></div>';
+  html+='<div class="cs-content" id="cs-content">'+caissePage(p);
+  // flow nav row (Retour / Suivant) — only on flow pages, not the final recap which has its own PDF button
+  if(idx>=0){
+    var next=(idx<CAISSE_FLOW.length-1)?CAISSE_FLOW[idx+1]:null;
+    html+='<div class="cs-nav">';
+    if(prev)html+='<button class="cs-nav-back" onclick="caisseGo(\''+prev+'\')">← Retour</button>';
+    else html+='<button class="cs-nav-back" onclick="closeCaisse()">✕ Fermer</button>';
+    if(next)html+='<button class="cs-nav-next" onclick="caisseGo(\''+next+'\')">Suivant →</button>';
+    html+='</div>';
+  }
+  html+='</div>';
   c.innerHTML=html;
 }
 function caisseTitle(p){
