@@ -951,7 +951,7 @@ function refreshCurrent(){
 function applyTR(){
   if(isAdmin)return; // admin UI is English (static in HTML)
   setText('t-newproj',t('newProj'));setText('t-createproj',t('cProj'));setText('t-savedproj',t('sProj'));
-  setText('t-ufrom',isAr()?'من':'De');setText('t-uto',isAr()?'إلى':'À');setText('t-uclear',isAr()?'✕ مسح':'✕ Effacer');
+  setText('t-uclear','✕');var uf=G('uproj-from'),ut=G('uproj-to');if(uf)uf.title=isAr()?'من':'De';if(ut)ut.title=isAr()?'إلى':'À';
   var us=G('uproj-search');if(us)us.placeholder=t('srch');
   var pi=G('proj-inp');if(pi)pi.placeholder=t('projName');
   setText('t-addprod',t('aProd'));setText('t-search',t('srch'));setText('t-price',t('price'));setText('t-qty',t('qty'));setText('t-addbtn',t('add'));setText('t-runtotal',t('runT'));
