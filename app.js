@@ -1615,8 +1615,7 @@ function pageRecharge(){
   denoms.forEach(function(d){h+='<button class="cs-denom'+(CAISSE._rDenom===d?' sel':'')+'" onclick="csRSetDenom('+d+')">'+d+' DH</button>';});
   h+='</div>';
   h+='<div class="cs-field" onclick="csRQty()"><span>Quantité</span><b>'+(CAISSE._rQty||0)+'</b></div>';
-  h+='<input class="inp" id="cs-r-dealer" placeholder="Dealer / Distributeur" value="'+esc(CAISSE._rDealer||'')+'" oninput="CAISSE._rDealer=this.value"/>';
-  h+='<div class="cs-field" onclick="csRMontant()"><span>Montant (DH)</span><b>'+nfmt(CAISSE._rMontant||0)+'</b></div>';
+  h+='<div class="cs-field" onclick="csRMontant()"><span>Dealer (Montant DH)</span><b>'+nfmt(CAISSE._rMontant||0)+'</b></div>';
   h+='<button class="cs-add-btn" onclick="csRAdd()">+ Ajouter la ligne</button></div>';
   h+='<div class="card"><div id="cs-r-list">'+renderCsRList()+'</div>';
   var brut=sumRechargeBrut(),net=sumRechargeNet();
@@ -1633,8 +1632,8 @@ function csRAdd(){
   var montant=parseFloat(CAISSE._rMontant)||0;
   if(!montant&&CAISSE._rDenom&&CAISSE._rQty)montant=CAISSE._rDenom*CAISSE._rQty;
   if(!montant){showToast('❌ Montant vide');return;}
-  CAISSE.recharge.lines.push({denom:CAISSE._rDenom||0,qty:CAISSE._rQty||0,dealer:CAISSE._rDealer||'',montant:montant});
-  CAISSE._rDenom=null;CAISSE._rQty=0;CAISSE._rDealer='';CAISSE._rMontant=0;
+  CAISSE.recharge.lines.push({denom:CAISSE._rDenom||0,qty:CAISSE._rQty||0,dealer:nfmt(montant)+' DH',montant:montant});
+  CAISSE._rDenom=null;CAISSE._rQty=0;CAISSE._rMontant=0;
   refreshCaissePage();
 }
 function renderCsRList(){
