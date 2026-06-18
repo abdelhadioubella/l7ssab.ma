@@ -530,13 +530,9 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
         <div class="sc-row" style="margin-bottom:6px">
           <span class="sc-name" style="font-weight:700"><span id="t-scanner">Scanner</span></span>
         </div>
-        <div class="sc-row" style="margin-bottom:6px">
+        <div class="sc-row">
           <span class="sc-name"><span class="sc-dot" id="usb-mini-dot" style="background:#ccc"></span><span id="usb-mini-lbl">USB</span></span>
           <span class="badge b-off" id="usb-mini-badge">Non détecté</span>
-        </div>
-        <div class="sc-row">
-          <span class="sc-name"><span class="sc-dot" id="bt-mini-dot" style="background:#ccc"></span><span id="bt-mini-lbl">Bluetooth</span></span>
-          <button id="bt-mini-btn" onclick="connectBT()" style="padding:5px 12px;font-size:12px;font-weight:600;background:#1a7a4a;color:#fff;border:none;border-radius:8px">Connecter</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
@@ -586,11 +582,26 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
 <div class="content">
   <div class="card">
     <div class="card-title">🚬 Cigarettes</div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
+    <div class="sc-card">
+      <div class="sc-row" style="margin-bottom:6px">
+        <span class="sc-name" style="font-weight:700">Scanner</span>
+      </div>
+      <div class="sc-row">
+        <span class="sc-name"><span class="sc-dot" id="usb-mini-dot2" style="background:#ccc"></span><span>USB</span></span>
+        <span class="badge b-off" id="usb-mini-badge2">Non détecté</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
       <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off"/>
-      <button onclick="cigSearch(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
+      <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
     </div>
     <div id="cig-suggest" class="suggest-box hidden"></div>
+    <input class="inp" type="text" id="cig-name" placeholder="Nom du produit"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+      <div class="num-field" onclick="openNP('cigAddP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="cig-add-p" class="nf-ph">Appuyer</span></div>
+      <div class="num-field" onclick="openNP('cigAddQ','Quantité',false)"><span class="nf-label">Quantité</span><span id="cig-add-q" class="nf-ph">Appuyer</span></div>
+    </div>
+    <button class="btn-p" onclick="cigAddManual()">+ Ajouter</button>
   </div>
   <div class="card">
     <div class="card-title">Liste</div>
@@ -598,7 +609,7 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
   </div>
   <div class="card">
     <div class="num-field" onclick="openNP('cigRem','Remise %',true)"><span class="nf-label">Remise par défaut</span><span class="nf-val" id="cig-rem-val">5 %</span></div>
-    <div class="tbar" style="opacity:.6"><span style="text-decoration:line-through">Total brut</span><span id="cig-brut" style="text-decoration:line-through">0.00 DH</span></div>
+    <div class="tbar"><span>Total brut</span><span id="cig-brut">0.00 DH</span></div>
     <div class="tbar"><span id="cig-net-lbl">Total (− 5%)</span><span id="cig-net">0.00 DH</span></div>
   </div>
   <div class="nav-row">
@@ -615,15 +626,15 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
     <div class="denom-grid" id="rech-denoms"></div>
     <div class="num-field" onclick="openNP('rechQty','Quantité',false)"><span class="nf-label">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
     <div class="num-field" onclick="openNP('rechMont','Dealer (Montant DH)',true)"><span class="nf-label">Dealer (Montant DH)</span><span class="nf-val" id="rech-mont-val">0.00</span></div>
-    <button class="btn-p" onclick="rechAdd()">+ Ajouter la ligne</button>
+    <button class="btn-p" onclick="rechAdd()">+ Ajouter</button>
   </div>
   <div class="card">
-    <div class="card-title">Lignes</div>
+    <div class="card-title">Liste</div>
     <div id="rech-list"></div>
   </div>
   <div class="card">
     <div class="num-field" onclick="openNP('rechRem','Remise %',true)"><span class="nf-label">Remise par défaut</span><span class="nf-val" id="rech-rem-val">6.5 %</span></div>
-    <div class="tbar" style="opacity:.6"><span style="text-decoration:line-through">Total brut</span><span id="rech-brut" style="text-decoration:line-through">0.00 DH</span></div>
+    <div class="tbar"><span>Total brut</span><span id="rech-brut">0.00 DH</span></div>
     <div class="tbar"><span id="rech-net-lbl">Total (− 6.5%)</span><span id="rech-net">0.00 DH</span></div>
   </div>
   <div class="nav-row">
