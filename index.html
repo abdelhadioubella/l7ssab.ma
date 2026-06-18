@@ -19,7 +19,9 @@ html,body{height:100%;overflow-x:hidden}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f0;color:#111}
 button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 .hidden{display:none!important}
-.hdr{background:#1a7a4a;color:#fff;height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;position:sticky;top:0;z-index:98;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr{background:#1a7a4a;color:#fff;height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;position:fixed;top:0;left:0;right:0;width:100%;z-index:98;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#app-header{height:54px}
+.appsec.active .content{padding-top:14px;padding-bottom:84px}
 .hdr-title{font-size:16px;font-weight:700;flex:1;text-align:left;direction:ltr}
 .hdr-right{display:flex;gap:6px;align-items:center;position:relative}
 .hdr-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;min-width:38px;height:38px;padding:0 8px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
@@ -186,6 +188,7 @@ html.dark .b-user{background:#1f2a25;color:#9fb3a9;border-color:#33473e}
 
 /* ===== Bigger header buttons ===== */
 .hdr{height:60px}
+#app-header{height:60px}
 .hdr-btn{font-size:17px;padding:8px 13px;border-radius:10px;min-width:42px}
 .hdr-av{width:42px;height:42px;font-size:18px}
 .hdr-title{font-size:17px}
@@ -672,7 +675,7 @@ html.dark .scan-lbl{color:#e8f0ec}
 <div class="appsec" id="sec-moins">
 <div class="content">
   <div class="card">
-    <div class="card-title">➖ Moins (dépenses)</div>
+    <div class="card-title">➖ Dépenses</div>
     <select class="inp" id="moins-type">
       <option value="credit_fourn">Crédit de fournisseur</option>
       <option value="impot">Les impôts</option>
@@ -688,7 +691,7 @@ html.dark .scan-lbl{color:#e8f0ec}
   <div class="card">
     <div class="card-title">Liste</div>
     <div id="moins-list"></div>
-    <div class="tbar"><span>Total Moins</span><span id="moins-total">0.00 DH</span></div>
+    <div class="tbar"><span>Total Dépenses</span><span id="moins-total">0.00 DH</span></div>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('cash')">← Retour</button>
