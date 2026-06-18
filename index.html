@@ -417,6 +417,35 @@ html.dark .filter-clear{background:#2c3a34;color:#9bb3a8}
 
 
 
+
+/* caisse-style sections (same theme as app) */
+.big-field{display:flex;flex-direction:column;align-items:center;gap:10px;background:#f9fdfb;border:2px solid #1a7a4a;border-radius:14px;padding:30px;cursor:pointer}
+.big-field span{font-size:14px;color:#666}
+.big-field b{font-size:34px;color:#0f5132}
+html.dark .big-field{background:#0f1714}
+html.dark .big-field b{color:#6ee7a8}
+.denom-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.denom-btn{padding:14px 0;background:#f5f7f6;border:1px solid #e3e8e6;border-radius:12px;cursor:pointer;font-weight:700;color:#333;font-size:14px}
+.denom-btn.sel{background:#1a7a4a;color:#fff;border-color:#1a7a4a}
+html.dark .denom-btn{background:#1f2925;border-color:#2a3a33;color:#cfe}
+.sign-field{display:flex;align-items:center;justify-content:space-between;background:#f5f5f5;border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:14px;color:#555}
+.sign-btn{width:46px;height:46px;border:none;border-radius:10px;background:#ffeaea;color:#d63031;font-size:22px;font-weight:700;cursor:pointer}
+html.dark .sign-field{background:#1f2a25}
+.cl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f7f9f8;border:1px solid #e8eeeb;border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.cl-info{display:flex;flex-direction:column}
+.cl-info b{font-size:14px;color:#222}
+.cl-info span{font-size:12px;color:#888}
+html.dark .cl-row{background:#1f2925;border-color:#2a3a33}
+html.dark .cl-info b{color:#e8f0ec}
+.cl-del{width:34px;height:34px;background:#ffeaea;color:#d63031;border:none;border-radius:8px;font-size:15px;cursor:pointer;flex-shrink:0}
+.cl-q{padding:7px 10px;border:none;border-radius:8px;background:#eef5f1;color:#0f5132;font-size:13px;font-weight:600;cursor:pointer;margin-right:5px}
+.brow{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #eee;font-size:14px;color:#444}
+.brow b{font-size:15px}
+.brow.strong{background:#e8f5ee;font-weight:700;color:#0f5132;border-radius:10px;margin:6px 0;border:none}
+.brow.strong b{font-size:17px}
+html.dark .brow{border-color:#222;color:#cfe}
+html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
+
 </style>
 </head>
 <body>
@@ -548,10 +577,212 @@ html.dark .filter-clear{background:#2c3a34;color:#9bb3a8}
     <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
     <div class="nav-row">
       <button class="btn-g" onclick="showSection('inventory')" id="t-back1">← Retour</button>
-      <button class="btn-p" style="margin-top:0" onclick="showSection('recap')" id="t-next1">Suivant →</button>
+      <button class="btn-p" style="margin-top:0" onclick="showSection('cigarettes')" id="t-next1">Suivant →</button>
     </div>
 </div></div>
 </div>
+
+<div class="appsec" id="sec-cigarettes">
+<div class="content">
+  <div class="card">
+    <div class="card-title">🚬 Cigarettes</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off"/>
+      <button onclick="cigSearch(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
+    </div>
+    <div id="cig-suggest" class="suggest-box hidden"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Liste</div>
+    <div id="cig-list"></div>
+  </div>
+  <div class="card">
+    <div class="num-field" onclick="openNP('cigRem','Remise %',true)"><span class="nf-label">Remise par défaut</span><span class="nf-val" id="cig-rem-val">5 %</span></div>
+    <div class="tbar" style="opacity:.6"><span style="text-decoration:line-through">Total brut</span><span id="cig-brut" style="text-decoration:line-through">0.00 DH</span></div>
+    <div class="tbar"><span id="cig-net-lbl">Total (− 5%)</span><span id="cig-net">0.00 DH</span></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('products')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('recharge')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-recharge">
+<div class="content">
+  <div class="card">
+    <div class="card-title">📱 Recharge</div>
+    <div class="denom-grid" id="rech-denoms"></div>
+    <div class="num-field" onclick="openNP('rechQty','Quantité',false)"><span class="nf-label">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
+    <div class="num-field" onclick="openNP('rechMont','Dealer (Montant DH)',true)"><span class="nf-label">Dealer (Montant DH)</span><span class="nf-val" id="rech-mont-val">0.00</span></div>
+    <button class="btn-p" onclick="rechAdd()">+ Ajouter la ligne</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Lignes</div>
+    <div id="rech-list"></div>
+  </div>
+  <div class="card">
+    <div class="num-field" onclick="openNP('rechRem','Remise %',true)"><span class="nf-label">Remise par défaut</span><span class="nf-val" id="rech-rem-val">6.5 %</span></div>
+    <div class="tbar" style="opacity:.6"><span style="text-decoration:line-through">Total brut</span><span id="rech-brut" style="text-decoration:line-through">0.00 DH</span></div>
+    <div class="tbar"><span id="rech-net-lbl">Total (− 6.5%)</span><span id="rech-net">0.00 DH</span></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('cigarettes')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('credit')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-credit">
+<div class="content">
+  <div class="card">
+    <div class="card-title">💳 Crédit</div>
+    <div class="big-field" onclick="openNP('credit','Crédit (DH)',true)"><span>Crédit (DH)</span><b id="credit-val">0.00 DH</b></div>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('recharge')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('change')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-change">
+<div class="content">
+  <div class="card">
+    <div class="card-title">💱 Change</div>
+    <div class="big-field" onclick="openNP('change','Change (DH)',true)"><span>Change — Montant (DH)</span><b id="change-val">0.00 DH</b></div>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('credit')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('cash')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-cash">
+<div class="content">
+  <div class="card">
+    <div class="card-title">💵 Cash</div>
+    <div class="big-field" onclick="openNP('cash','Cash (DH)',true)"><span>Cash (DH)</span><b id="cash-val">0.00 DH</b></div>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('change')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('moins')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-moins">
+<div class="content">
+  <div class="card">
+    <div class="card-title">➖ Moins (dépenses)</div>
+    <select class="inp" id="moins-type">
+      <option value="credit_fourn">Crédit de fournisseur</option>
+      <option value="impot">Les impôts</option>
+      <option value="eau_elec">Eau + Électricité</option>
+      <option value="loyer">Loyer</option>
+      <option value="__new__">+ Ajouter un autre choix…</option>
+    </select>
+    <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense"/>
+    <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
+    <div class="sign-field"><span>Signe</span><button class="sign-btn" id="moins-sign" onclick="moinsToggleSign()">-</button></div>
+    <button class="btn-p" onclick="moinsAdd()">+ Ajouter</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Liste</div>
+    <div id="moins-list"></div>
+    <div class="tbar"><span>Total Moins</span><span id="moins-total">0.00 DH</span></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('cash')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('pris')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-pris">
+<div class="content">
+  <div class="card">
+    <div class="card-title">🤝 Argent pris</div>
+    <input class="inp" id="pris-name" placeholder="Nom"/>
+    <div class="num-field" onclick="openNP('prisMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="pris-mont-val">0.00</span></div>
+    <button class="btn-p" onclick="prisAdd()">+ Ajouter</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Liste</div>
+    <div id="pris-list"></div>
+    <div class="tbar"><span>Total argent pris</span><span id="pris-total">0.00 DH</span></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('moins')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('capital')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-capital">
+<div class="content">
+  <div class="card">
+    <div class="card-title">🏦 Capital</div>
+    <div class="big-field" onclick="openNP('capital','Capital (DH)',true)"><span>Capital (DH)</span><b id="capital-val">0.00 DH</b></div>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Se soustrait du bénéfice</p>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('pris')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('bilan')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-bilan">
+<div class="content">
+  <div class="card">
+    <div class="card-title">📊 Bilan / Bénéfice</div>
+    <div id="bilan-rows"></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('capital')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('partage')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-partage">
+<div class="content">
+  <div class="card">
+    <div class="card-title">🤝 Partage du bénéfice</div>
+    <input class="inp" id="partner-name" placeholder="Nom de l'associé"/>
+    <button class="btn-p" onclick="partnerAdd()">+ Ajouter un associé</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Associés</div>
+    <div id="partner-list"></div>
+    <div class="tbar" id="partage-info"><span>Ajoutez au moins un associé</span><span></span></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('bilan')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('recap2')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-recap2">
+<div class="content">
+  <div class="card">
+    <div class="card-title">📄 Récapitulatif</div>
+    <div id="recap2-rows"></div>
+  </div>
+  <button class="btn-p" style="margin-bottom:10px;width:100%" onclick="genCaissePDF()">📄 Télécharger le PDF récapitulatif</button>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('partage')">← Retour</button>
+    <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()">🔄 Nouvel inventaire</button>
+  </div>
+</div></div>
+</div>
+
 <div class="appsec" id="sec-recap">
 <div class="content">
     <div class="card">
