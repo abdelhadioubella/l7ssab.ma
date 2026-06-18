@@ -1467,21 +1467,28 @@ function renderCaisse(){
   var c=G('caisse-body');if(!c)return;
   var p=CAISSE.page;
   var idx=CAISSE_FLOW.indexOf(p);
-  var html='';
   var prev=(idx>0)?CAISSE_FLOW[idx-1]:null;
-  // back arrow: previous flow page, or close (return to project Products) if first
-  html+='<div class="cs-top"><button class="cs-back" onclick="'+(prev?'caisseGo(\''+prev+'\')':'closeCaisse()')+'">‹</button><span class="cs-title">'+caisseTitle(p)+'</span><button class="cs-x" onclick="closeCaisse()">×</button></div>';
-  html+='<div class="cs-content" id="cs-content">'+caissePage(p);
-  if(idx>=0){
-    var next=(idx<CAISSE_FLOW.length-1)?CAISSE_FLOW[idx+1]:null;
-    html+='<div class="cs-nav">';
-    if(prev)html+='<button class="cs-nav-back" onclick="caisseGo(\''+prev+'\')">← Retour</button>';
-    else html+='<button class="cs-nav-back" onclick="closeCaisse()">← Produits</button>';
-    if(next)html+='<button class="cs-nav-next" onclick="caisseGo(\''+next+'\')">Suivant →</button>';
-    html+='</div>';
-  }
+  var next=(idx<CAISSE_FLOW.length-1)?CAISSE_FLOW[idx+1]:null;
+  var initial=(CU?(CU.fullname||CU.username)[0].toUpperCase():'?');
+  var html='';
+  // same green app header as the rest of the app
+  html+='<div class="hdr" dir="ltr">'+
+    '<button class="hdr-btn" onclick="'+(prev?'caisseGo(\''+prev+'\')':'closeCaisse()')+'" title="Retour">‹</button>'+
+    '<span class="hdr-title">'+caisseTitle(p)+'</span>'+
+    '<div class="hdr-right">'+
+      '<button class="hdr-btn" onclick="closeCaisse()" title="Fermer">✕</button>'+
+    '</div>'+
+  '</div>';
+  // content uses the SAME .content + .card layout as project pages
+  html+='<div class="content" id="cs-content">'+caissePage(p);
+  html+='<div class="nav-row">';
+  if(prev)html+='<button class="btn-g" onclick="caisseGo(\''+prev+'\')">← Retour</button>';
+  else html+='<button class="btn-g" onclick="closeCaisse()">← Produits</button>';
+  if(next)html+='<button class="btn-p" style="margin-top:0" onclick="caisseGo(\''+next+'\')">Suivant →</button>';
+  html+='</div>';
   html+='</div>';
   c.innerHTML=html;
+  applyTheme&&applyTheme();
 }
 function caisseTitle(p){
   var t={menu:'Caisse',produits:'Produits',cigarettes:'Cigarettes',recharge:'Recharge',credit:'Crédit',change:'Change',cash:'Cash',moins:'Moins (dépenses)',pris:'Argent pris',capital:'Capital',bilan:'Bilan / Bénéfice',partage:'Partage',recap:'Récapitulatif'};
@@ -1566,13 +1573,14 @@ function csProdDel(i){CAISSE.produits.splice(i,1);refreshCaissePage();}
 
 // ----- CIGARETTES (scan + remise %) -----
 function pageCigarettes(){
-  var h='<div class="cs-row2"><input class="inp" id="cs-cig-search" placeholder="Scanner ou chercher…" oninput="csCigSearch(this.value)" onkeydown="if(event.key===\'Enter\')csCigScan(this.value)"/></div>';
-  h+='<div id="cs-cig-sugg" class="cs-sugg"></div>';
-  h+='<div id="cs-cig-list">'+renderCsCigList()+'</div>';
+  var h='<div class="card"><div class="card-title">🚬 Cigarettes</div>';
+  h+='<div class="cs-row2"><input class="inp" id="cs-cig-search" placeholder="Scannez ou tapez le code-barres…" oninput="csCigSearch(this.value)" onkeydown="if(event.key===\'Enter\')csCigScan(this.value)"/></div>';
+  h+='<div id="cs-cig-sugg" class="cs-sugg"></div></div>';
+  h+='<div class="card"><div id="cs-cig-list">'+renderCsCigList()+'</div>';
   var brut=sumCigBrut(),net=sumCigNet();
   h+='<div class="cs-remise-box"><span>Remise par défaut</span><button class="cs-remise" onclick="csCigRemise()">− '+nfmt(CAISSE.cigRemise)+' %</button></div>';
   h+='<div class="cs-total cs-total-strike">Total brut : '+nfmt(brut)+' DH</div>';
-  h+='<div class="cs-total">Total (− '+nfmt(CAISSE.cigRemise)+'%) : <b>'+nfmt(net)+' DH</b></div>';
+  h+='<div class="cs-total">Total (− '+nfmt(CAISSE.cigRemise)+'%) : <b>'+nfmt(net)+' DH</b></div></div>';
   return h;
 }
 function renderCsCigList(){
@@ -1602,18 +1610,19 @@ function csCigRemise(){openNPcb('Remise %',CAISSE.cigRemise,function(v){CAISSE.c
 // ----- RECHARGE (denom select + qty + dealer + montant + remise 6.5) -----
 function pageRecharge(){
   var denoms=[5,10,20,30,50,100,200];
-  var h='<div class="cs-denoms">';
+  var h='<div class="card"><div class="card-title">📱 Recharge</div>';
+  h+='<div class="cs-denoms">';
   denoms.forEach(function(d){h+='<button class="cs-denom'+(CAISSE._rDenom===d?' sel':'')+'" onclick="csRSetDenom('+d+')">'+d+' DH</button>';});
   h+='</div>';
   h+='<div class="cs-field" onclick="csRQty()"><span>Quantité</span><b>'+(CAISSE._rQty||0)+'</b></div>';
   h+='<input class="inp" id="cs-r-dealer" placeholder="Dealer / Distributeur" value="'+esc(CAISSE._rDealer||'')+'" oninput="CAISSE._rDealer=this.value"/>';
   h+='<div class="cs-field" onclick="csRMontant()"><span>Montant (DH)</span><b>'+nfmt(CAISSE._rMontant||0)+'</b></div>';
-  h+='<button class="cs-add-btn" onclick="csRAdd()">+ Ajouter la ligne</button>';
-  h+='<div id="cs-r-list">'+renderCsRList()+'</div>';
+  h+='<button class="cs-add-btn" onclick="csRAdd()">+ Ajouter la ligne</button></div>';
+  h+='<div class="card"><div id="cs-r-list">'+renderCsRList()+'</div>';
   var brut=sumRechargeBrut(),net=sumRechargeNet();
   h+='<div class="cs-remise-box"><span>Remise par défaut</span><button class="cs-remise" onclick="csRRemise()">− '+nfmt(CAISSE.recharge.remise)+' %</button></div>';
   h+='<div class="cs-total cs-total-strike">Total brut : '+nfmt(brut)+' DH</div>';
-  h+='<div class="cs-total">Total (− '+nfmt(CAISSE.recharge.remise)+'%) : <b>'+nfmt(net)+' DH</b></div>';
+  h+='<div class="cs-total">Total (− '+nfmt(CAISSE.recharge.remise)+'%) : <b>'+nfmt(net)+' DH</b></div></div>';
   return h;
 }
 function csRSetDenom(d){CAISSE._rDenom=d;refreshCaissePage();}
@@ -1637,23 +1646,26 @@ function csRDel(i){CAISSE.recharge.lines.splice(i,1);refreshCaissePage();}
 // ----- SIMPLE BOX pages (credit, change, cash, capital) -----
 function pageSimpleBox(key,label){
   var val=CAISSE[key]||0;
-  var h='<div class="cs-bigbox" onclick="csSimpleEdit(\''+key+'\',\''+escJs(label)+'\')"><span>'+esc(label)+'</span><b id="cs-bigval">'+nfmt(val)+' DH</b></div>';
-  h+='<p class="cs-hint">Cliquez sur la case pour saisir le montant</p>';
+  var emo={credit:'💳',change:'💱',cash:'💵',capital:'🏦'}[key]||'';
+  var h='<div class="card"><div class="card-title">'+emo+' '+esc(caisseTitle(CAISSE.page))+'</div>';
+  h+='<div class="cs-bigbox" onclick="csSimpleEdit(\''+key+'\',\''+escJs(label)+'\')"><span>'+esc(label)+'</span><b id="cs-bigval">'+nfmt(val)+' DH</b></div>';
+  h+='<p class="cs-hint">Cliquez sur la case pour saisir le montant</p></div>';
   return h;
 }
 function csSimpleEdit(key,label){openNPcb(label,CAISSE[key],function(v){CAISSE[key]=v;refreshCaissePage();});}
 
 // ----- MOINS (select type + montant + sign) -----
 function pageMoins(){
-  var h='<select class="inp" id="cs-moins-type">';
+  var h='<div class="card"><div class="card-title">➖ Moins (dépenses)</div>';
+  h+='<select class="inp" id="cs-moins-type">';
   CAISSE_MOINS_TYPES.forEach(function(t){h+='<option value="'+t+'">'+caisseMoinsLabel(t)+'</option>';});
   h+='<option value="__new__">+ Ajouter un autre choix…</option></select>';
-  h+='<input class="inp hidden" id="cs-moins-new" placeholder="Nom de la dépense"/>';
+  h+='<input class="inp" id="cs-moins-new" placeholder="Nom de la dépense"/>';
   h+='<div class="cs-field" onclick="csMoinsMontant()"><span>Montant (DH)</span><b id="cs-moins-m">'+nfmt(CAISSE._mMontant||0)+'</b></div>';
   h+='<div class="cs-signbox"><span>Signe</span><button class="cs-sign" id="cs-moins-sign" onclick="csMoinsSign()">'+ (CAISSE._mSign||'-') +'</button></div>';
-  h+='<button class="cs-add-btn" onclick="csMoinsAdd()">+ Ajouter</button>';
-  h+='<div id="cs-moins-list">'+renderCsMoinsList()+'</div>';
-  h+='<div class="cs-total">Total Moins : <b>'+nfmt(totalMoinsAbs())+' DH</b></div>';
+  h+='<button class="cs-add-btn" onclick="csMoinsAdd()">+ Ajouter</button></div>';
+  h+='<div class="card"><div id="cs-moins-list">'+renderCsMoinsList()+'</div>';
+  h+='<div class="cs-total">Total Moins : <b>'+nfmt(totalMoinsAbs())+' DH</b></div></div>';
   return h;
 }
 function csMoinsMontant(){openNPcb('Montant (DH)',CAISSE._mMontant,function(v){CAISSE._mMontant=v;refreshCaissePage();});}
@@ -1671,11 +1683,12 @@ function csMoinsDel(i){CAISSE.moins.splice(i,1);refreshCaissePage();}
 
 // ----- PRIS (name + montant + add) -----
 function pagePris(){
-  var h='<input class="inp" id="cs-pris-name" placeholder="Nom"/>';
+  var h='<div class="card"><div class="card-title">🤝 Argent pris</div>';
+  h+='<input class="inp" id="cs-pris-name" placeholder="Nom"/>';
   h+='<div class="cs-field" onclick="csPrisMontant()"><span>Montant (DH)</span><b>'+nfmt(CAISSE._pMontant||0)+'</b></div>';
-  h+='<button class="cs-add-btn" onclick="csPrisAdd()">+ Ajouter</button>';
-  h+='<div id="cs-pris-list">'+renderCsPrisList()+'</div>';
-  h+='<div class="cs-total">Total argent pris : <b>'+nfmt(sumPris())+' DH</b></div>';
+  h+='<button class="cs-add-btn" onclick="csPrisAdd()">+ Ajouter</button></div>';
+  h+='<div class="card"><div id="cs-pris-list">'+renderCsPrisList()+'</div>';
+  h+='<div class="cs-total">Total argent pris : <b>'+nfmt(sumPris())+' DH</b></div></div>';
   return h;
 }
 function csPrisMontant(){openNPcb('Montant (DH)',CAISSE._pMontant,function(v){CAISSE._pMontant=v;refreshCaissePage();});}
@@ -1689,7 +1702,7 @@ function pageBilan(){
   var ventes=totalVentes(),cash=parseFloat(CAISSE.cash)||0,prem=premierTotal();
   var moins=totalMoinsAbs(),pris=sumPris(),cap=parseFloat(CAISSE.capital)||0,ben=benefice();
   function row(l,v,strong){return '<div class="cs-brow'+(strong?' strong':'')+'"><span>'+l+'</span><b>'+nfmt(v)+' DH</b></div>';}
-  var h='';
+  var h='<div class="card"><div class="card-title">📊 Bilan / Bénéfice</div>';
   h+=row('Produits',prod)+row('Cigarettes (net)',cig)+row('Recharge (net)',rech)+row('Crédit',cred)+row('Change',chg);
   h+=row('TOTAL VENTES',ventes,true);
   h+=row('Cash',cash);
@@ -1698,23 +1711,24 @@ function pageBilan(){
   h+=row('Argent pris',pris);
   h+=row('Capital',-cap);
   h+=row('BÉNÉFICE',ben,true);
-  h+='<button class="cs-add-btn" onclick="caisseGo(\'partage\')">Partager le bénéfice →</button>';
+  h+='</div>';
   return h;
 }
 
 // ----- PARTAGE (partners, equal split) -----
 function pagePartage(){
-  var h='<input class="inp" id="cs-partner-name" placeholder="Nom de l\'associé"/>';
-  h+='<button class="cs-add-btn" onclick="csPartnerAdd()">+ Ajouter un associé</button>';
-  h+='<div id="cs-partner-list">'+renderCsPartners()+'</div>';
+  var h='<div class="card"><div class="card-title">🤝 Partage du bénéfice</div>';
+  h+='<input class="inp" id="cs-partner-name" placeholder="Nom de l\'associé"/>';
+  h+='<button class="cs-add-btn" onclick="csPartnerAdd()">+ Ajouter un associé</button></div>';
+  h+='<div class="card"><div id="cs-partner-list">'+renderCsPartners()+'</div>';
   var ben=benefice(),n=CAISSE.partners.length;
   if(n>0){
     var part=ben/n;
     h+='<div class="cs-total">Bénéfice : <b>'+nfmt(ben)+' DH</b> ÷ '+n+' = <b>'+nfmt(part)+' DH</b> / personne</div>';
-    h+='<button class="cs-add-btn" onclick="caisseGo(\'recap\')">Voir le récapitulatif →</button>';
   }else{
     h+='<p class="cs-hint">Ajoutez au moins un associé.</p>';
   }
+  h+='</div>';
   return h;
 }
 function csPartnerAdd(){var nn=G('cs-partner-name');var name=(nn&&nn.value||'').trim();if(!name){showToast('❌ Nom vide');return;}CAISSE.partners.push({name:name});refreshCaissePage();}
@@ -1724,11 +1738,11 @@ function csPartnerDel(i){CAISSE.partners.splice(i,1);refreshCaissePage();}
 // ----- RECAP (summary + PDF) -----
 function pageRecap(){
   var ben=benefice(),n=CAISSE.partners.length,part=n?ben/n:0;
-  var h='<div class="cs-recap">';
+  var h='<div class="card"><div class="card-title">📄 Récapitulatif</div><div class="cs-recap">';
   h+='<div class="cs-brow strong"><span>BÉNÉFICE TOTAL</span><b>'+nfmt(ben)+' DH</b></div>';
   CAISSE.partners.forEach(function(p){h+='<div class="cs-brow"><span>'+esc(p.name)+'</span><b>'+nfmt(part)+' DH</b></div>';});
   h+='</div>';
-  h+='<button class="cs-add-btn" onclick="caissePDF()">📄 Télécharger le PDF récapitulatif</button>';
+  h+='<button class="btn-p" onclick="caissePDF()">📄 Télécharger le PDF récapitulatif</button></div>';
   return h;
 }
 
