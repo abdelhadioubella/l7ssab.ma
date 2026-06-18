@@ -446,6 +446,17 @@ html.dark .cl-info b{color:#e8f0ec}
 html.dark .brow{border-color:#222;color:#cfe}
 html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
 
+
+/* scan popup */
+.scan-win{background:#fff;border-radius:18px;box-shadow:0 22px 60px rgba(0,0,0,.4);width:340px;max-width:94vw;overflow:hidden}
+html.dark .scan-win{background:#18211d}
+.scan-body{padding:18px}
+.scan-stat{display:flex;align-items:center;gap:10px;padding:14px;background:#f7f9f8;border-radius:12px;margin-bottom:8px}
+.scan-dot{width:12px;height:12px;border-radius:50%;background:#ccc;flex-shrink:0}
+.scan-lbl{flex:1;font-size:15px;font-weight:600;color:#222}
+html.dark .scan-stat{background:#1f2925}
+html.dark .scan-lbl{color:#e8f0ec}
+
 </style>
 </head>
 <body>
@@ -526,15 +537,6 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
 <div class="content">
     <div class="card">
       <div class="card-title" id="t-addprod">Ajouter un produit</div>
-      <div class="sc-card" id="scanner-card">
-        <div class="sc-row" style="margin-bottom:6px">
-          <span class="sc-name" style="font-weight:700"><span id="t-scanner">Scanner</span></span>
-        </div>
-        <div class="sc-row">
-          <span class="sc-name"><span class="sc-dot" id="usb-mini-dot" style="background:#ccc"></span><span id="usb-mini-lbl">USB</span></span>
-          <span class="badge b-off" id="usb-mini-badge">Non détecté</span>
-        </div>
-      </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
         <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" autofocus/>
         <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
@@ -548,27 +550,10 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
       </div>
       <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
     </div>
-    <div class="card hidden" id="edit-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="card-title" style="margin-bottom:0" id="edit-title">Produit</div>
-        <div style="display:flex;gap:6px">
-          <button onclick="prevP()" style="padding:8px 14px;background:#f5f5f5;border:.5px solid #ccc;border-radius:8px">◀</button>
-          <button onclick="nextP()" style="padding:8px 14px;background:#f5f5f5;border:.5px solid #ccc;border-radius:8px">▶</button>
-        </div>
-      </div>
-      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" oninput="filterP(this.value)" style="margin-bottom:10px"/>
-      <div id="psearch-res" class="hidden"></div>
-      <div id="edit-form">
-        <input class="inp" type="text" id="edit-name"/>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
-          <div class="num-field" onclick="openNP('eP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="nf-ep" class="nf-ph">—</span></div>
-          <div class="num-field" onclick="openNP('eQ','Quantite',false)"><span class="nf-label">Quantité</span><span id="nf-eq" class="nf-ph">—</span></div>
-        </div>
-        <div id="edit-sub" class="hidden" style="padding:10px 12px;background:#f5f5f5;border-radius:10px;font-size:14px;display:flex;justify-content:space-between;margin-bottom:10px">
-          <span style="color:#666">Sous-total</span><strong id="edit-sub-val"></strong>
-        </div>
-        <button class="btn-r" style="width:100%" onclick="delP()">🗑 Supprimer</button>
-      </div>
+    <div class="card hidden" id="prod-list-card">
+      <div class="card-title">Liste</div>
+      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" oninput="filterProdList(this.value)" style="margin-bottom:10px"/>
+      <div id="prod-list"></div>
     </div>
     <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
     <div class="nav-row">
@@ -582,15 +567,6 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
 <div class="content">
   <div class="card">
     <div class="card-title">🚬 Cigarettes</div>
-    <div class="sc-card">
-      <div class="sc-row" style="margin-bottom:6px">
-        <span class="sc-name" style="font-weight:700">Scanner</span>
-      </div>
-      <div class="sc-row">
-        <span class="sc-name"><span class="sc-dot" id="usb-mini-dot2" style="background:#ccc"></span><span>USB</span></span>
-        <span class="badge b-off" id="usb-mini-badge2">Non détecté</span>
-      </div>
-    </div>
     <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
       <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off"/>
       <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
@@ -605,6 +581,7 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
   </div>
   <div class="card">
     <div class="card-title">Liste</div>
+    <input class="inp" type="text" id="cig-list-search" placeholder="Rechercher dans la liste…" style="margin-bottom:10px"/>
     <div id="cig-list"></div>
   </div>
   <div class="card">
@@ -625,8 +602,12 @@ html.dark .brow.strong{background:#1c2622;color:#6ee7a8}
     <div class="card-title">📱 Recharge</div>
     <div class="denom-grid" id="rech-denoms"></div>
     <div class="num-field" onclick="openNP('rechQty','Quantité',false)"><span class="nf-label">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
+    <button class="btn-p" onclick="rechAddDenom()">+ Ajouter recharge</button>
+  </div>
+  <div class="card">
+    <div class="card-title">💵 Dealer</div>
     <div class="num-field" onclick="openNP('rechMont','Dealer (Montant DH)',true)"><span class="nf-label">Dealer (Montant DH)</span><span class="nf-val" id="rech-mont-val">0.00</span></div>
-    <button class="btn-p" onclick="rechAdd()">+ Ajouter</button>
+    <button class="btn-p" onclick="rechAddDealer()">+ Ajouter dealer</button>
   </div>
   <div class="card">
     <div class="card-title">Liste</div>

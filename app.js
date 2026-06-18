@@ -421,8 +421,8 @@ function buildHeader(opts){
       '<div class="av-menu" id="av-menu">'+
         '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
         '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
-        '<button onclick="toggleAvMenu();connectBT()">📡 '+(isAr()?'مسح':'Scan')+'</button>'+
         '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
+        '<button onclick="toggleAvMenu();openScanPopup()">📡 '+(isAr()?'مسح':'Scan')+'</button>'+
         '<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>'+
         '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
         '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
@@ -1102,9 +1102,38 @@ function setupScanInput(){
   });
 }
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
-function markUSBconnected(){var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}var dot2=G('usb-mini-dot2'),badge2=G('usb-mini-badge2');if(dot2)dot2.style.background='#1a7a4a';if(badge2){badge2.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge2.className='badge b-ok';}}
+function markUSBconnected(){_usbOn=true;var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}var dot2=G('usb-mini-dot2'),badge2=G('usb-mini-badge2');if(dot2)dot2.style.background='#1a7a4a';if(badge2){badge2.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge2.className='badge b-ok';}updateScanPopup();}
+// ===== SCAN POPUP (USB + BT status, connect BT) =====
+var _usbOn=false;
+function openScanPopup(){
+  var h=G('calc-holder');if(!h)return;
+  h.innerHTML=''+
+  '<div class="calc-overlay show" id="scan-overlay" onclick="if(event.target===this)closeScanPopup()">'+
+    '<div class="scan-win">'+
+      '<div class="calc-bar"><span>📡 '+(isAr()?'الماسح':'Scanner')+'</span><button class="calc-close" onclick="closeScanPopup()">×</button></div>'+
+      '<div class="scan-body">'+
+        '<div class="scan-stat"><span class="scan-dot" id="sp-usb-dot"></span><span class="scan-lbl">USB</span><span class="badge" id="sp-usb-badge">…</span></div>'+
+        '<div class="scan-stat"><span class="scan-dot" id="sp-bt-dot"></span><span class="scan-lbl">Bluetooth</span><span class="badge" id="sp-bt-badge">…</span></div>'+
+        '<button class="btn-p" id="sp-bt-btn" onclick="connectBT()" style="margin-top:14px">🔵 '+(isAr()?'ربط بلوتوث':'Connecter Bluetooth')+'</button>'+
+        '<p style="font-size:12px;color:#888;text-align:center;margin-top:10px">'+(isAr()?'الماسح USB يعمل تلقائياً':'Le scanner USB fonctionne automatiquement')+'</p>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  updateScanPopup();
+}
+function closeScanPopup(){var o=G('scan-overlay');if(o){o.classList.remove('show');setTimeout(function(){var h=G('calc-holder');if(h)h.innerHTML='';},180);}}
+function updateScanPopup(){
+  var ud=G('sp-usb-dot'),ub=G('sp-usb-badge');
+  if(ud){ud.style.background=_usbOn?'#1a7a4a':'#ccc';}
+  if(ub){ub.textContent=_usbOn?(isAr()?'متصل ✅':'Connecté ✅'):(isAr()?'غير متصل':'Non détecté');ub.className='badge '+(_usbOn?'b-ok':'b-off');}
+  var btOn=!!(btDev&&btDev.gatt&&btDev.gatt.connected)||!!btDev;
+  var bd=G('sp-bt-dot'),bb=G('sp-bt-badge'),bbtn=G('sp-bt-btn');
+  if(bd){bd.style.background=btOn?'#1a7a4a':'#ccc';}
+  if(bb){bb.textContent=btOn?(isAr()?'متصل ✅':'Connecté ✅'):(isAr()?'غير متصل':'Non détecté');bb.className='badge '+(btOn?'b-ok':'b-off');}
+  if(bbtn){bbtn.textContent=btOn?('🔵 '+(isAr()?'قطع البلوتوث':'Déconnecter Bluetooth')):('🔵 '+(isAr()?'ربط بلوتوث':'Connecter Bluetooth'));bbtn.onclick=btOn?function(){if(btDev&&btDev.gatt&&btDev.gatt.connected)btDev.gatt.disconnect();btDev=null;setBT(false,'');updateScanPopup();}:connectBT;}
+}
 function checkUSBDevices(){try{if(navigator.hid&&navigator.hid.getDevices){navigator.hid.getDevices().then(function(devs){if(devs&&devs.length>0)markUSBconnected();}).catch(function(){});}}catch(e){}}
-function connectBT(){if(!navigator.bluetooth){showToast('Web Bluetooth non supporté.');return;}navigator.bluetooth.requestDevice({acceptAllDevices:true}).then(function(dev){btDev=dev;dev.addEventListener('gattserverdisconnected',function(){btDev=null;setBT(false,'');});setBT(true,dev.name||'BT');showToast('✅ BT');}).catch(function(){});}
+function connectBT(){if(!navigator.bluetooth){showToast('Web Bluetooth non supporté.');return;}navigator.bluetooth.requestDevice({acceptAllDevices:true}).then(function(dev){btDev=dev;dev.addEventListener('gattserverdisconnected',function(){btDev=null;setBT(false,'');updateScanPopup&&updateScanPopup();});setBT(true,dev.name||'BT');showToast('✅ BT');updateScanPopup&&updateScanPopup();}).catch(function(){});}
 function setBT(on,name){var d2=G('bt-mini-dot'),l2=G('bt-mini-lbl'),b2=G('bt-mini-btn');if(d2)d2.style.background=on?'#1a7a4a':'#ccc';if(l2)l2.textContent=on?('Bluetooth · '+(name||(isAr()?'متصل':'Connecté'))):'Bluetooth';if(b2){b2.textContent=on?(isAr()?'قطع':'Déconnecter'):(isAr()?'ربط':'Connecter');b2.onclick=on?function(){if(btDev&&btDev.gatt&&btDev.gatt.connected)btDev.gatt.disconnect();btDev=null;setBT(false,'');}:connectBT;}}
 function doScan(){var c=(G('scan-inp').value||'').trim();if(c)handleScan(c);}
 
@@ -1205,11 +1234,48 @@ function confirmNP(){var v=parseFloat(npV)||0,tgt=npT;closeNP();if(tgt==='__cb__
   if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
 // items
 function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(bc&&dP)saveCP(bc,dP);sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
-function refreshEdit(){var items=CACHE.items;var card=G('edit-card');if(!card)return;if(!items.length){card.classList.add('hidden');G('run-total').classList.add('hidden');return;}card.classList.remove('hidden');if(eI>=items.length)eI=items.length-1;var cur=items[eI];setText('edit-title',t('eProd')+' '+(eI+1)+' '+t('of')+' '+items.length);var ni=G('edit-name');if(ni){ni.value=cur.name||'';ni.onchange=function(){cur.name=this.value;sb.from('project_items').update({name:this.value}).eq('id',cur.id).then(function(){});};}var pr=parseFloat(cur.price)||0,q=parseFloat(cur.quantity)||0;var pv=G('nf-ep'),qv=G('nf-eq');if(pv){pv.className=pr>0?'nf-val':'nf-ph';pv.textContent=pr>0?pr.toFixed(2)+' DH':t('tap');}if(qv){qv.className=q>0?'nf-val':'nf-ph';qv.textContent=q>0?String(q):t('tap');}var sub=G('edit-sub'),sv=G('edit-sub-val');if(sub&&sv){if(pr>0&&q>0){sub.classList.remove('hidden');sv.textContent=fmt(pr*q);}else sub.classList.add('hidden');}}
-function prevP(){if(eI>0){eI--;refreshEdit();}}
-function nextP(){if(eI<CACHE.items.length-1){eI++;refreshEdit();}}
+function refreshEdit(){
+  var items=CACHE.items;var card=G('prod-list-card');if(!card)return;
+  if(!items.length){card.classList.add('hidden');var rt=G('run-total');if(rt)rt.classList.add('hidden');return;}
+  card.classList.remove('hidden');
+  renderProdList(items);
+}
+function renderProdList(items){
+  var list=G('prod-list');if(!list)return;list.innerHTML='';
+  if(!items.length){list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا توجد منتجات':'Aucun produit')+'</p>';return;}
+  items.forEach(function(it){
+    var idx=CACHE.items.indexOf(it);
+    var pr=parseFloat(it.price)||0,q=parseFloat(it.quantity)||0;
+    var d=document.createElement('div');d.className='cl-row';
+    d.innerHTML='<div class="cl-info"><b>'+esc(it.name||'—')+'</b><span>'+pr.toFixed(2)+' DH × '+q+' = '+fmt(pr*q)+'</span></div>'+
+      '<div><button class="cl-q" onclick="openEditItem('+idx+')">✏️</button><button class="cl-del" onclick="delItemAt('+idx+')">🗑</button></div>';
+    list.appendChild(d);
+  });
+}
+function filterProdList(q){q=(q||'').trim().toLowerCase();if(!q){renderProdList(CACHE.items);return;}var f=CACHE.items.filter(function(it){return (it.name||'').toLowerCase().indexOf(q)>=0;});renderProdList(f);}
+function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),'"'+(it.name||'')+'" ?',function(){sb.from('project_items').delete().eq('id',it.id).then(function(){CACHE.items.splice(i,1);refreshEdit();updateRT();});},t('del'));}
+// edit popup (form) for a project item
+function openEditItem(i){
+  var it=CACHE.items[i];if(!it)return;
+  openModal({title:isAr()?'تعديل المنتج':'Modifier le produit',confirmText:t('upd'),cancelText:t('can'),
+    fields:[
+      {key:'name',label:isAr()?'الاسم':'Nom',value:it.name||''},
+      {key:'price',label:'Prix (DH)',value:String(parseFloat(it.price)||0),type:'number'},
+      {key:'qty',label:isAr()?'الكمية':'Quantité',value:String(parseFloat(it.quantity)||0),type:'number'}
+    ],
+    onConfirm:function(v){
+      var nm=(v.name||'').trim(),pr=parseFloat(v.price)||0,q=parseFloat(v.qty)||0;
+      if(!nm){showToast('❌ Nom vide');return;}
+      it.name=nm;it.price=pr;it.quantity=q;
+      sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,pr);});
+      closeModal();refreshEdit();updateRT();showToast('✅ '+t('renamed'));
+    }
+  });
+}
+function prevP(){}
+function nextP(){}
 function delP(){var it=CACHE.items[eI];if(!it)return;sb.from('project_items').delete().eq('id',it.id).then(function(){loadItems().then(function(){if(eI>0&&eI>=CACHE.items.length)eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅');});});}
-function filterP(q){var res=G('psearch-res'),form=G('edit-form');if(!q||!q.trim()){if(res)res.classList.add('hidden');if(form)form.style.display='block';return;}var items=CACHE.items;var f=items.filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0;});if(res){res.classList.remove('hidden');res.innerHTML='';if(!f.length)res.innerHTML='<p style="font-size:13px;color:#666;padding:8px 0">—</p>';else f.forEach(function(p){var ri=items.indexOf(p);var d=document.createElement('div');d.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px;cursor:pointer';d.innerHTML='<div style="flex:1"><p style="font-size:14px;font-weight:500;margin:0 0 2px">'+esc(p.name)+'</p><p style="font-size:12px;color:#888;margin:0">'+(parseFloat(p.price)||0).toFixed(2)+' DH × '+(parseFloat(p.quantity)||0)+'</p></div><strong style="color:#1a7a4a">'+fmt((parseFloat(p.price)||0)*(parseFloat(p.quantity)||0))+'</strong>';d.onclick=function(){eI=ri;G('psearch').value='';res.classList.add('hidden');if(form)form.style.display='block';refreshEdit();};res.appendChild(d);});}if(form)form.style.display=q?'none':'block';}
+function filterP(q){filterProdList(q);}
 function updateRT(){var items=CACHE.items;var tot=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);var bar=G('run-total'),val=G('rtval');if(items.length>0){if(bar)bar.classList.remove('hidden');if(val)val.textContent=fmt(tot);}else if(bar)bar.classList.add('hidden');}
 // init
 document.addEventListener('click',function(e){var b=G('scan-suggest');if(!b||b.classList.contains('hidden'))return;if(!e.target.closest('#scan-suggest')&&e.target.id!=='scan-inp')hideSuggest();}); // click outside suggest
@@ -1447,10 +1513,18 @@ function czBenefice(){return czPremier()+czMoins()+czPris()-(parseFloat(CZ.capit
 function refreshCig(){
   setText('cig-rem-val',nf2(CZ.cigRem)+' %');setText('cig-net-lbl','Total (− '+nf2(CZ.cigRem)+'%)');
   setText('cig-brut',nf2(czCigBrut())+' DH');setText('cig-net',nf2(czCigNet())+' DH');
-  var list=G('cig-list');if(list){if(!CZ.cig.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">Aucune cigarette</p>';else{list.innerHTML='';CZ.cig.forEach(function(x,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+esc(x.name)+'</b><span>'+nf2(x.price)+' DH × '+(x.qty||1)+'</span></div><div><button class="cl-q" onclick="openNP(\'cigQ_'+i+'\',\'Quantité\',false)">'+(x.qty||1)+'×</button><button class="cl-q" onclick="openNP(\'cigP_'+i+'\',\'Prix\',true)">'+nf2(x.price)+'</button><button class="cl-del" onclick="cigDel('+i+')">🗑</button></div>';list.appendChild(d);});}}
-  // wire scan input enter
+  renderCigList(CZ.cig);
+  // wire scan input enter + list search
   var si=G('cig-scan');if(si&&!si._wired){si._wired=true;si.addEventListener('keydown',function(e){if(e.key==='Enter'){cigScan(this.value);}});si.addEventListener('input',function(){cigSuggest(this.value);});}
+  var fs=G('cig-list-search');if(fs&&!fs._wired){fs._wired=true;fs.addEventListener('input',function(){filterCigList(this.value);});}
 }
+function renderCigList(arr){
+  var list=G('cig-list');if(!list)return;list.innerHTML='';
+  if(!arr.length){list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا توجد سجائر':'Aucune cigarette')+'</p>';return;}
+  arr.forEach(function(x){var i=CZ.cig.indexOf(x);var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+esc(x.name)+'</b><span>'+nf2(x.price)+' DH × '+(x.qty||1)+' = '+nf2((parseFloat(x.price)||0)*(x.qty||1))+'</span></div><div><button class="cl-q" onclick="openEditCig('+i+')">✏️</button><button class="cl-del" onclick="cigDel('+i+')">🗑</button></div>';list.appendChild(d);});
+}
+function filterCigList(q){q=(q||'').trim().toLowerCase();if(!q){renderCigList(CZ.cig);return;}renderCigList(CZ.cig.filter(function(x){return (x.name||'').toLowerCase().indexOf(q)>=0;}));}
+function openEditCig(i){var x=CZ.cig[i];if(!x)return;openModal({title:isAr()?'تعديل':'Modifier',confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:isAr()?'الاسم':'Nom',value:x.name||''},{key:'price',label:'Prix (DH)',value:String(x.price||0),type:'number'},{key:'qty',label:isAr()?'الكمية':'Quantité',value:String(x.qty||1),type:'number'}],onConfirm:function(v){var nm=(v.name||'').trim();if(!nm){showToast('❌ Nom vide');return;}x.name=nm;x.price=parseFloat(v.price)||0;x.qty=parseFloat(v.qty)||1;closeModal();refreshCig();showToast('✅ '+t('renamed'));}});}
 function cigSuggest(q){var box=G('cig-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.cigProducts||[]).filter(function(p){return ((p.name||'').toLowerCase().indexOf(q)>=0)||((p.barcode||'').indexOf(q)>=0);}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="cigPick(\''+(p.barcode||'')+'\',\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
 function cigSearch(q){cigSuggest(q);}
 function cigScan(code){code=(code||'').trim();if(!code)return;var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===code){f=CACHE.cigProducts[i];break;}}if(f)cigPick(f.barcode,f.name,f.price);else{/* unknown cigarette barcode: add to cig list and save to cigarettes DB */cigPick(code,code,0);dbAddCig(code,code,0);}var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}}
@@ -1467,10 +1541,13 @@ function refreshRech(){
   setText('rech-qty-val',String(CZ._rQty||0));setText('rech-mont-val',nf2(CZ._rMont||0));
   setText('rech-rem-val',nf2(CZ.rechRem)+' %');setText('rech-net-lbl','Total (− '+nf2(CZ.rechRem)+'%)');
   setText('rech-brut',nf2(czRechBrut())+' DH');setText('rech-net',nf2(czRechNet())+' DH');
-  var list=G('rech-list');if(list){if(!CZ.rech.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">Aucune ligne</p>';else{list.innerHTML='';CZ.rech.forEach(function(l,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+nf2(l.montant)+' DH</b><span>'+(l.denom?l.denom+'×'+l.qty:'')+'</span></div><button class="cl-del" onclick="rechDel('+i+')">🗑</button>';list.appendChild(d);});}}
+  var list=G('rech-list');if(list){if(!CZ.rech.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا توجد سطور':'Aucune ligne')+'</p>';else{list.innerHTML='';CZ.rech.forEach(function(l,i){var sub=l.kind==='dealer'?'💵 Dealer':(l.denom?('📱 '+l.denom+' × '+l.qty):'📱 Recharge');var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+nf2(l.montant)+' DH</b><span>'+sub+'</span></div><div><button class="cl-q" onclick="openEditRech('+i+')">✏️</button><button class="cl-del" onclick="rechDel('+i+')">🗑</button></div>';list.appendChild(d);});}}
 }
-function rechAdd(){var montant=parseFloat(CZ._rMont)||0;if(!montant&&CZ._rDenom&&CZ._rQty)montant=CZ._rDenom*CZ._rQty;if(!montant){showToast('❌ Montant vide');return;}CZ.rech.push({denom:CZ._rDenom||0,qty:CZ._rQty||0,montant:montant});CZ._rDenom=null;CZ._rQty=0;CZ._rMont=0;refreshRech();}
+function rechAddDenom(){var denom=CZ._rDenom,qty=parseFloat(CZ._rQty)||0;if(!denom){showToast('❌ Choisissez une recharge');return;}if(!qty){showToast('❌ Quantité vide');return;}var montant=denom*qty;CZ.rech.push({denom:denom,qty:qty,montant:montant,kind:'recharge'});CZ._rDenom=null;CZ._rQty=0;refreshRech();}
+function rechAddDealer(){var montant=parseFloat(CZ._rMont)||0;if(!montant){showToast('❌ Montant vide');return;}CZ.rech.push({denom:0,qty:0,montant:montant,kind:'dealer'});CZ._rMont=0;refreshRech();}
+function rechAdd(){rechAddDenom();} // back-compat
 function rechDel(i){CZ.rech.splice(i,1);refreshRech();}
+function openEditRech(i){var l=CZ.rech[i];if(!l)return;openModal({title:isAr()?'تعديل':'Modifier',confirmText:t('upd'),cancelText:t('can'),fields:[{key:'montant',label:'Montant (DH)',value:String(l.montant||0),type:'number'}],onConfirm:function(v){var m=parseFloat(v.montant)||0;if(!m){showToast('❌ Montant vide');return;}l.montant=m;if(l.kind==='recharge'&&l.denom)l.qty=Math.round(m/l.denom*100)/100;closeModal();refreshRech();showToast('✅ '+t('renamed'));}});}
 
 // ---- SIMPLE (credit/change/cash/capital) ----
 function csSimpleRefresh(key){var el=G(key+'-val');if(el)el.textContent=nf2(CZ[key]||0)+' DH';}
