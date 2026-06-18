@@ -65,7 +65,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 .btn-r{padding:7px 11px;font-size:13px;background:#ffeaea;color:#d63031;border:none;border-radius:8px;cursor:pointer}
 .btn-b{padding:7px 11px;font-size:13px;background:#e8f0ff;color:#2563eb;border:none;border-radius:8px;cursor:pointer}
 .btn-grn{padding:7px 11px;font-size:13px;background:#e8f5ee;color:#0f5132;border:none;border-radius:8px;cursor:pointer}
-.nav-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:fixed;bottom:0;left:0;right:0;max-width:720px;margin:0 auto;padding:10px 16px;background:#ffffff;border-top:1px solid #e3e8e6;box-shadow:0 -2px 12px rgba(0,0,0,.06);z-index:80}
+.nav-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:fixed;bottom:0;left:0;right:0;width:100%;margin:0;padding:10px 16px;background:#ffffff;border-top:1px solid #e3e8e6;box-shadow:0 -2px 12px rgba(0,0,0,.06);z-index:80}
 html.dark .nav-row{background:#18211d;border-color:#2a3a33}
 .appsec.active .content{padding-bottom:84px}
 #login-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 20px 20px;background:#f0faf5;position:relative}
@@ -552,7 +552,7 @@ html.dark .scan-lbl{color:#e8f0ec}
       </div>
       <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
     </div>
-    <div class="card hidden" id="prod-list-card">
+    <div class="card" id="prod-list-card">
       <div class="card-title">Liste</div>
       <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" oninput="filterProdList(this.value)" style="margin-bottom:10px"/>
       <div id="prod-list"></div>
@@ -758,6 +758,29 @@ html.dark .scan-lbl{color:#e8f0ec}
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('bilan')">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('adjustment')">Suivant →</button>
+  </div>
+</div></div>
+</div>
+
+<div class="appsec" id="sec-adjustment">
+<div class="content">
+  <div class="card">
+    <div class="card-title">⚖️ Adjustment</div>
+    <p style="font-size:13px;color:#666;margin-bottom:12px">Sélectionnez un associé et une personne (argent pris) pour calculer le solde net.</p>
+    <label style="font-size:12px;color:#888">Associé (Partage)</label>
+    <select class="inp" id="adj-partner" onchange="refreshAdjustment()"></select>
+    <label style="font-size:12px;color:#888">Personne (Argent pris)</label>
+    <select class="inp" id="adj-pris" onchange="refreshAdjustment()"></select>
+    <button class="btn-p" onclick="adjustmentAdd()">+ Ajouter au calcul</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Résultats</div>
+    <div id="adjustment-result"></div>
+    <div id="adjustment-list"></div>
+  </div>
+  <div class="nav-row">
+    <button class="btn-g" onclick="showSection('partage')">← Retour</button>
     <button class="btn-p" style="margin-top:0" onclick="showSection('recap2')">Suivant →</button>
   </div>
 </div></div>
@@ -772,7 +795,7 @@ html.dark .scan-lbl{color:#e8f0ec}
   <button class="btn-p" style="margin-bottom:10px;width:100%" onclick="genCaissePDF()">📄 Télécharger le PDF récapitulatif</button>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('partage')">← Retour</button>
-    <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()">🔄 Nouvel inventaire</button>
+    <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()">✓ Terminé</button>
   </div>
 </div></div>
 </div>
@@ -795,7 +818,7 @@ html.dark .scan-lbl{color:#e8f0ec}
     <button class="btn-p" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%" onclick="genPDF()"><span style="font-size:20px">📄</span><span id="t-dlpdf">Télécharger PDF</span></button>
     <div class="nav-row">
       <button class="btn-g" onclick="showSection('products')" id="t-back3">← Retour</button>
-      <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" id="t-newinv">🔄 Nouvel inventaire</button>
+      <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" id="t-newinv">✓ Terminé</button>
     </div>
 </div></div>
 </div>
