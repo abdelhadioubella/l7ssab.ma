@@ -439,7 +439,7 @@ function buildHeader(opts){
 // ---- ADMIN SIDEBAR MENU (hamburger) ----
 function buildAdminMenu(active){
   var holder=G('admin-menu-holder');if(!holder)return;
-  var items=[['statistics','📊','Statistics'],['database','🗄️','Products'],['users','👥','Users'],['projects','📁','Projects'],['backup','💾','Backup']];
+  var items=[['statistics','📊','Statistics'],['database','🗄️','Products'],['cigdb','🚬','Cigarettes'],['users','👥','Users'],['projects','📁','Projects'],['backup','💾','Backup']];
   var nav='';
   items.forEach(function(it){nav+='<button class="am-item'+(active===it[0]?' active':'')+'" onclick="closeAdminMenu();showSection(\''+it[0]+'\')">'+it[1]+' <span>'+it[2]+'</span></button>';});
   holder.innerHTML=''+
@@ -812,9 +812,9 @@ function buildHeaderFor(){
 function showSection(name){
   if(!isAdmin&&(name==='products'||name==='recap'||name==='cigarettes'||name==='recharge'||name==='credit'||name==='change'||name==='cash'||name==='moins'||name==='pris'||name==='capital'||name==='bilan'||name==='partage'||name==='adjustment'||name==='recap2')&&!CP){name='inventory';}
   CURSEC=name;
-  var all=['inventory','products','recap','cigarettes','recharge','credit','change','cash','moins','pris','capital','bilan','partage','adjustment','recap2','profile','statistics','database','users','projects','backup'];
+  var all=['inventory','products','recap','cigarettes','recharge','credit','change','cash','moins','pris','capital','bilan','partage','adjustment','recap2','profile','statistics','database','cigdb','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
-  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(isAr()?'منتج':'Produit'),adjustments:t('adj'),recap:t('recap'),cigarettes:'🚬 Cigarettes',recharge:'📱 Recharge',credit:'📖 Crédit',change:'🧾 Argent de caisse',cash:'💵 Cash',moins:'➖ Dépenses',pris:'🤝 Argent pris',capital:'🏦 Capital',bilan:'📊 Bilan',partage:'🤝 Division des bénéfices',adjustment:'⚖️ Adjustment',recap2:'📄 Récapitulatif',profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',users:'Users',projects:'Projects',backup:'Backup'};
+  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(isAr()?'منتج':'Produit'),adjustments:t('adj'),recap:t('recap'),cigarettes:'🚬 Cigarettes',recharge:'📱 Recharge',credit:'📖 Crédit',change:'🧾 Argent de caisse',cash:'💵 Cash',moins:'➖ Dépenses',pris:'🤝 Argent pris',capital:'🏦 Capital',bilan:'📊 Bilan',partage:'🤝 Division des bénéfices',adjustment:'⚖️ Adjustment',recap2:'📄 Récapitulatif',profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',cigdb:'Cigarettes',users:'Users',projects:'Projects',backup:'Backup'};
   // rebuild header so the active admin tab highlights
   buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:!isAdmin});
   applyTR();
@@ -837,6 +837,7 @@ function showSection(name){
   else if(name==='profile')refreshProfile();
   else if(name==='statistics')refreshStats();
   else if(name==='database')refreshDB();
+  else if(name==='cigdb')refreshCigDB();
   else if(name==='users')refreshUsers();
   else if(name==='projects')refreshAdminProjects();
   else if(name==='backup'){/* backup has no load */}
@@ -1362,6 +1363,12 @@ function refreshStats(){
   dbCount('app_users').then(function(n){setBoth('st-users','st-users2',n);});
 }
 function refreshDB(){loadProducts().then(function(p){renderDBTable(p);});}
+// ===== ADMIN CIGARETTES (mirror of products) =====
+function refreshCigDB(){dbGetCigProducts().then(function(c){CACHE.cigProducts=c;renderCigDBTable(c);});}
+function renderCigDBTable(prods){var tb=G('cigdb-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name||'—';var c3=document.createElement('td');c3.style.cssText='text-align:right;font-weight:600;color:#1a7a4a;white-space:nowrap';c3.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Modifier cigarette',confirmText:'Enregistrer',fields:[{key:'name',label:'Nom',value:p.name},{key:'barcode',label:'Code-barres',value:p.barcode||''},{key:'price',label:'Prix (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('cigarettes').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();refreshCigDB();showToast('✅ Modifié');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Supprimer','Supprimer "'+p.name+'" ?',function(){sb.from('cigarettes').delete().eq('id',p.id).then(function(){refreshCigDB();showToast('✅ Supprimé');});},'Supprimer');};c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c3);tr.appendChild(c4);tb.appendChild(tr);});}
+function cigDbSearch(q){var res=G('cigdb-results');if(!res)return;res.innerHTML='';if(!q||!q.trim())return;var f=(CACHE.cigProducts||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.barcode||'').indexOf(q)>=0;}).slice(0,15);if(!f.length){res.innerHTML='<p style="font-size:13px;color:#888;padding:8px 0">Aucun résultat</p>';return;}f.forEach(function(p){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px';var info=document.createElement('div');info.style.flex='1';info.innerHTML='<p style="font-size:14px;font-weight:500;margin:0 0 1px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">'+(p.barcode||'')+'</p>';var pe=document.createElement('strong');pe.style.cssText='color:#1a7a4a;font-size:14px;white-space:nowrap';pe.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var eb=document.createElement('button');eb.className='btn-b';eb.style.marginLeft='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Modifier cigarette',confirmText:'Enregistrer',fields:[{key:'name',label:'Nom',value:p.name},{key:'barcode',label:'Code-barres',value:p.barcode||''},{key:'price',label:'Prix (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('cigarettes').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();refreshCigDB();showToast('✅ Modifié');});}});};var db=document.createElement('button');db.className='btn-r';db.style.marginLeft='4px';db.textContent='🗑';db.onclick=function(){confirmModal('Supprimer','Supprimer "'+p.name+'" ?',function(){sb.from('cigarettes').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);refreshCigDB();showToast('✅ Supprimé');});},'Supprimer');};var btns=document.createElement('div');btns.style.cssText='display:flex;align-items:center';btns.appendChild(pe);btns.appendChild(eb);btns.appendChild(db);row.appendChild(info);row.appendChild(btns);res.appendChild(row);});}
+function toggleCigAddForm(){var f=G('cigdb-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('cigdb-bc');if(b)b.focus();}}
+function cigDbAdd(){var bc=(G('cigdb-bc')?G('cigdb-bc').value||'':'').trim();var nm=(G('cigdb-nm')?G('cigdb-nm').value||'':'').trim();var pr=parseFloat(G('cigdb-pr')?G('cigdb-pr').value||'0':'0')||0;if(!nm){showToast('❌ Nom requis');return;}sb.from('cigarettes').insert({barcode:bc,name:nm,price:pr}).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(G('cigdb-bc'))G('cigdb-bc').value='';if(G('cigdb-nm'))G('cigdb-nm').value='';if(G('cigdb-pr'))G('cigdb-pr').value='';showToast('✅ Ajouté: '+nm);refreshCigDB();});}
 function renderDBTable(prods){var tb=G('db-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name||'—';var c3=document.createElement('td');c3.style.cssText='text-align:right;font-weight:600;color:#1a7a4a;white-space:nowrap';c3.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'barcode',label:'Barcode',value:p.barcode||''},{key:'price',label:'Price (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){refreshDB();showToast('✅ Deleted');});},'Delete');};c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c3);tr.appendChild(c4);tb.appendChild(tr);});}
 function dbSearch(q){var res=G('db-results');if(!res)return;res.innerHTML='';if(!q||!q.trim())return;var f=CACHE.products.filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.barcode||'').indexOf(q)>=0;}).slice(0,15);if(!f.length){res.innerHTML='<p style="font-size:13px;color:#888;padding:8px 0">No results</p>';return;}f.forEach(function(p){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px';var info=document.createElement('div');info.style.flex='1';info.innerHTML='<p style="font-size:14px;font-weight:500;margin:0 0 1px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">'+(p.barcode||'')+'</p>';var pe=document.createElement('strong');pe.style.cssText='color:#1a7a4a;font-size:14px;white-space:nowrap';pe.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var eb=document.createElement('button');eb.className='btn-b';eb.style.marginLeft='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'barcode',label:'Barcode',value:p.barcode||''},{key:'price',label:'Price (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();loadProducts();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.marginLeft='4px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);loadProducts();refreshDB();showToast('✅ Deleted');});},'Delete');};var btns=document.createElement('div');btns.style.cssText='display:flex;align-items:center';btns.appendChild(pe);btns.appendChild(eb);btns.appendChild(db);row.appendChild(info);row.appendChild(btns);res.appendChild(row);});}
 function toggleAddForm(){var f=G('db-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('db-bc');if(b)b.focus();}}
@@ -1566,6 +1573,11 @@ function filterCigList(q){q=(q||'').trim().toLowerCase();if(!q){renderCigList(CZ
 function openEditCig(i){var x=CZ.cig[i];if(!x)return;openModal({title:isAr()?'تعديل':'Modifier',confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:isAr()?'الاسم':'Nom',value:x.name||''},{key:'price',label:'Prix (DH)',value:String(x.price||0),type:'number'},{key:'qty',label:isAr()?'الكمية':'Quantité',value:String(x.qty||1),type:'number'}],onConfirm:function(v){var nm=(v.name||'').trim();if(!nm){showToast('❌ Nom vide');return;}x.name=nm;x.price=parseFloat(v.price)||0;x.qty=parseFloat(v.qty)||1;closeModal();refreshCig();showToast('✅ '+t('renamed'));}});}
 function cigSuggest(q){var box=G('cig-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.cigProducts||[]).filter(function(p){return ((p.name||'').toLowerCase().indexOf(q)>=0)||((p.barcode||'').indexOf(q)>=0);}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="cigPick(\''+(p.barcode||'')+'\',\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
 function cigSearch(q){cigSuggest(q);}
+// suggestions when typing a name in the product name field
+function prodNameSuggest(q){var box=G('pname-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.products||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="prodNamePick(\''+escJs2(p.barcode||'')+'\',\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
+function prodNamePick(bc,name,price){var ni=G('pname-inp');if(ni)ni.value=name;var si=G('scan-inp');if(si&&bc)si.value=bc;dP=parseFloat(price)||0;dQ=0;updateNFs();var box=G('pname-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
+function cigNameSuggest(q){var box=G('cig-name-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.cigProducts||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="cigNamePick(\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
+function cigNamePick(name,price){var ni=G('cig-name');if(ni)ni.value=name;CZ._cigP=parseFloat(price)||0;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(CZ._cigP)+' DH';ep.className='nf-val';}var box=G('cig-name-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
 function cigScan(code){code=(code||'').trim();if(!code)return;var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===code){f=CACHE.cigProducts[i];break;}}var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}
   if(f){cigPick(f.barcode,f.name,f.price);return;}
   // unknown: try internet lookup, fall back to barcode as name
@@ -1622,7 +1634,7 @@ function prisDel(i){CZ.pris.splice(i,1);refreshPris();}
 
 // ---- BILAN ----
 function brow(l,v,strong){return '<div class="brow'+(strong?' strong':'')+'"><span>'+l+'</span><b>'+nf2(v)+' DH</b></div>';}
-function refreshBilan(){try{saveCaisseData();}catch(e){}var c=G('bilan-rows');if(!c)return;var h='';h+=brow('Produits',czProd())+brow('Cigarettes (net)',czCigNet())+brow('Recharge (net)',czRechNet())+brow('Crédit',parseFloat(CZ.credit)||0)+brow('Argent de caisse',parseFloat(CZ.change)||0);h+=brow('PREMIER TOTAL',czVentes(),true);h+=brow('Cash',parseFloat(CZ.cash)||0);h+=brow('DEUXIÈME TOTAL',czPremier(),true);h+=brow('Dépenses',czMoins());h+=brow('Argent pris',czPris());h+=brow('TROISIÈME TOTAL',czPremier()+czMoins()+czPris(),true);h+=brow('Capital',-(parseFloat(CZ.capital)||0));h+=brow('BÉNÉFICE',czBenefice(),true);c.innerHTML=h;}
+function refreshBilan(){try{saveCaisseData();}catch(e){}var c=G('bilan-rows');if(!c)return;var h='';h+=brow('Produits',czProd())+brow('Cigarettes (net − '+nf2(CZ.cigRem)+'%)',czCigNet())+brow('Recharge (net − '+nf2(CZ.rechRem)+'%)',czRechNet())+brow('Crédit',parseFloat(CZ.credit)||0)+brow('Argent de caisse',parseFloat(CZ.change)||0);h+=brow('PREMIER TOTAL',czVentes(),true);h+=brow('Cash',parseFloat(CZ.cash)||0);h+=brow('DEUXIÈME TOTAL',czPremier(),true);h+=brow('Dépenses',czMoins());h+=brow('Argent pris',czPris());h+=brow('TROISIÈME TOTAL',czPremier()+czMoins()+czPris(),true);h+=brow('Capital',-(parseFloat(CZ.capital)||0));h+=brow('BÉNÉFICE',czBenefice(),true);c.innerHTML=h;}
 
 // ---- PARTAGE ----
 function partnerAdd(){var nn=G('partner-name');var name=(nn&&nn.value||'').trim();if(!name){showToast('❌ Nom vide');return;}CZ.partners.push({name:name});if(nn)nn.value='';refreshPartage();}
@@ -1672,25 +1684,17 @@ function adjustmentDel(i){CZ.adjustments.splice(i,1);saveCaisseData();renderAdju
 function refreshRecap2(){
   var c=G('recap2-rows');if(!c)return;
   var h='';
-  // FULL data, not just bilan
-  h+='<div class="brow strong"><span>VENTES</span><b></b></div>';
-  h+=brow('Produits',czProd())+brow('Cigarettes (net -'+nf2(CZ.cigRem)+'%)',czCigNet())+brow('Recharge (net -'+nf2(CZ.rechRem)+'%)',czRechNet())+brow('Crédit',parseFloat(CZ.credit)||0)+brow('Argent de caisse',parseFloat(CZ.change)||0);
+  h+=brow('Produits',czProd())+brow('Cigarettes (net − '+nf2(CZ.cigRem)+'%)',czCigNet())+brow('Recharge (net − '+nf2(CZ.rechRem)+'%)',czRechNet())+brow('Crédit',parseFloat(CZ.credit)||0)+brow('Argent de caisse',parseFloat(CZ.change)||0);
   h+=brow('PREMIER TOTAL',czVentes(),true);
   h+=brow('Cash',parseFloat(CZ.cash)||0);
   h+=brow('DEUXIÈME TOTAL',czPremier(),true);
-  // detail moins
-  if(CZ.moins.length){h+='<div class="brow strong"><span>DÉPENSES</span><b></b></div>';CZ.moins.forEach(function(m){h+=brow((m.sign==='+'?'+ ':'− ')+m.label,(m.sign==='+'?1:-1)*(parseFloat(m.montant)||0));});}
-  h+=brow('Total Dépenses',czMoins());
-  // detail pris
-  if(CZ.pris.length){h+='<div class="brow strong"><span>ARGENT PRIS</span><b></b></div>';CZ.pris.forEach(function(p){h+=brow(p.name,parseFloat(p.montant)||0);});}
-  h+=brow('Total argent pris',czPris());
+  h+=brow('Dépenses',czMoins());
+  h+=brow('Argent pris',czPris());
   h+=brow('TROISIÈME TOTAL',czPremier()+czMoins()+czPris(),true);
   h+=brow('Capital',-(parseFloat(CZ.capital)||0));
   h+=brow('BÉNÉFICE',czBenefice(),true);
-  // partage
   var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;
   if(n){h+='<div class="brow strong"><span>DIVISION DES BÉNÉFICES ('+n+')</span><b></b></div>';CZ.partners.forEach(function(p){h+=brow(p.name,part);});}
-  // adjustments
   CZ.adjustments=CZ.adjustments||[];
   if(CZ.adjustments.length){h+='<div class="brow strong"><span>ADJUSTMENT</span><b></b></div>';CZ.adjustments.forEach(function(a){h+=brow(a.partner+(a.prisName?' (− '+a.prisName+')':''),a.net);});}
   c.innerHTML=h;
@@ -1725,9 +1729,9 @@ function genCaissePDF(){
   var prodRows=(CACHE.items||[]).map(function(it){var pr=parseFloat(it.price)||0,q=parseFloat(it.quantity)||0;return {name:it.name||'—',qty:q,price:pr,total:pr*q};});
   itemsTable('📦 Produits',prodRows,'Total Produits',czProd());
   // CIGARETTES
-  if(CZ.cig.length){var cigRows=CZ.cig.map(function(x){var pr=parseFloat(x.price)||0,q=x.qty||1;return {name:x.name||'—',qty:q,price:pr,total:pr*q};});itemsTable('🚬 Cigarettes',cigRows,'Total cigarettes (-'+nf2(CZ.cigRem)+'%)',czCigNet(),[['Total brut',czCigBrut()]]);}
+  if(CZ.cig.length){var cigRows=CZ.cig.map(function(x){var pr=parseFloat(x.price)||0,q=x.qty||1;return {name:x.name||'—',qty:q,price:pr,total:pr*q};});itemsTable('🚬 Cigarettes',cigRows,'net − '+nf2(CZ.cigRem)+'%',czCigNet(),[['Total brut',czCigBrut()]]);}
   // RECHARGE
-  if(CZ.rech.length){var rechRows=CZ.rech.map(function(l){return {name:l.kind==='dealer'?'Dealer':(l.denom?('Recharge '+l.denom):'Recharge'),qty:l.kind==='dealer'?null:l.qty,price:null,total:parseFloat(l.montant)||0};});itemsTable('📱 Recharge',rechRows,'Total recharge (-'+nf2(CZ.rechRem)+'%)',czRechNet(),[['Total brut',czRechBrut()]]);}
+  if(CZ.rech.length){var rechRows=CZ.rech.map(function(l){return {name:l.kind==='dealer'?'Dealer':(l.denom?('Recharge '+l.denom):'Recharge'),qty:l.kind==='dealer'?null:l.qty,price:null,total:parseFloat(l.montant)||0};});itemsTable('📱 Recharge',rechRows,'net − '+nf2(CZ.rechRem)+'%',czRechNet(),[['Total brut',czRechBrut()]]);}
   // DÉPENSES
   if(CZ.moins.length){var mRows=CZ.moins.map(function(m){return {name:(m.sign==='+'?'+ ':'− ')+m.label,qty:null,price:null,total:(m.sign==='+'?1:-1)*(parseFloat(m.montant)||0)};});itemsTable('➖ Dépenses',mRows,'Total Dépenses',czMoins());}
   // ARGENT PRIS
@@ -1735,7 +1739,7 @@ function genCaissePDF(){
   // FINAL RECAP TABLE on a new page
   doc.addPage();y=18;titleBar('📄 Récapitulatif');
   var recapRows=[
-    ['Produits',czProd()],['Cigarettes (net)',czCigNet()],['Recharge (net)',czRechNet()],['Crédit',parseFloat(CZ.credit)||0],['Argent de caisse',parseFloat(CZ.change)||0],
+    ['Produits',czProd()],['Cigarettes (net − '+nf2(CZ.cigRem)+'%)',czCigNet()],['Recharge (net − '+nf2(CZ.rechRem)+'%)',czRechNet()],['Crédit',parseFloat(CZ.credit)||0],['Argent de caisse',parseFloat(CZ.change)||0],
     ['PREMIER TOTAL',czVentes(),1],['Cash',parseFloat(CZ.cash)||0],['DEUXIÈME TOTAL',czPremier(),1],
     ['Dépenses',czMoins()],['Argent pris',czPris()],['TROISIÈME TOTAL',czPremier()+czMoins()+czPris(),1],
     ['Capital',-(parseFloat(CZ.capital)||0)],['BÉNÉFICE',czBenefice(),2]

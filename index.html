@@ -582,7 +582,8 @@ html.dark .mode-txt b{color:#e8f0ec}
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
       <div id="scan-msg" class="smsg hidden"></div>
-      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit"/>
+      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" autocomplete="off" oninput="prodNameSuggest(this.value)"/>
+      <div id="pname-suggest" class="suggest-box hidden"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
         <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price">Prix (DH)</span><span id="nf-dp" class="nf-ph">Appuyer</span></div>
         <div class="num-field" onclick="openNP('dQ','Quantite',true)"><span class="nf-label" id="t-qty">Quantité</span><span id="nf-dq" class="nf-ph">Appuyer</span></div>
@@ -611,7 +612,8 @@ html.dark .mode-txt b{color:#e8f0ec}
       <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
     </div>
     <div id="cig-suggest" class="suggest-box hidden"></div>
-    <input class="inp" type="text" id="cig-name" placeholder="Nom du produit"/>
+    <input class="inp" type="text" id="cig-name" placeholder="Nom du produit" autocomplete="off" oninput="cigNameSuggest(this.value)"/>
+    <div id="cig-name-suggest" class="suggest-box hidden"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
       <div class="num-field" onclick="openNP('cigAddP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="cig-add-p" class="nf-ph">Appuyer</span></div>
       <div class="num-field" onclick="openNP('cigAddQ','Quantité',true)"><span class="nf-label">Quantité</span><span id="cig-add-q" class="nf-ph">Appuyer</span></div>
@@ -915,6 +917,34 @@ html.dark .mode-txt b{color:#e8f0ec}
   </div>
 </div></div>
 </div>
+<div class="appsec" id="sec-cigdb">
+<div class="content">
+    <div class="card"><div class="card-title">Rechercher / modifier une cigarette</div>
+      <input class="inp" type="text" id="cigdb-search" placeholder="Nom ou code-barres…" oninput="cigDbSearch(this.value)"/>
+      <div id="cigdb-results"></div>
+    </div>
+    <div class="card"><div class="card-title">Toutes les cigarettes</div>
+      <div style="max-height:420px;overflow-y:auto">
+        <table class="rtbl"><thead><tr><th style="width:120px">Code-barres</th><th>Nom</th><th style="text-align:right;width:80px">Prix</th><th style="width:70px"></th></tr></thead><tbody id="cigdb-all-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-p" style="flex:1;min-width:140px" onclick="toggleCigAddForm()">+ Ajouter une cigarette</button>
+        <button class="btn-p" style="flex:1;min-width:140px;background:#2563eb" onclick="G('cigcsv-file').click()">⬆️ Import CSV</button>
+        <input type="file" id="cigcsv-file" accept=".csv,text/csv" style="display:none" onchange="importCigarettes(this.files[0])"/>
+      </div>
+      <div id="cigdb-add-form" class="hidden" style="margin-top:12px">
+        <input class="inp" type="text" id="cigdb-bc" placeholder="Code-barres"/>
+        <input class="inp" type="text" id="cigdb-nm" placeholder="Nom de la cigarette"/>
+        <input class="inp" type="number" id="cigdb-pr" placeholder="Prix (DH)"/>
+        <button class="btn-p" onclick="cigDbAdd()">+ Ajouter</button>
+      </div>
+      <p style="font-size:11px;color:#999;margin-top:10px">CSV: 3 colonnes — code-barres, nom, prix</p>
+    </div>
+</div></div>
+</div>
+
 <div class="appsec" id="sec-database">
 <div class="content">
     <div class="card"><div class="card-title" id="t-search-edit">Search / edit a product</div>
