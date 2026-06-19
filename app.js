@@ -1000,7 +1000,7 @@ function applyTR(){
   if(G('t-backapp'))G('t-backapp').textContent=t('back');
 }
 
-function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});return p;});}
+function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});if(CU&&!isAdmin){sb.from('custom_cig_prices').select('*').eq('user_id',CU.id).then(function(r){CACHE.cigCustom={};((r&&r.data)||[]).forEach(function(x){CACHE.cigCustom[x.barcode||x.name]=parseFloat(x.price)||0;});}).catch(function(){});}return p;});}
 function loadItems(){return CP?dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;}):Promise.resolve([]);}
 function loadAdjs(){return CP?dbGetAdjs(CP.id).then(function(a){CACHE.adjs=a;return a;}):Promise.resolve([]);}
 // ================= USER SECTION FUNCTIONS =================
@@ -1236,6 +1236,7 @@ function handleScan(code){
 }
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
 function saveCP(bc,price){if(!bc)return;sb.from('custom_prices').upsert({user_id:CU.id,barcode:bc,price:price},{onConflict:'user_id,barcode'}).then(function(){});}
+function saveCigCP(bc,name,price){if(!CU)return;sb.from('custom_cig_prices').upsert({user_id:CU.id,barcode:bc||'',name:name||'',price:price},{onConflict:'user_id,barcode'}).then(function(){}).catch(function(){});}
 function updateNFs(){var p=G('nf-dp'),q=G('nf-dq');if(p){p.className=dP>0?'nf-val':'nf-ph';p.textContent=dP>0?dP.toFixed(2)+' DH':t('tap');}if(q){q.className=dQ>0?'nf-val':'nf-ph';q.textContent=dQ>0?String(dQ):t('tap');}}
 // numpad
 function openNP(target,label,decimal){
@@ -1542,11 +1543,21 @@ startScanGuard();setupScanInput();checkUSBDevices();
 // boot: if already logged in, enter app; else show login
 // ============ CAISSE SECTIONS (in-project flow) ============
 var CZ={cig:[],cigRem:5,rech:[],rechRem:6.5,credit:0,change:0,cash:0,moins:[],pris:[],capital:0,partners:[],_rDenom:null,_rQty:0,_rMont:0,_mSign:'-',_mMont:0,_pMont:0};
-function czReset(){CZ={cig:[],cigRem:5,rech:[],rechRem:6.5,credit:0,change:0,cash:0,moins:[],pris:[],capital:0,partners:[],adjustments:[],_rDenom:null,_rQty:0,_rMont:0,_mSign:'-',_mMont:0,_pMont:0};}
+function czReset(){CZ={cig:[],cigRem:5,rech:[],rechRem:6.5,credit:0,change:0,cash:0,moins:[],pris:[],capital:0,partners:[],adjustments:[],adjPick:{},_rDenom:null,_rQty:0,_rMont:0,_mSign:'-',_mMont:0,_pMont:0};}
 // Auto-save caisse data per project so reloading doesn't lose it
 function caisseKey(){return CP?('l7caisse_'+CP.id):null;}
-function saveCaisseData(){var k=caisseKey();if(!k)return;try{var d={cig:CZ.cig,cigRem:CZ.cigRem,rech:CZ.rech,rechRem:CZ.rechRem,credit:CZ.credit,change:CZ.change,cash:CZ.cash,moins:CZ.moins,pris:CZ.pris,capital:CZ.capital,partners:CZ.partners,adjustments:CZ.adjustments||[]};localStorage.setItem(k,JSON.stringify(d));}catch(e){}}
-function loadCaisseData(){var k=caisseKey();if(!k){czReset();return;}try{var v=localStorage.getItem(k);if(v){var d=JSON.parse(v);CZ.cig=d.cig||[];CZ.cigRem=d.cigRem!=null?d.cigRem:5;CZ.rech=d.rech||[];CZ.rechRem=d.rechRem!=null?d.rechRem:6.5;CZ.credit=d.credit||0;CZ.change=d.change||0;CZ.cash=d.cash||0;CZ.moins=d.moins||[];CZ.pris=d.pris||[];CZ.capital=d.capital||0;CZ.partners=d.partners||[];CZ.adjustments=d.adjustments||[];CZ._rDenom=null;CZ._rQty=0;CZ._rMont=0;CZ._mSign='-';CZ._mMont=0;CZ._pMont=0;}else{czReset();}}catch(e){czReset();}}
+var _caisseSaveTimer=null;
+function saveCaisseData(){var k=caisseKey();if(!k)return;var d={cig:CZ.cig,cigRem:CZ.cigRem,rech:CZ.rech,rechRem:CZ.rechRem,credit:CZ.credit,change:CZ.change,cash:CZ.cash,moins:CZ.moins,pris:CZ.pris,capital:CZ.capital,partners:CZ.partners,adjustments:CZ.adjustments||[],adjPick:CZ.adjPick||{}};try{localStorage.setItem(k,JSON.stringify(d));}catch(e){}
+  // debounced save to Supabase
+  if(CP&&CP.id){if(_caisseSaveTimer)clearTimeout(_caisseSaveTimer);_caisseSaveTimer=setTimeout(function(){var payload={project_id:CP.id,data:d,updated_at:new Date().toISOString()};sb.from('caisse_data').upsert(payload,{onConflict:'project_id'}).then(function(r){if(r&&r.error){try{queueWrite('caisse_data','upsert',payload,{onConflict:'project_id'});}catch(e){}}}).catch(function(){try{queueWrite('caisse_data','upsert',payload,{onConflict:'project_id'});}catch(e){}});},800);}
+}
+function applyCaisseData(d){CZ.cig=d.cig||[];CZ.cigRem=d.cigRem!=null?d.cigRem:5;CZ.rech=d.rech||[];CZ.rechRem=d.rechRem!=null?d.rechRem:6.5;CZ.credit=d.credit||0;CZ.change=d.change||0;CZ.cash=d.cash||0;CZ.moins=d.moins||[];CZ.pris=d.pris||[];CZ.capital=d.capital||0;CZ.partners=d.partners||[];CZ.adjustments=d.adjustments||[];CZ.adjPick=d.adjPick||{};CZ._rDenom=null;CZ._rQty=0;CZ._rMont=0;CZ._mSign='-';CZ._mMont=0;CZ._pMont=0;}
+function loadCaisseData(){var k=caisseKey();if(!k){czReset();return;}
+  // load local first (instant)
+  try{var v=localStorage.getItem(k);if(v){applyCaisseData(JSON.parse(v));}else{czReset();}}catch(e){czReset();}
+  // then fetch from Supabase (authoritative) if online
+  if(CP&&CP.id&&navigator.onLine){sb.from('caisse_data').select('data').eq('project_id',CP.id).maybeSingle().then(function(r){if(r&&!r.error&&r.data&&r.data.data){applyCaisseData(r.data.data);try{localStorage.setItem(k,JSON.stringify(r.data.data));}catch(e){}if(typeof CURSEC==='string')showSection(CURSEC);}}).catch(function(){});}
+}
 function nf2(n){return (Math.round((parseFloat(n)||0)*100)/100).toFixed(2);}
 function L(fr,ar){return (LANG==='ar')?ar:fr;} // inline bilingual string (Arabic written directly)
 function moinsLbl(t){var m={credit_fourn:'Crédit de fournisseur',impot:'Les impôts',eau_elec:'Eau + Électricité',loyer:'Loyer'};return m[t]||t;}
@@ -1580,7 +1591,7 @@ function renderCigList(arr){
   h+='</tbody></table>';list.innerHTML=h;
 }
 function filterCigList(q){q=(q||'').trim().toLowerCase();if(!q){renderCigList(CZ.cig);return;}renderCigList(CZ.cig.filter(function(x){return (x.name||'').toLowerCase().indexOf(q)>=0;}));}
-function openEditCig(i){var x=CZ.cig[i];if(!x)return;openModal({title:isAr()?'تعديل':'Modifier',confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:isAr()?'الاسم':'Nom',value:x.name||''},{key:'price',label:'Prix (DH)',value:String(x.price||0),type:'number'},{key:'qty',label:isAr()?'الكمية':'Quantité',value:String(x.qty||1),type:'number'}],onConfirm:function(v){var nm=(v.name||'').trim();if(!nm){showToast('❌ Nom vide');return;}x.name=nm;x.price=parseFloat(v.price)||0;x.qty=parseFloat(v.qty)||1;closeModal();refreshCig();showToast('✅ '+t('renamed'));}});}
+function openEditCig(i){var x=CZ.cig[i];if(!x)return;openModal({title:isAr()?'تعديل':'Modifier',confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:isAr()?'الاسم':'Nom',value:x.name||''},{key:'price',label:'Prix (DH)',value:String(x.price||0),type:'number'},{key:'qty',label:isAr()?'الكمية':'Quantité',value:String(x.qty||1),type:'number'}],onConfirm:function(v){var nm=(v.name||'').trim();if(!nm){showToast('❌ Nom vide');return;}x.name=nm;x.price=parseFloat(v.price)||0;x.qty=parseFloat(v.qty)||1;saveCigCP(x.barcode||'',nm,x.price);CACHE.cigCustom=CACHE.cigCustom||{};CACHE.cigCustom[x.barcode||nm]=x.price;closeModal();refreshCig();showToast('✅ '+t('renamed'));}});}
 function cigSuggest(q){var box=G('cig-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.cigProducts||[]).filter(function(p){return ((p.name||'').toLowerCase().indexOf(q)>=0)||((p.barcode||'').indexOf(q)>=0);}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="cigPick(\''+(p.barcode||'')+'\',\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
 function cigSearch(q){cigSuggest(q);}
 // suggestions when typing a name in the product name field
@@ -1594,7 +1605,7 @@ function cigScan(code){code=(code||'').trim();if(!code)return;var f=null;for(var
   if(navigator.onLine){showToast('🔎 '+(isAr()?'بحث…':'Recherche…'),1200);apiLookupBarcode(code).then(function(res){var nm=res.found?res.name:code;cigPick(code,nm,0);dbAddCig(code,nm,0);if(res.found)showToast('✅ '+nm);});}
   else{cigPick(code,code,0);dbAddCig(code,code,0);}
 }
-function cigPick(bc,name,price){var found=null;CZ.cig.forEach(function(x){if(x.name===name)found=x;});if(found)found.qty=(found.qty||1)+1;else CZ.cig.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}refreshCig();}
+function cigPick(bc,name,price){var cp=(CACHE.cigCustom&&(CACHE.cigCustom[bc]||CACHE.cigCustom[name]));if(cp!=null)price=cp;var found=null;CZ.cig.forEach(function(x){if(x.name===name)found=x;});if(found)found.qty=(found.qty||1)+1;else CZ.cig.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}refreshCig();}
 // save a new cigarette product to the dedicated cigarettes table (so it's known next time)
 function dbAddCig(bc,name,price){sb.from('cigarettes').insert({barcode:bc||'',name:name,price:parseFloat(price)||0}).then(function(r){if(!(r&&r.error)){dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});}});}
 // ===== Internet barcode lookup (OpenFoodFacts - free public API) =====
@@ -1654,42 +1665,29 @@ function refreshPartage(){try{saveCaisseData();}catch(e){}var list=G('partner-li
 // ---- RECAP2 ----
 // ---- ADJUSTMENT (associé - argent pris) ----
 function refreshAdjustmentPage(){
-  var ps=G('adj-partner'),pr=G('adj-pris');
-  if(ps){var cur=ps.value;ps.innerHTML=CZ.partners.length?CZ.partners.map(function(p,i){return '<option value="'+i+'">'+esc(p.name)+'</option>';}).join(''):'<option value="">— Aucun associé —</option>';if(cur)ps.value=cur;}
-  if(pr){var cur2=pr.value;pr.innerHTML='<option value="">— Aucun —</option>'+CZ.pris.map(function(p,i){return '<option value="'+i+'">'+esc(p.name)+' ('+nf2(p.montant)+' DH)</option>';}).join('');if(cur2)pr.value=cur2;}
-  refreshAdjustment();renderAdjustmentList();
-}
-function refreshAdjustment(){
-  var ps=G('adj-partner'),pr=G('adj-pris'),res=G('adjustment-result');if(!res)return;
+  var c=G('adjustment-table');if(!c)return;
   var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;
-  var pi=ps&&ps.value!==''?parseInt(ps.value):-1;
-  var ri=pr&&pr.value!==''?parseInt(pr.value):-1;
-  var partner=(pi>=0&&CZ.partners[pi])?CZ.partners[pi]:null;
-  var prisAmt=(ri>=0&&CZ.pris[ri])?(parseFloat(CZ.pris[ri].montant)||0):0;
-  if(!partner){res.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:8px">Sélectionnez un associé</p>';return;}
-  var net=part-prisAmt;
-  res.innerHTML=brow('Part de '+partner.name,part)+(ri>=0?brow('− Argent pris ('+CZ.pris[ri].name+')',-prisAmt):'')+brow('Solde net',net,true);
+  if(!n){c.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:14px">'+L('Ajoutez des associés à la page Division.','أضف الشركاء في صفحة التقسيم.')+'</p>';return;}
+  CZ.adjPick=CZ.adjPick||{}; // {partnerIndex: prisIndex}
+  var ar=isAr();
+  var h='<table class="itbl"><thead><tr><th>'+L('Associé','الشريك')+'</th><th class="num">'+L('Part','الحصة')+'</th><th>'+L('Déduire','خصم')+'</th><th class="num">'+L('Net','الصافي')+'</th></tr></thead><tbody>';
+  CZ.partners.forEach(function(p,pi){
+    var ri=(CZ.adjPick[pi]!=null&&CZ.adjPick[pi]!=='')?parseInt(CZ.adjPick[pi]):-1;
+    var prisAmt=(ri>=0&&CZ.pris[ri])?(parseFloat(CZ.pris[ri].montant)||0):0;
+    var net=part-prisAmt;
+    var opts='<option value="">'+L('— Personne —','— لا أحد —')+'</option>'+CZ.pris.map(function(pp,j){return '<option value="'+j+'"'+(j===ri?' selected':'')+'>'+esc(pp.name)+' ('+nf2(pp.montant)+')</option>';}).join('');
+    h+='<tr><td class="it-name">'+esc(p.name)+'</td><td class="num">'+nf2(part)+'</td><td><select class="inp" style="margin:0;padding:6px;font-size:12px" onchange="adjSetPick('+pi+',this.value)">'+opts+'</select></td><td class="num" style="font-weight:700;color:#1a7a4a">'+nf2(net)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  c.innerHTML=h;
+  // rebuild CZ.adjustments from picks for the recap/pdf
+  rebuildAdjustments();
 }
-function adjustmentAdd(){
-  var ps=G('adj-partner'),pr=G('adj-pris');
-  var pi=ps&&ps.value!==''?parseInt(ps.value):-1;
-  var ri=pr&&pr.value!==''?parseInt(pr.value):-1;
-  if(pi<0||!CZ.partners[pi]){showToast('❌ Choisissez un associé');return;}
-  var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;
-  var prisAmt=(ri>=0&&CZ.pris[ri])?(parseFloat(CZ.pris[ri].montant)||0):0;
-  var prisName=(ri>=0&&CZ.pris[ri])?CZ.pris[ri].name:'';
-  CZ.adjustments=CZ.adjustments||[];
-  CZ.adjustments.push({partner:CZ.partners[pi].name,part:part,prisName:prisName,prisAmt:prisAmt,net:part-prisAmt});
-  saveCaisseData();renderAdjustmentList();showToast('✅ Ajouté');
+function adjSetPick(pi,val){CZ.adjPick=CZ.adjPick||{};CZ.adjPick[pi]=val;saveCaisseData();refreshAdjustmentPage();}
+function rebuildAdjustments(){
+  var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;CZ.adjPick=CZ.adjPick||{};CZ.adjustments=[];
+  CZ.partners.forEach(function(p,pi){var ri=(CZ.adjPick[pi]!=null&&CZ.adjPick[pi]!=='')?parseInt(CZ.adjPick[pi]):-1;var prisAmt=(ri>=0&&CZ.pris[ri])?(parseFloat(CZ.pris[ri].montant)||0):0;var prisName=(ri>=0&&CZ.pris[ri])?CZ.pris[ri].name:'';CZ.adjustments.push({partner:p.name,part:part,prisName:prisName,prisAmt:prisAmt,net:part-prisAmt});});
 }
-function renderAdjustmentList(){
-  var list=G('adjustment-list');if(!list)return;CZ.adjustments=CZ.adjustments||[];
-  if(!CZ.adjustments.length){list.innerHTML='';return;}
-  var h='<div style="margin-top:10px">';
-  CZ.adjustments.forEach(function(a,i){h+='<div class="cl-row"><div class="cl-info"><b>'+esc(a.partner)+' → '+nf2(a.net)+' DH</b><span>'+nf2(a.part)+(a.prisAmt?' − '+nf2(a.prisAmt)+' ('+esc(a.prisName)+')':'')+'</span></div><button class="cl-del" onclick="adjustmentDel('+i+')">🗑</button></div>';});
-  h+='</div>';list.innerHTML=h;
-}
-function adjustmentDel(i){CZ.adjustments.splice(i,1);saveCaisseData();renderAdjustmentList();}
 
 function refreshRecap2(){
   var c=G('recap2-rows');if(!c)return;

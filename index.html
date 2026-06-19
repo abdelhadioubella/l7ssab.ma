@@ -470,7 +470,13 @@ html.dark .scan-lbl{color:#e8f0ec}
 
 
 /* item tables (name|qty|price|total) */
-.itbl{width:100%;border-collapse:collapse;font-size:13px}
+.itbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.itbl th:nth-child(1),.itbl td:nth-child(1){width:auto}
+.itbl th:nth-child(2),.itbl td:nth-child(2){width:46px}
+.itbl th:nth-child(3),.itbl td:nth-child(3){width:62px}
+.itbl th:nth-child(4),.itbl td:nth-child(4){width:70px}
+.itbl th:nth-child(5),.itbl td:nth-child(5){width:78px}
+.itbl td.it-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .itbl th{text-align:left;font-size:11px;color:#888;font-weight:600;padding:6px 8px;border-bottom:1px solid #e3e8e6;text-transform:uppercase}
 .itbl td{padding:8px;border-bottom:1px solid #f0f2f1;color:#222}
 .itbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -809,18 +815,11 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-adjustment">
 <div class="content">
   <div class="card">
-    <div class="card-title" data-fr="⚖️ Adjustment" data-ar="⚖️ التسوية">⚖️ Adjustment</div>
-    <p style="font-size:13px;color:#666;margin-bottom:12px">Sélectionnez un associé et une personne (argent pris) pour calculer le solde net.</p>
-    <label style="font-size:12px;color:#888">Associé (Partage)</label>
-    <select class="inp" id="adj-partner" onchange="refreshAdjustment()"></select>
-    <label style="font-size:12px;color:#888">Personne (Argent pris)</label>
-    <select class="inp" id="adj-pris" onchange="refreshAdjustment()"></select>
-    <button class="btn-p" onclick="adjustmentAdd()" data-fr="+ Ajouter au calcul" data-ar="+ إضافة للحساب">+ Ajouter au calcul</button>
+    <div class="card-title" data-fr="⚖️ Ajustement" data-ar="⚖️ التسوية">⚖️ Ajustement</div>
+    <p style="font-size:13px;color:#666;margin-bottom:4px" data-fr="Pour chaque associé, choisissez si une personne a pris de l'argent à déduire de sa part." data-ar="لكل شريك، اختر إن أخذ شخص مالاً يُخصم من حصته.">Pour chaque associé, choisissez si une personne a pris de l'argent à déduire de sa part.</p>
   </div>
   <div class="card">
-    <div class="card-title" data-fr="Résultats" data-ar="النتائج">Résultats</div>
-    <div id="adjustment-result"></div>
-    <div id="adjustment-list"></div>
+    <div id="adjustment-table"></div>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('partage')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
