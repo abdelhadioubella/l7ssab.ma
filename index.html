@@ -543,7 +543,7 @@ html.dark .mode-txt b{color:#e8f0ec}
         <div class="pin-dot" id="pd3"></div><div class="pin-dot" id="pd4"></div><div class="pin-dot" id="pd5"></div>
       </div>
       <div class="pin-grid" id="pkeys"></div>
-      <button class="btn-g" style="width:100%;margin-top:12px" onclick="backToPlus()">← Retour</button>
+      <button class="btn-g" style="width:100%;margin-top:12px" onclick="backToPlus()" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
       <button class="btn-r" style="width:100%;margin-top:8px" id="login-del-btn" onclick="deleteUserFromLogin()">🗑 Retirer du login</button>
     </div>
   </div>
@@ -581,12 +581,12 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="card">
       <div class="card-title" id="t-addprod">Ajouter un produit</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off" autofocus/>
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autofocus/>
         <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
       <div id="scan-msg" class="smsg hidden"></div>
-      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" autocomplete="off" oninput="prodNameSuggest(this.value)"/>
+      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="prodNameSuggest(this.value)"/>
       <div id="pname-suggest" class="suggest-box hidden"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
         <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price">Prix (DH)</span><span id="nf-dp" class="nf-ph">Appuyer</span></div>
@@ -595,14 +595,14 @@ html.dark .mode-txt b{color:#e8f0ec}
       <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
     </div>
     <div class="card" id="prod-list-card">
-      <div class="card-title">Liste</div>
-      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" oninput="filterProdList(this.value)" style="margin-bottom:10px"/>
+      <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
+      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" data-ph-fr="Rechercher dans les produits…" data-ph-ar="ابحث في المنتجات…" oninput="filterProdList(this.value)" style="margin-bottom:10px"/>
       <div id="prod-list"></div>
     </div>
     <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
     <div class="nav-row">
-      <button class="btn-g" onclick="showSection('inventory')" id="t-back1">← Retour</button>
-      <button class="btn-p" style="margin-top:0" onclick="showSection('cigarettes')" id="t-next1">Suivant →</button>
+      <button class="btn-g" onclick="showSection('inventory')" id="t-back1" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+      <button class="btn-p" style="margin-top:0" onclick="showSection('cigarettes')" id="t-next1" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
     </div>
 </div></div>
 </div>
@@ -610,23 +610,23 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-cigarettes">
 <div class="content">
   <div class="card">
-    <div class="card-title">🚬 Cigarettes</div>
+    <div class="card-title" data-fr="🚬 Cigarettes" data-ar="🚬 السجائر">🚬 Cigarettes</div>
     <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-      <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" style="flex:1;margin-bottom:0" autocomplete="off"/>
+      <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off"/>
       <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
     </div>
     <div id="cig-suggest" class="suggest-box hidden"></div>
-    <input class="inp" type="text" id="cig-name" placeholder="Nom du produit" autocomplete="off" oninput="cigNameSuggest(this.value)"/>
+    <input class="inp" type="text" id="cig-name" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="cigNameSuggest(this.value)"/>
     <div id="cig-name-suggest" class="suggest-box hidden"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
       <div class="num-field" onclick="openNP('cigAddP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="cig-add-p" class="nf-ph">Appuyer</span></div>
       <div class="num-field" onclick="openNP('cigAddQ','Quantité',true)"><span class="nf-label">Quantité</span><span id="cig-add-q" class="nf-ph">Appuyer</span></div>
     </div>
-    <button class="btn-p" onclick="cigAddManual()">+ Ajouter</button>
+    <button class="btn-p" onclick="cigAddManual()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
-    <div class="card-title">Liste</div>
-    <input class="inp" type="text" id="cig-list-search" placeholder="Rechercher dans la liste…" style="margin-bottom:10px"/>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
+    <input class="inp" type="text" id="cig-list-search" placeholder="Rechercher dans la liste…" data-ph-fr="Rechercher dans la liste…" data-ph-ar="ابحث في اللائحة…" style="margin-bottom:10px"/>
     <div id="cig-list"></div>
   </div>
   <div class="card">
@@ -635,8 +635,8 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="tbar"><span id="cig-net-lbl">Total (− 5%)</span><span id="cig-net">0.00 DH</span></div>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('products')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('recharge')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('products')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('recharge')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -644,18 +644,18 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-recharge">
 <div class="content">
   <div class="card">
-    <div class="card-title">📱 Recharge</div>
+    <div class="card-title" data-fr="📱 Recharge" data-ar="📱 التعبئة">📱 Recharge</div>
     <div class="denom-grid" id="rech-denoms"></div>
     <div class="num-field" onclick="openNP('rechQty','Quantité',true)"><span class="nf-label">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
-    <button class="btn-p" onclick="rechAddDenom()">+ Ajouter recharge</button>
+    <button class="btn-p" onclick="rechAddDenom()" data-fr="+ Ajouter recharge" data-ar="+ إضافة تعبئة">+ Ajouter recharge</button>
   </div>
   <div class="card">
-    <div class="card-title">💵 Dealer</div>
+    <div class="card-title" data-fr="💵 Dealer" data-ar="💵 الموزع">💵 Dealer</div>
     <div class="num-field" onclick="openNP('rechMont','Dealer (Montant DH)',true)"><span class="nf-label">Dealer (Montant DH)</span><span class="nf-val" id="rech-mont-val">0.00</span></div>
-    <button class="btn-p" onclick="rechAddDealer()">+ Ajouter dealer</button>
+    <button class="btn-p" onclick="rechAddDealer()" data-fr="+ Ajouter dealer" data-ar="+ إضافة موزع">+ Ajouter dealer</button>
   </div>
   <div class="card">
-    <div class="card-title">Liste</div>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="rech-list"></div>
   </div>
   <div class="card">
@@ -664,8 +664,8 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="tbar"><span id="rech-net-lbl">Total (− 6.5%)</span><span id="rech-net">0.00 DH</span></div>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('cigarettes')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('credit')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('cigarettes')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('credit')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -673,13 +673,13 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-credit">
 <div class="content">
   <div class="card">
-    <div class="card-title">📖 Crédit</div>
+    <div class="card-title" data-fr="📖 Crédit" data-ar="📖 الكريدي">📖 Crédit</div>
     <div class="big-field" onclick="openNP('credit','Crédit (DH)',true)"><span>Crédit (DH)</span><b id="credit-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('recharge')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('change')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('recharge')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('change')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -687,13 +687,13 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-change">
 <div class="content">
   <div class="card">
-    <div class="card-title">🧾 Argent de caisse</div>
+    <div class="card-title" data-fr="🧾 Argent de caisse" data-ar="🧾 مال الصندوق">🧾 Argent de caisse</div>
     <div class="big-field" onclick="openNP('change','Argent de caisse (DH)',true)"><span>Argent de caisse (DH)</span><b id="change-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('credit')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('cash')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('credit')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('cash')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -701,13 +701,13 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-cash">
 <div class="content">
   <div class="card">
-    <div class="card-title">💵 Cash</div>
+    <div class="card-title" data-fr="💵 Cash" data-ar="💵 كاش">💵 Cash</div>
     <div class="big-field" onclick="openNP('cash','Cash (DH)',true)"><span>Cash (DH)</span><b id="cash-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('change')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('moins')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('change')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('moins')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -715,7 +715,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-moins">
 <div class="content">
   <div class="card">
-    <div class="card-title">➖ Dépenses</div>
+    <div class="card-title" data-fr="➖ Dépenses" data-ar="➖ المصاريف">➖ Dépenses</div>
     <select class="inp" id="moins-type">
       <option value="credit_fourn">Crédit de fournisseur</option>
       <option value="impot">Les impôts</option>
@@ -723,19 +723,19 @@ html.dark .mode-txt b{color:#e8f0ec}
       <option value="loyer">Loyer</option>
       <option value="__new__">+ Ajouter un autre choix…</option>
     </select>
-    <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense"/>
+    <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense" data-ph-fr="Nom de la dépense" data-ph-ar="اسم المصروف"/>
     <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
     <div class="sign-field"><span>Signe</span><button class="sign-btn" id="moins-sign" onclick="moinsToggleSign()">-</button></div>
-    <button class="btn-p" onclick="moinsAdd()">+ Ajouter</button>
+    <button class="btn-p" onclick="moinsAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
-    <div class="card-title">Liste</div>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="moins-list"></div>
     <div class="tbar"><span>Total Dépenses</span><span id="moins-total">0.00 DH</span></div>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('cash')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('pris')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('cash')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('pris')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -743,19 +743,19 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-pris">
 <div class="content">
   <div class="card">
-    <div class="card-title">🤝 Argent pris</div>
-    <input class="inp" id="pris-name" placeholder="Nom"/>
+    <div class="card-title" data-fr="🤝 Argent pris" data-ar="🤝 المال المأخوذ">🤝 Argent pris</div>
+    <input class="inp" id="pris-name" placeholder="Nom" data-ph-fr="Nom" data-ph-ar="الاسم"/>
     <div class="num-field" onclick="openNP('prisMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="pris-mont-val">0.00</span></div>
-    <button class="btn-p" onclick="prisAdd()">+ Ajouter</button>
+    <button class="btn-p" onclick="prisAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
-    <div class="card-title">Liste</div>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="pris-list"></div>
     <div class="tbar"><span>Total argent pris</span><span id="pris-total">0.00 DH</span></div>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('moins')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('capital')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('moins')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('capital')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -763,13 +763,13 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-capital">
 <div class="content">
   <div class="card">
-    <div class="card-title">🏦 Capital</div>
+    <div class="card-title" data-fr="🏦 Capital" data-ar="🏦 رأس المال">🏦 Capital</div>
     <div class="big-field" onclick="openNP('capital','Capital (DH)',true)"><span>Capital (DH)</span><b id="capital-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Se soustrait du bénéfice</p>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('pris')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('bilan')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('pris')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('bilan')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -777,12 +777,12 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-bilan">
 <div class="content">
   <div class="card">
-    <div class="card-title">📊 Bilan / Bénéfice</div>
+    <div class="card-title" data-fr="📊 Bilan / Bénéfice" data-ar="📊 الحصيلة / الربح">📊 Bilan / Bénéfice</div>
     <div id="bilan-rows"></div>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('capital')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('partage')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('capital')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('partage')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -790,18 +790,18 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-partage">
 <div class="content">
   <div class="card">
-    <div class="card-title">🤝 Division des bénéfices</div>
-    <input class="inp" id="partner-name" placeholder="Nom de l'associé"/>
-    <button class="btn-p" onclick="partnerAdd()">+ Ajouter un associé</button>
+    <div class="card-title" data-fr="🤝 Division des bénéfices" data-ar="🤝 تقسيم الأرباح">🤝 Division des bénéfices</div>
+    <input class="inp" id="partner-name" placeholder="Nom de l'associé" data-ph-fr="Nom de l'associé" data-ph-ar="اسم الشريك"/>
+    <button class="btn-p" onclick="partnerAdd()" data-fr="+ Ajouter un associé" data-ar="+ إضافة شريك">+ Ajouter un associé</button>
   </div>
   <div class="card">
-    <div class="card-title">Associés</div>
+    <div class="card-title" data-fr="Associés" data-ar="الشركاء">Associés</div>
     <div id="partner-list"></div>
     <div class="tbar" id="partage-info"><span>Ajoutez au moins un associé</span><span></span></div>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('bilan')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('adjustment')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('bilan')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('adjustment')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -809,22 +809,22 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-adjustment">
 <div class="content">
   <div class="card">
-    <div class="card-title">⚖️ Adjustment</div>
+    <div class="card-title" data-fr="⚖️ Adjustment" data-ar="⚖️ التسوية">⚖️ Adjustment</div>
     <p style="font-size:13px;color:#666;margin-bottom:12px">Sélectionnez un associé et une personne (argent pris) pour calculer le solde net.</p>
     <label style="font-size:12px;color:#888">Associé (Partage)</label>
     <select class="inp" id="adj-partner" onchange="refreshAdjustment()"></select>
     <label style="font-size:12px;color:#888">Personne (Argent pris)</label>
     <select class="inp" id="adj-pris" onchange="refreshAdjustment()"></select>
-    <button class="btn-p" onclick="adjustmentAdd()">+ Ajouter au calcul</button>
+    <button class="btn-p" onclick="adjustmentAdd()" data-fr="+ Ajouter au calcul" data-ar="+ إضافة للحساب">+ Ajouter au calcul</button>
   </div>
   <div class="card">
-    <div class="card-title">Résultats</div>
+    <div class="card-title" data-fr="Résultats" data-ar="النتائج">Résultats</div>
     <div id="adjustment-result"></div>
     <div id="adjustment-list"></div>
   </div>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('partage')">← Retour</button>
-    <button class="btn-p" style="margin-top:0" onclick="showSection('recap2')">Suivant →</button>
+    <button class="btn-g" onclick="showSection('partage')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0" onclick="showSection('recap2')" data-fr="Suivant →" data-ar="التالي ←">Suivant →</button>
   </div>
 </div></div>
 </div>
@@ -832,13 +832,13 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-recap2">
 <div class="content">
   <div class="card">
-    <div class="card-title">📄 Récapitulatif</div>
+    <div class="card-title" data-fr="📄 Récapitulatif" data-ar="📄 الملخص">📄 Récapitulatif</div>
     <div id="recap2-rows"></div>
   </div>
-  <button class="btn-p" style="margin-bottom:10px;width:100%" onclick="genCaissePDF()">📄 Télécharger le PDF récapitulatif</button>
+  <button class="btn-p" style="margin-bottom:10px;width:100%" onclick="genCaissePDF()" data-fr="📄 Télécharger le PDF récapitulatif" data-ar="📄 تحميل ملف PDF">📄 Télécharger le PDF récapitulatif</button>
   <div class="nav-row">
-    <button class="btn-g" onclick="showSection('partage')">← Retour</button>
-    <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()">✓ Terminé</button>
+    <button class="btn-g" onclick="showSection('partage')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+    <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" data-fr="✓ Terminé" data-ar="✓ انتهى">✓ Terminé</button>
   </div>
 </div></div>
 </div>
@@ -860,8 +860,8 @@ html.dark .mode-txt b{color:#e8f0ec}
     </div>
     <button class="btn-p" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%" onclick="genPDF()"><span style="font-size:20px">📄</span><span id="t-dlpdf">Télécharger PDF</span></button>
     <div class="nav-row">
-      <button class="btn-g" onclick="showSection('products')" id="t-back3">← Retour</button>
-      <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" id="t-newinv">✓ Terminé</button>
+      <button class="btn-g" onclick="showSection('products')" id="t-back3" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
+      <button class="btn-p" style="margin-top:0;background:transparent;color:#d63031;border:.5px solid #d63031" onclick="newInv()" id="t-newinv" data-fr="✓ Terminé" data-ar="✓ انتهى">✓ Terminé</button>
     </div>
 </div></div>
 </div>
@@ -888,7 +888,7 @@ html.dark .mode-txt b{color:#e8f0ec}
       <button class="btn-p" onclick="updateProf('pin')" id="t-update2">Mettre à jour</button>
     </div>
     <div class="card hidden" id="back-to-app-card">
-      <button class="btn-g" style="width:100%" onclick="backToApp()" id="t-backapp">← Retour</button>
+      <button class="btn-g" style="width:100%" onclick="backToApp()" id="t-backapp" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
     </div>
   </div></div>
 </div></div>
