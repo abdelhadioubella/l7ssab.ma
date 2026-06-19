@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -433,6 +434,7 @@ html.dark .big-field b{color:#6ee7a8}
 .denom-btn{padding:14px 0;background:#f5f7f6;border:1px solid #e3e8e6;border-radius:12px;cursor:pointer;font-weight:700;color:#333;font-size:14px}
 .denom-btn.sel{background:#1a7a4a;color:#fff;border-color:#1a7a4a}
 html.dark .denom-btn{background:#1f2925;border-color:#2a3a33;color:#cfe}
+html.dark .denom-btn.sel{background:#1a7a4a;color:#fff;border-color:#37c87f;box-shadow:0 0 0 2px rgba(55,200,127,.4)}
 .sign-field{display:flex;align-items:center;justify-content:space-between;background:#f5f5f5;border-radius:12px;padding:10px 14px;margin-bottom:10px;font-size:14px;color:#555}
 .sign-btn{width:46px;height:46px;border:none;border-radius:10px;background:#ffeaea;color:#d63031;font-size:22px;font-weight:700;cursor:pointer}
 html.dark .sign-field{background:#1f2a25}
@@ -461,6 +463,38 @@ html.dark .scan-win{background:#18211d}
 .scan-lbl{flex:1;font-size:15px;font-weight:600;color:#222}
 html.dark .scan-stat{background:#1f2925}
 html.dark .scan-lbl{color:#e8f0ec}
+
+
+/* item tables (name|qty|price|total) */
+.itbl{width:100%;border-collapse:collapse;font-size:13px}
+.itbl th{text-align:left;font-size:11px;color:#888;font-weight:600;padding:6px 8px;border-bottom:1px solid #e3e8e6;text-transform:uppercase}
+.itbl td{padding:8px;border-bottom:1px solid #f0f2f1;color:#222}
+.itbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.itbl tr:last-child td{border-bottom:none}
+.itbl .it-name{font-weight:600}
+.itbl .it-act{text-align:right;white-space:nowrap}
+.itbl .it-act button{padding:5px 8px;border:none;border-radius:7px;font-size:13px;cursor:pointer;margin-left:3px}
+.itbl .it-edit{background:#eef5f1;color:#0f5132}
+.itbl .it-del{background:#ffeaea;color:#d63031}
+html.dark .itbl td{color:#e8f0ec;border-color:#243029}
+html.dark .itbl th{color:#9bb3a8;border-color:#2a3a33}
+html.dark .itbl .it-edit{background:#1c2622;color:#6ee7a8}
+[dir=rtl] .itbl th,[dir=rtl] .itbl td{text-align:right}
+[dir=rtl] .itbl td.num,[dir=rtl] .itbl .it-act{text-align:left}
+
+
+/* input mode popup */
+.mode-opt{display:flex;align-items:center;gap:12px;width:100%;padding:16px;background:#f7f9f8;border:2px solid #e3e8e6;border-radius:14px;margin-bottom:10px;cursor:pointer;text-align:left}
+.mode-opt.sel{border-color:#1a7a4a;background:#e8f5ee}
+.mode-emo{font-size:26px}
+.mode-txt{flex:1;display:flex;flex-direction:column}
+.mode-txt b{font-size:15px;color:#222}
+.mode-txt small{font-size:12px;color:#888}
+.mode-chk{color:#1a7a4a;font-size:20px;font-weight:700}
+html.dark .mode-opt{background:#1f2925;border-color:#2a3a33}
+html.dark .mode-opt.sel{background:#1c2622;border-color:#37c87f}
+html.dark .mode-txt b{color:#e8f0ec}
+[dir=rtl] .mode-opt{text-align:right}
 
 </style>
 </head>
@@ -551,7 +585,7 @@ html.dark .scan-lbl{color:#e8f0ec}
       <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit"/>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
         <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price">Prix (DH)</span><span id="nf-dp" class="nf-ph">Appuyer</span></div>
-        <div class="num-field" onclick="openNP('dQ','Quantite',false)"><span class="nf-label" id="t-qty">Quantité</span><span id="nf-dq" class="nf-ph">Appuyer</span></div>
+        <div class="num-field" onclick="openNP('dQ','Quantite',true)"><span class="nf-label" id="t-qty">Quantité</span><span id="nf-dq" class="nf-ph">Appuyer</span></div>
       </div>
       <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
     </div>
@@ -580,7 +614,7 @@ html.dark .scan-lbl{color:#e8f0ec}
     <input class="inp" type="text" id="cig-name" placeholder="Nom du produit"/>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
       <div class="num-field" onclick="openNP('cigAddP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="cig-add-p" class="nf-ph">Appuyer</span></div>
-      <div class="num-field" onclick="openNP('cigAddQ','Quantité',false)"><span class="nf-label">Quantité</span><span id="cig-add-q" class="nf-ph">Appuyer</span></div>
+      <div class="num-field" onclick="openNP('cigAddQ','Quantité',true)"><span class="nf-label">Quantité</span><span id="cig-add-q" class="nf-ph">Appuyer</span></div>
     </div>
     <button class="btn-p" onclick="cigAddManual()">+ Ajouter</button>
   </div>
@@ -606,7 +640,7 @@ html.dark .scan-lbl{color:#e8f0ec}
   <div class="card">
     <div class="card-title">📱 Recharge</div>
     <div class="denom-grid" id="rech-denoms"></div>
-    <div class="num-field" onclick="openNP('rechQty','Quantité',false)"><span class="nf-label">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
+    <div class="num-field" onclick="openNP('rechQty','Quantité',true)"><span class="nf-label">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
     <button class="btn-p" onclick="rechAddDenom()">+ Ajouter recharge</button>
   </div>
   <div class="card">
@@ -633,7 +667,7 @@ html.dark .scan-lbl{color:#e8f0ec}
 <div class="appsec" id="sec-credit">
 <div class="content">
   <div class="card">
-    <div class="card-title">💳 Crédit</div>
+    <div class="card-title">📖 Crédit</div>
     <div class="big-field" onclick="openNP('credit','Crédit (DH)',true)"><span>Crédit (DH)</span><b id="credit-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
   </div>
@@ -647,8 +681,8 @@ html.dark .scan-lbl{color:#e8f0ec}
 <div class="appsec" id="sec-change">
 <div class="content">
   <div class="card">
-    <div class="card-title">💱 Change</div>
-    <div class="big-field" onclick="openNP('change','Change (DH)',true)"><span>Change — Montant (DH)</span><b id="change-val">0.00 DH</b></div>
+    <div class="card-title">🧾 Argent de caisse</div>
+    <div class="big-field" onclick="openNP('change','Argent de caisse (DH)',true)"><span>Argent de caisse (DH)</span><b id="change-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
@@ -750,7 +784,7 @@ html.dark .scan-lbl{color:#e8f0ec}
 <div class="appsec" id="sec-partage">
 <div class="content">
   <div class="card">
-    <div class="card-title">🤝 Partage du bénéfice</div>
+    <div class="card-title">🤝 Division des bénéfices</div>
     <input class="inp" id="partner-name" placeholder="Nom de l'associé"/>
     <button class="btn-p" onclick="partnerAdd()">+ Ajouter un associé</button>
   </div>
@@ -951,6 +985,8 @@ html.dark .scan-lbl{color:#e8f0ec}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button class="btn-p" onclick="exportProducts('csv')">⬇️ Products CSV</button>
       <button class="btn-p" onclick="exportProducts('json')">⬇️ Products JSON</button>
+      <button class="btn-p" onclick="exportCigarettes('csv')">⬇️ Cigarettes CSV</button>
+      <button class="btn-p" onclick="exportCigarettes('json')">⬇️ Cigarettes JSON</button>
       <button class="btn-p" onclick="exportUsers()">⬇️ Users JSON</button>
       <button class="btn-p" onclick="exportProjectsJSON()">⬇️ Projects JSON</button>
     </div>
@@ -961,6 +997,8 @@ html.dark .scan-lbl{color:#e8f0ec}
     <p style="font-size:13px;color:#888;margin-bottom:12px">Restore products/users from a file. Duplicates are skipped.</p>
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin-bottom:4px">Products (CSV or JSON)</div>
     <input type="file" id="imp-prod" accept=".csv,.json" onchange="importProducts(this.files[0])" style="margin-bottom:10px"/>
+    <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Cigarettes (CSV or JSON)</div>
+    <input type="file" id="imp-cig" accept=".csv,.json" onchange="importCigarettes(this.files[0])" style="margin-bottom:10px"/>
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Users (JSON only — keeps hashed PIN)</div>
     <input type="file" id="imp-users" accept=".json" onchange="importUsers(this.files[0])" style="margin-bottom:10px"/>
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Projects (JSON) — restores projects + items + adjustments</div>
