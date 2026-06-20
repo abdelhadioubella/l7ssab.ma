@@ -532,7 +532,7 @@ html.dark .mode-txt b{color:#e8f0ec}
     </div>
     <div id="login-step-username" class="hidden">
       <p style="font-size:13px;font-weight:600;color:#1a7a4a;margin-bottom:10px" id="t-enter-uname">Entrez votre nom d'utilisateur</p>
-      <input class="inp" type="text" id="login-username" placeholder="Nom d'utilisateur" onkeydown="if(event.key==='Enter')loginCheckUser()"/>
+      <input class="inp" type="text" id="login-username" placeholder="Nom d'utilisateur" onkeydown="if(event.key==='Enter')loginCheckUser()"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <button class="btn-g" onclick="backToPlus()">Annuler</button>
         <button class="btn-p" style="margin-top:0" onclick="loginCheckUser()">Continuer →</button>
@@ -563,19 +563,19 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" id="t-newproj">Nouveau projet</div>
-    <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…"/>
+    <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <button class="btn-p" onclick="createProj()" id="t-createproj">Créer le projet →</button>
   </div>
   <div class="card"><div class="card-title" id="t-savedproj">Projets sauvegardés</div>
     <div class="filter-bar">
       <div class="filter-search">
         <span class="fs-icon">🔍</span>
-        <input type="text" id="uproj-search" placeholder="Rechercher…" oninput="applyUserProjFilters()"/>
+        <input type="text" id="uproj-search" placeholder="Rechercher…" oninput="applyUserProjFilters()"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       </div>
       <div class="filter-dates">
-        <input type="date" id="uproj-from" onchange="applyUserProjFilters()" title="De"/>
+        <input type="date" id="uproj-from" onchange="applyUserProjFilters()" title="De"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <span class="fd-sep">→</span>
-        <input type="date" id="uproj-to" onchange="applyUserProjFilters()" title="À"/>
+        <input type="date" id="uproj-to" onchange="applyUserProjFilters()" title="À"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <button class="filter-clear" onclick="clearUserProjFilters()" id="t-uclear" title="Effacer">✕</button>
       </div>
     </div>
@@ -587,7 +587,8 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="card">
       <div class="card-title" id="t-addprod">Ajouter un produit</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autofocus/>
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+        <button onclick="openBarcodeNP('prod')" title="Clavier numérique" style="padding:11px 14px;background:#eef5f1;color:#0f5132;border:none;border-radius:10px;font-size:16px;flex-shrink:0">🔢</button>
         <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
@@ -602,7 +603,7 @@ html.dark .mode-txt b{color:#e8f0ec}
     </div>
     <div class="card" id="prod-list-card">
       <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
-      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" data-ph-fr="Rechercher dans les produits…" data-ph-ar="ابحث في المنتجات…" oninput="filterProdList(this.value)" style="margin-bottom:10px"/>
+      <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" data-ph-fr="Rechercher dans les produits…" data-ph-ar="ابحث في المنتجات…" oninput="filterProdList(this.value)" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <div id="prod-list"></div>
     </div>
     <div class="tbar hidden" id="run-total"><span id="t-runtotal">Total provisoire</span><span id="rtval">0.00 DH</span></div>
@@ -618,7 +619,8 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="🚬 Cigarettes" data-ar="🚬 السجائر">🚬 Cigarettes</div>
     <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-      <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off"/>
+      <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <button onclick="openBarcodeNP('cig')" title="Clavier numérique" style="padding:11px 14px;background:#eef5f1;color:#0f5132;border:none;border-radius:10px;font-size:16px;flex-shrink:0">🔢</button>
       <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
     </div>
     <div id="cig-suggest" class="suggest-box hidden"></div>
@@ -632,7 +634,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   </div>
   <div class="card">
     <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
-    <input class="inp" type="text" id="cig-list-search" placeholder="Rechercher dans la liste…" data-ph-fr="Rechercher dans la liste…" data-ph-ar="ابحث في اللائحة…" style="margin-bottom:10px"/>
+    <input class="inp" type="text" id="cig-list-search" placeholder="Rechercher dans la liste…" data-ph-fr="Rechercher dans la liste…" data-ph-ar="ابحث في اللائحة…" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div id="cig-list"></div>
   </div>
   <div class="card">
@@ -729,7 +731,7 @@ html.dark .mode-txt b{color:#e8f0ec}
       <option value="loyer">Loyer</option>
       <option value="__new__">+ Ajouter un autre choix…</option>
     </select>
-    <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense" data-ph-fr="Nom de la dépense" data-ph-ar="اسم المصروف"/>
+    <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense" data-ph-fr="Nom de la dépense" data-ph-ar="اسم المصروف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
     <div class="sign-field"><span>Signe</span><button class="sign-btn" id="moins-sign" onclick="moinsToggleSign()">-</button></div>
     <button class="btn-p" onclick="moinsAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
@@ -750,7 +752,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" data-fr="🤝 Argent pris" data-ar="🤝 المال المأخوذ">🤝 Argent pris</div>
-    <input class="inp" id="pris-name" placeholder="Nom" data-ph-fr="Nom" data-ph-ar="الاسم"/>
+    <input class="inp" id="pris-name" placeholder="Nom" data-ph-fr="Nom" data-ph-ar="الاسم"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="num-field" onclick="openNP('prisMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="pris-mont-val">0.00</span></div>
     <button class="btn-p" onclick="prisAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
@@ -797,7 +799,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" data-fr="🤝 Division des bénéfices" data-ar="🤝 تقسيم الأرباح">🤝 Division des bénéfices</div>
-    <input class="inp" id="partner-name" placeholder="Nom de l'associé" data-ph-fr="Nom de l'associé" data-ph-ar="اسم الشريك"/>
+    <input class="inp" id="partner-name" placeholder="Nom de l'associé" data-ph-fr="Nom de l'associé" data-ph-ar="اسم الشريك"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <button class="btn-p" onclick="partnerAdd()" data-fr="+ Ajouter un associé" data-ar="+ إضافة شريك">+ Ajouter un associé</button>
   </div>
   <div class="card">
@@ -878,12 +880,12 @@ html.dark .mode-txt b{color:#e8f0ec}
       <button class="btn-p" onclick="updateProf('username')" id="t-update0">Mettre à jour</button>
     </div>
     <div class="card"><div class="card-title" id="t-chgname">Changer le nom complet</div>
-      <input class="inp" type="text" id="prof-newname"/>
+      <input class="inp" type="text" id="prof-newname"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <button class="btn-p" onclick="updateProf('name')" id="t-update1">Mettre à jour</button>
     </div>
     <div class="card"><div class="card-title" id="t-chgpin">Changer le PIN</div>
-      <input class="inp" type="password" id="prof-newpin" placeholder="Nouveau PIN (6 chiffres)" maxlength="6"/>
-      <input class="inp" type="password" id="prof-confpin" placeholder="Confirmer le PIN" maxlength="6"/>
+      <input class="inp" type="password" id="prof-newpin" placeholder="Nouveau PIN (6 chiffres)" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="password" id="prof-confpin" placeholder="Confirmer le PIN" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <button class="btn-p" onclick="updateProf('pin')" id="t-update2">Mettre à jour</button>
     </div>
     <div class="card hidden" id="back-to-app-card">
@@ -923,7 +925,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-cigdb">
 <div class="content">
     <div class="card"><div class="card-title">Rechercher / modifier une cigarette</div>
-      <input class="inp" type="text" id="cigdb-search" placeholder="Nom ou code-barres…" oninput="cigDbSearch(this.value)"/>
+      <input class="inp" type="text" id="cigdb-search" placeholder="Nom ou code-barres…" oninput="cigDbSearch(this.value)"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <div id="cigdb-results"></div>
     </div>
     <div class="card"><div class="card-title">Toutes les cigarettes</div>
@@ -935,12 +937,12 @@ html.dark .mode-txt b{color:#e8f0ec}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-p" style="flex:1;min-width:140px" onclick="toggleCigAddForm()">+ Ajouter une cigarette</button>
         <button class="btn-p" style="flex:1;min-width:140px;background:#2563eb" onclick="G('cigcsv-file').click()">⬆️ Import CSV</button>
-        <input type="file" id="cigcsv-file" accept=".csv,text/csv" style="display:none" onchange="importCigarettes(this.files[0])"/>
+        <input type="file" id="cigcsv-file" accept=".csv,text/csv" style="display:none" onchange="importCigarettes(this.files[0])"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       </div>
       <div id="cigdb-add-form" class="hidden" style="margin-top:12px">
-        <input class="inp" type="text" id="cigdb-bc" placeholder="Code-barres"/>
-        <input class="inp" type="text" id="cigdb-nm" placeholder="Nom de la cigarette"/>
-        <input class="inp" type="number" id="cigdb-pr" placeholder="Prix (DH)"/>
+        <input class="inp" type="text" id="cigdb-bc" placeholder="Code-barres"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <input class="inp" type="text" id="cigdb-nm" placeholder="Nom de la cigarette"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <input class="inp" type="number" id="cigdb-pr" placeholder="Prix (DH)"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <button class="btn-p" onclick="cigDbAdd()">+ Ajouter</button>
       </div>
       <p style="font-size:11px;color:#999;margin-top:10px">CSV: 3 colonnes — code-barres, nom, prix</p>
@@ -951,7 +953,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-database">
 <div class="content">
     <div class="card"><div class="card-title" id="t-search-edit">Search / edit a product</div>
-      <input class="inp" type="text" id="db-search" placeholder="Name or barcode…" oninput="dbSearch(this.value)"/>
+      <input class="inp" type="text" id="db-search" placeholder="Name or barcode…" oninput="dbSearch(this.value)"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <div id="db-results"></div>
     </div>
     <div class="card"><div class="card-title" id="t-all-prods">All products</div>
@@ -963,12 +965,12 @@ html.dark .mode-txt b{color:#e8f0ec}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-p" style="flex:1;min-width:140px" onclick="toggleAddForm()" id="t-add-toggle">+ Add a product</button>
         <button class="btn-p" style="flex:1;min-width:140px;background:#2563eb" onclick="G('csv-file').click()" id="t-csv-btn">⬆️ Import CSV</button>
-        <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none" onchange="importCSV(this.files[0])"/>
+        <input type="file" id="csv-file" accept=".csv,text/csv" style="display:none" onchange="importCSV(this.files[0])"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       </div>
       <div id="db-add-form" class="hidden" style="margin-top:12px">
-        <input class="inp" type="text" id="db-bc" placeholder="Barcode"/>
-        <input class="inp" type="text" id="db-nm" placeholder="Product name"/>
-        <input class="inp" type="number" id="db-pr" placeholder="Price (DH)"/>
+        <input class="inp" type="text" id="db-bc" placeholder="Barcode"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <input class="inp" type="text" id="db-nm" placeholder="Product name"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <input class="inp" type="number" id="db-pr" placeholder="Price (DH)"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <button class="btn-p" onclick="dbAddProd()" id="t-add-prod-btn">+ Add product</button>
       </div>
       <p style="font-size:11px;color:#999;margin-top:10px" id="t-csv-hint">CSV: 3 colonnes — code-barres, nom, prix</p>
@@ -979,9 +981,9 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
     <div class="card">
       <div class="card-title" id="t-createuser">Create a user</div>
-      <input class="inp" type="text" id="new-uname" placeholder="Username"/>
-      <input class="inp" type="text" id="new-ufull" placeholder="Full name"/>
-      <input class="inp" type="password" id="new-upin" placeholder="PIN (6 digits)" maxlength="6"/>
+      <input class="inp" type="text" id="new-uname" placeholder="Username"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="text" id="new-ufull" placeholder="Full name"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="password" id="new-upin" placeholder="PIN (6 digits)" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <select class="inp" id="new-urole"><option value="user">User</option><option value="admin">Administrator</option></select>
       <p class="hidden" id="user-err" style="color:#d63031;font-size:13px;margin-bottom:8px"></p>
       <button class="btn-p" onclick="doCreateUser()" id="t-createbtn">Create</button>
@@ -998,12 +1000,12 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="filter-bar">
       <div class="filter-search">
         <span class="fs-icon">🔍</span>
-        <input type="text" id="proj-search" placeholder="Search…" oninput="applyProjFilters()"/>
+        <input type="text" id="proj-search" placeholder="Search…" oninput="applyProjFilters()"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       </div>
       <div class="filter-dates">
-        <input type="date" id="proj-from" onchange="applyProjFilters()" title="From"/>
+        <input type="date" id="proj-from" onchange="applyProjFilters()" title="From"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <span class="fd-sep">→</span>
-        <input type="date" id="proj-to" onchange="applyProjFilters()" title="To"/>
+        <input type="date" id="proj-to" onchange="applyProjFilters()" title="To"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <button class="filter-clear" onclick="clearProjFilters()" title="Clear">✕</button>
       </div>
     </div>
@@ -1029,15 +1031,15 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card"><div class="card-title">Import</div>
     <p style="font-size:13px;color:#888;margin-bottom:12px">Restore products/users from a file. Duplicates are skipped.</p>
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin-bottom:4px">Products (CSV or JSON)</div>
-    <input type="file" id="imp-prod" accept=".csv,.json" onchange="importProducts(this.files[0])" style="margin-bottom:10px"/>
+    <input type="file" id="imp-prod" accept=".csv,.json" onchange="importProducts(this.files[0])" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Cigarettes (CSV or JSON)</div>
-    <input type="file" id="imp-cig" accept=".csv,.json" onchange="importCigarettes(this.files[0])" style="margin-bottom:10px"/>
+    <input type="file" id="imp-cig" accept=".csv,.json" onchange="importCigarettes(this.files[0])" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Users (JSON only — keeps hashed PIN)</div>
-    <input type="file" id="imp-users" accept=".json" onchange="importUsers(this.files[0])" style="margin-bottom:10px"/>
+    <input type="file" id="imp-users" accept=".json" onchange="importUsers(this.files[0])" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Projects (JSON) — restores projects + items + adjustments</div>
-    <input type="file" id="imp-projects" accept=".json" onchange="importProjects(this.files[0])" style="margin-bottom:10px"/>
+    <input type="file" id="imp-projects" accept=".json" onchange="importProjects(this.files[0])" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="ml" style="font-size:12px;font-weight:600;color:#666;margin:10px 0 4px">Full backup (JSON)</div>
-    <input type="file" id="imp-full" accept=".json" onchange="importFull(this.files[0])"/>
+    <input type="file" id="imp-full" accept=".json" onchange="importFull(this.files[0])"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
   </div>
   <div id="backup-log" style="font-size:12px;color:#888"></div>
 </div></div>
