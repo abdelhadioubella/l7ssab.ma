@@ -1074,12 +1074,9 @@ function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
 // open the app numpad to type a barcode manually (no device keyboard)
 function openBarcodeNP(which){openNPcb(isAr()?'الباركود':'Code-barres',(which==='cig'?(G('cig-scan')&&G('cig-scan').value):(G('scan-inp')&&G('scan-inp').value))||'',function(v){var code=String(v||'').replace(/\..*$/,'');if(!code)return;if(which==='cig'){var ci=G('cig-scan');if(ci)ci.value=code;cigScan(code);}else{var si=G('scan-inp');if(si)si.value=code;handleScan(code);}});}
 function startScanGuard(){
-  if(_scanFocusTimer)return;
-  _scanFocusTimer=setInterval(function(){
-    if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
-    var a=document.activeElement,tag=a?a.tagName:'';
-    if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA')focusScan();
-  },400);
+  // No longer auto-focuses the scan field. The global scanner capture works
+  // regardless of focus, and the barcode field is readonly (tap = numpad).
+  return;
 }
 function endScan(){
   var code=(G('scan-inp')&&G('scan-inp').value||'').trim();
@@ -1098,28 +1095,7 @@ function isNavNoise(e){
   var bad={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1};
   return !!bad[e.key];
 }
-document.addEventListener('keydown',function(e){
-  if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
-  var a=document.activeElement,tag=a?a.tagName:'';
-  var inScan=(a&&a.id==='scan-inp');
-  var inOther=(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')&&!inScan;
-  if(inOther)return; // user typing elsewhere -> leave alone
-
-  // End of scan
-  if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
-    e.preventDefault();e.stopPropagation();
-    endScan();
-    return false;
-  }
-  // Swallow navigation-noise keys so the page never moves (do NOT modify the field)
-  if(isNavNoise(e)){e.preventDefault();e.stopPropagation();return false;}
-  // Backspace must not navigate "back" when not in the field
-  if(e.key==='Backspace'&&!inScan){e.preventDefault();return;}
-  // Make sure scanned digits land in the scan field: if focus drifted, redirect it there
-  if(!inScan&&e.key&&e.key.length===1&&e.key>='0'&&e.key<='9'){
-    var s=G('scan-inp');if(s){s.focus();}
-  }
-},true);
+// (old per-field scan keydown handler removed — global scanner capture below handles all scan pages)
 function setupScanInput(){
   var s=G('scan-inp');if(!s)return;
   s.addEventListener('input',function(){
@@ -1139,20 +1115,30 @@ function activeScanTarget(){
   return null;
 }
 document.addEventListener('keydown',function(e){
-  // ignore while numpad/modal open or typing in a normal text field
+  // ignore while numpad/modal open
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
+  if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
   var a=document.activeElement,tag=a?a.tagName:'';
-  // allow typing in name/search fields normally
-  if((tag==='INPUT'||tag==='TEXTAREA')&&a.id!=='scan-inp'&&a.id!=='cig-scan'&&a.id!=='psearch'&&a.id!=='cig-list-search')return;
+  // allow normal typing only in genuine text fields (name inputs). Search fields also receive scans.
+  var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1};
+  if((tag==='INPUT'||tag==='TEXTAREA')&&allowIds[a.id])return;
   var now=Date.now();
-  if(now-_scanLast>120)_scanBuf=''; // reset if gap (human typing); scanners are <50ms/char
+  // reset buffer only after a long human pause (500ms); scanners burst much faster
+  if(now-_scanLast>500)_scanBuf='';
   _scanLast=now;
-  if(e.key==='Enter'||e.code==='NumpadEnter'){
-    if(_scanBuf.length>=3){var code=_scanBuf;_scanBuf='';markUSBconnected();if(tgt==='cig')cigScan(code);else handleScan(code);e.preventDefault();return false;}
-    _scanBuf='';return;
+  // END of scan
+  if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
+    e.preventDefault();e.stopPropagation();
+    if(_scanBuf.length>=3){var code=_scanBuf;_scanBuf='';markUSBconnected();if(tgt==='cig')cigScan(code);else handleScan(code);}
+    else{_scanBuf='';}
+    return false;
   }
-  if(e.key&&e.key.length===1){_scanBuf+=e.key;}
+  // Swallow navigation-noise keys so the page NEVER goes back / moves
+  var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1,Backspace:1};
+  if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
+  // collect printable characters into the scan buffer
+  if(e.key&&e.key.length===1){_scanBuf+=e.key;e.preventDefault();e.stopPropagation();return false;}
 },true);
 function markUSBconnected(){_usbOn=true;var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}var dot2=G('usb-mini-dot2'),badge2=G('usb-mini-badge2');if(dot2)dot2.style.background='#1a7a4a';if(badge2){badge2.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge2.className='badge b-ok';}updateScanPopup();}
 // ===== SCAN POPUP (USB + BT status, connect BT) =====
