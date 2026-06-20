@@ -1579,6 +1579,8 @@ if('serviceWorker' in navigator){
 // scanner listeners + suggestions outside-click (active globally; only act in products section)
 document.addEventListener('click',function(e){var b=G('scan-suggest');if(!b||b.classList.contains('hidden'))return;if(!e.target.closest('#scan-suggest')&&e.target.id!=='scan-inp')hideSuggest();});
 startScanGuard();setupScanInput();checkUSBDevices();
+// Try to unlock screen orientation so the tablet's auto-rotate works in the installed PWA
+try{if(screen&&screen.orientation&&screen.orientation.unlock){screen.orientation.unlock();}}catch(e){}
 
 // boot: if already logged in, enter app; else show login
 // ============ CAISSE SECTIONS (in-project flow) ============

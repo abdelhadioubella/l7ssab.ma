@@ -587,8 +587,7 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="card">
       <div class="card-title" id="t-addprod">Ajouter un produit</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-        <button onclick="openBarcodeNP('prod')" title="Clavier numérique" style="padding:11px 14px;background:#eef5f1;color:#0f5132;border:none;border-radius:10px;font-size:16px;flex-shrink:0">🔢</button>
+        <input class="inp" type="text" id="scan-inp" placeholder="Scannez ou cliquez pour saisir…" data-ph-fr="Scannez ou cliquez pour saisir…" data-ph-ar="امسح أو اضغط للإدخال…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly onclick="openBarcodeNP('prod')"/>
         <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
@@ -619,8 +618,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="🚬 Cigarettes" data-ar="🚬 السجائر">🚬 Cigarettes</div>
     <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-      <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou tapez le code-barres…" data-ph-fr="Scannez ou tapez le code-barres…" data-ph-ar="امسح أو اكتب الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <button onclick="openBarcodeNP('cig')" title="Clavier numérique" style="padding:11px 14px;background:#eef5f1;color:#0f5132;border:none;border-radius:10px;font-size:16px;flex-shrink:0">🔢</button>
+      <input class="inp" type="text" id="cig-scan" placeholder="Scannez ou cliquez pour saisir…" data-ph-fr="Scannez ou cliquez pour saisir…" data-ph-ar="امسح أو اضغط للإدخال…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly onclick="openBarcodeNP('cig')"/>
       <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
     </div>
     <div id="cig-suggest" class="suggest-box hidden"></div>
