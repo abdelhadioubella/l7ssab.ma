@@ -838,9 +838,9 @@ function showSection(name){
   applyTR();applyLangAttrs();
   // per-section refresh
   if(name==='inventory')refreshProjs();
-  else if(name==='products'){refreshEdit();updateRT();updateNFs();setTimeout(focusScan,120);}
+  else if(name==='products'){refreshEdit();updateRT();updateNFs();setTimeout(focusScanField,150);}
   else if(name==='recap')refreshRecap();
-  else if(name==='cigarettes')refreshCig();
+  else if(name==='cigarettes'){refreshCig();setTimeout(focusScanField,150);}
   else if(name==='recharge')refreshRech();
   else if(name==='credit')csSimpleRefresh('credit');
   else if(name==='change')csSimpleRefresh('change');
@@ -1120,27 +1120,43 @@ document.addEventListener('keydown',function(e){
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
   var a=document.activeElement,tag=a?a.tagName:'';
-  // allow normal typing only in genuine text fields (name inputs). Search fields also receive scans.
+  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
+  // If the scan field itself is focused, its own onkeydown (scanFieldKey) handles everything.
+  if(a&&box&&a.id===box.id)return;
+  // allow normal typing in genuine text fields (name inputs)
   var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1};
   if((tag==='INPUT'||tag==='TEXTAREA')&&allowIds[a.id])return;
-  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
+  // Focus drifted away or nothing focused: redirect this keystroke into the scan box.
   var now=Date.now();
-  // reset buffer only after a long human pause (500ms); scanners burst much faster
   if(now-_scanLast>500){_scanBuf='';if(box)box.value='';}
   _scanLast=now;
-  // END of scan
   if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
     e.preventDefault();e.stopPropagation();
     if(_scanBuf.length>=3){var code=_scanBuf;_scanBuf='';markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);}
     else{_scanBuf='';if(box)box.value='';}
     return false;
   }
-  // Swallow navigation-noise keys so the page NEVER goes back / moves
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1,Backspace:1};
   if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
-  // collect printable characters into the scan buffer AND show them live in the box
-  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box)box.value=_scanBuf;e.preventDefault();e.stopPropagation();return false;}
+  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box){box.value=_scanBuf;try{box.focus();}catch(_){}}e.preventDefault();e.stopPropagation();return false;}
 },true);
+// Handler when the scan FIELD is focused (scanner types directly into it)
+function scanFieldKey(e,tgt){
+  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
+  if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
+    e.preventDefault();e.stopPropagation();
+    var code=(box&&box.value||'').trim();
+    if(code.length>=3){markUSBconnected();if(tgt==='cig')cigScan(code);else handleScan(code);}
+    else if(code.length>0){ if(tgt!=='cig')doSearch(); }
+    return false;
+  }
+  // Block navigation keys so the page never goes back while scanning
+  var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1};
+  if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
+  // let normal characters and Backspace work inside the field
+}
+// Auto-focus the scan field when on a scan page so the scanner always lands there
+function focusScanField(){var t=activeScanTarget();if(!t)return;var box=G(t==='cig'?'cig-scan':'scan-inp');if(box){try{box.focus();}catch(e){}}}
 function markUSBconnected(){_usbOn=true;var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}var dot2=G('usb-mini-dot2'),badge2=G('usb-mini-badge2');if(dot2)dot2.style.background='#1a7a4a';if(badge2){badge2.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge2.className='badge b-ok';}updateScanPopup();}
 // ===== SCAN POPUP (USB + BT status, connect BT) =====
 var _usbOn=false;
