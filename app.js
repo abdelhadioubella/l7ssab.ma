@@ -838,9 +838,9 @@ function showSection(name){
   applyTR();applyLangAttrs();
   // per-section refresh
   if(name==='inventory')refreshProjs();
-  else if(name==='products'){refreshEdit();updateRT();updateNFs();setTimeout(focusScanField,150);}
+  else if(name==='products'){refreshEdit();updateRT();updateNFs();}
   else if(name==='recap')refreshRecap();
-  else if(name==='cigarettes'){refreshCig();setTimeout(focusScanField,150);}
+  else if(name==='cigarettes'){refreshCig();}
   else if(name==='recharge')refreshRech();
   else if(name==='credit')csSimpleRefresh('credit');
   else if(name==='change')csSimpleRefresh('change');
@@ -1138,7 +1138,7 @@ document.addEventListener('keydown',function(e){
   }
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1,Backspace:1};
   if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
-  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box){box.value=_scanBuf;try{box.focus();}catch(_){}}e.preventDefault();e.stopPropagation();return false;}
+  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box){box.value=_scanBuf;}e.preventDefault();e.stopPropagation();return false;}
 },true);
 // Handler when the scan FIELD is focused (scanner types directly into it)
 function scanFieldKey(e,tgt){
