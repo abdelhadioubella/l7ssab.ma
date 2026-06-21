@@ -1138,7 +1138,7 @@ document.addEventListener('keydown',function(e){
   }
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1,Backspace:1};
   if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
-  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box){box.value=_scanBuf;try{box.focus();}catch(_){}}e.preventDefault();e.stopPropagation();return false;}
+  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box){box.value=_scanBuf;}e.preventDefault();e.stopPropagation();return false;}
 },true);
 // Handler when the scan FIELD is focused (scanner types directly into it)
 function scanFieldKey(e,tgt){
@@ -1169,8 +1169,9 @@ function openScanPopup(){
       '<div class="scan-body">'+
         '<div class="scan-stat"><span class="scan-dot" id="sp-usb-dot"></span><span class="scan-lbl">USB</span><span class="badge" id="sp-usb-badge">…</span></div>'+
         '<div class="scan-stat"><span class="scan-dot" id="sp-bt-dot"></span><span class="scan-lbl">Bluetooth</span><span class="badge" id="sp-bt-badge">…</span></div>'+
-        '<button class="btn-p" id="sp-bt-btn" onclick="connectBT()" style="margin-top:14px">🔵 '+(isAr()?'ربط بلوتوث':'Connecter Bluetooth')+'</button>'+
-        '<p style="font-size:12px;color:#888;text-align:center;margin-top:10px">'+(isAr()?'الماسح USB يعمل تلقائياً':'Le scanner USB fonctionne automatiquement')+'</p>'+
+        '<button class="btn-p" id="sp-usb-btn" onclick="connectUSB()" style="margin-top:14px;background:#1a7a4a">🔌 '+(isAr()?'ربط الماسح USB':'Connecter scanner USB')+'</button>'+
+        '<button class="btn-p" id="sp-bt-btn" onclick="connectBT()" style="margin-top:10px">🔵 '+(isAr()?'ربط بلوتوث':'Connecter Bluetooth')+'</button>'+
+        '<p style="font-size:12px;color:#888;text-align:center;margin-top:10px">'+(isAr()?'على اللوحة: اربط الماسح USB لمنع ظهور لوحة المفاتيح':'Sur tablette : connectez le scanner USB pour éviter le clavier')+'</p>'+
       '</div>'+
     '</div>'+
   '</div>';
@@ -1199,6 +1200,43 @@ function updateScanPopup(){
 }
 function checkUSBDevices(){try{if(navigator.hid&&navigator.hid.getDevices){navigator.hid.getDevices().then(function(devs){if(devs&&devs.length>0)markUSBconnected();}).catch(function(){});}}catch(e){}}
 function connectBT(){if(!navigator.bluetooth){showToast('Web Bluetooth non supporté.');return;}navigator.bluetooth.requestDevice({acceptAllDevices:true}).then(function(dev){btDev=dev;dev.addEventListener('gattserverdisconnected',function(){btDev=null;setBT(false,'');updateScanPopup&&updateScanPopup();});setBT(true,dev.name||'BT');showToast('✅ BT');updateScanPopup&&updateScanPopup();}).catch(function(){});}
+// ===== DIRECT USB SCANNER (WebHID) — bypasses the on-screen keyboard on tablets =====
+var _hidDev=null,_hidBuf='';
+// HID usage codes -> characters (US keyboard layout, digits + common chars)
+var HIDMAP={4:'a',5:'b',6:'c',7:'d',8:'e',9:'f',10:'g',11:'h',12:'i',13:'j',14:'k',15:'l',16:'m',17:'n',18:'o',19:'p',20:'q',21:'r',22:'s',23:'t',24:'u',25:'v',26:'w',27:'x',28:'y',29:'z',30:'1',31:'2',32:'3',33:'4',34:'5',35:'6',36:'7',37:'8',38:'9',39:'0',45:'-',46:'=',44:' '};
+var HIDMAP_SHIFT={30:'!',31:'@',32:'#',33:'$',34:'%',35:'^',36:'&',37:'*',38:'(',39:')'};
+function connectUSB(){
+  if(!navigator.hid||!navigator.hid.requestDevice){showToast(isAr()?'هذا المتصفح لا يدعم USB المباشر. استعمل Chrome.':'Ce navigateur ne supporte pas l\'USB direct. Utilisez Chrome.');return;}
+  navigator.hid.requestDevice({filters:[]}).then(function(devices){
+    if(!devices||!devices.length){showToast(isAr()?'لم يتم اختيار جهاز':'Aucun appareil choisi');return;}
+    var dev=devices[0];
+    var open=dev.opened?Promise.resolve():dev.open();
+    open.then(function(){
+      _hidDev=dev;markUSBconnected();showToast('✅ '+(dev.productName||'Scanner USB'));
+      dev.addEventListener('inputreport',onHIDReport);
+      dev.addEventListener('disconnect',function(){_hidDev=null;});
+      updateScanPopup&&updateScanPopup();
+    }).catch(function(err){showToast('❌ '+(err&&err.message||'USB'));});
+  }).catch(function(){});
+}
+function onHIDReport(e){
+  try{
+    var data=new Uint8Array(e.data.buffer);
+    // Standard boot keyboard report: byte0=modifiers, byte2..=keycodes
+    var shift=(data[0]&0x22)!==0; // left/right shift
+    for(var i=2;i<data.length;i++){
+      var code=data[i];if(!code)continue;
+      if(code===40||code===88){ // Enter / KP Enter -> end of scan
+        var s=_hidBuf.trim();_hidBuf='';
+        if(s.length>=3){var tgt=activeScanTarget&&activeScanTarget();var box=G(tgt==='cig'?'cig-scan':'scan-inp');if(box)box.value=s;if(tgt==='cig')cigScan(s);else handleScan(s);}
+        return;
+      }
+      var ch=(shift&&HIDMAP_SHIFT[code])?HIDMAP_SHIFT[code]:HIDMAP[code];
+      if(ch){_hidBuf+=ch;var tgt2=activeScanTarget&&activeScanTarget();var box2=G(tgt2==='cig'?'cig-scan':'scan-inp');if(box2)box2.value=_hidBuf;}
+    }
+  }catch(err){}
+}
+function checkUSBDirect(){try{if(navigator.hid&&navigator.hid.getDevices){navigator.hid.getDevices().then(function(devs){if(devs&&devs.length){var d=devs[0];(d.opened?Promise.resolve():d.open()).then(function(){_hidDev=d;d.addEventListener('inputreport',onHIDReport);markUSBconnected();}).catch(function(){});}});}}catch(e){}}
 function setBT(on,name){var d2=G('bt-mini-dot'),l2=G('bt-mini-lbl'),b2=G('bt-mini-btn');if(d2)d2.style.background=on?'#1a7a4a':'#ccc';if(l2)l2.textContent=on?('Bluetooth · '+(name||(isAr()?'متصل':'Connecté'))):'Bluetooth';if(b2){b2.textContent=on?(isAr()?'قطع':'Déconnecter'):(isAr()?'ربط':'Connecter');b2.onclick=on?function(){if(btDev&&btDev.gatt&&btDev.gatt.connected)btDev.gatt.disconnect();btDev=null;setBT(false,'');}:connectBT;}}
 function doScan(){var c=(G('scan-inp').value||'').trim();if(c)handleScan(c);}
 
@@ -1581,7 +1619,7 @@ if('serviceWorker' in navigator){
 }
 // scanner listeners + suggestions outside-click (active globally; only act in products section)
 document.addEventListener('click',function(e){var b=G('scan-suggest');if(!b||b.classList.contains('hidden'))return;if(!e.target.closest('#scan-suggest')&&e.target.id!=='scan-inp')hideSuggest();});
-startScanGuard();setupScanInput();checkUSBDevices();
+startScanGuard();setupScanInput();checkUSBDevices();checkUSBDirect();
 // Try to unlock screen orientation so the tablet's auto-rotate works in the installed PWA
 try{if(screen&&screen.orientation&&screen.orientation.unlock){screen.orientation.unlock();}}catch(e){}
 
