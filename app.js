@@ -1123,22 +1123,23 @@ document.addEventListener('keydown',function(e){
   // allow normal typing only in genuine text fields (name inputs). Search fields also receive scans.
   var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1};
   if((tag==='INPUT'||tag==='TEXTAREA')&&allowIds[a.id])return;
+  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
   var now=Date.now();
   // reset buffer only after a long human pause (500ms); scanners burst much faster
-  if(now-_scanLast>500)_scanBuf='';
+  if(now-_scanLast>500){_scanBuf='';if(box)box.value='';}
   _scanLast=now;
   // END of scan
   if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
     e.preventDefault();e.stopPropagation();
-    if(_scanBuf.length>=3){var code=_scanBuf;_scanBuf='';markUSBconnected();if(tgt==='cig')cigScan(code);else handleScan(code);}
-    else{_scanBuf='';}
+    if(_scanBuf.length>=3){var code=_scanBuf;_scanBuf='';markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);}
+    else{_scanBuf='';if(box)box.value='';}
     return false;
   }
   // Swallow navigation-noise keys so the page NEVER goes back / moves
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1,Backspace:1};
   if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
-  // collect printable characters into the scan buffer
-  if(e.key&&e.key.length===1){_scanBuf+=e.key;e.preventDefault();e.stopPropagation();return false;}
+  // collect printable characters into the scan buffer AND show them live in the box
+  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box)box.value=_scanBuf;e.preventDefault();e.stopPropagation();return false;}
 },true);
 function markUSBconnected(){_usbOn=true;var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}var dot2=G('usb-mini-dot2'),badge2=G('usb-mini-badge2');if(dot2)dot2.style.background='#1a7a4a';if(badge2){badge2.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge2.className='badge b-ok';}updateScanPopup();}
 // ===== SCAN POPUP (USB + BT status, connect BT) =====
