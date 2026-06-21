@@ -838,9 +838,9 @@ function showSection(name){
   applyTR();applyLangAttrs();
   // per-section refresh
   if(name==='inventory')refreshProjs();
-  else if(name==='products'){refreshEdit();updateRT();updateNFs();setTimeout(focusScanField,150);}
+  else if(name==='products'){refreshEdit();updateRT();updateNFs();}
   else if(name==='recap')refreshRecap();
-  else if(name==='cigarettes'){refreshCig();setTimeout(focusScanField,150);}
+  else if(name==='cigarettes'){refreshCig();}
   else if(name==='recharge')refreshRech();
   else if(name==='credit')csSimpleRefresh('credit');
   else if(name==='change')csSimpleRefresh('change');
@@ -1119,25 +1119,26 @@ document.addEventListener('keydown',function(e){
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
-  var a=document.activeElement,tag=a?a.tagName:'';
+  var a=document.activeElement;
+  // allow normal typing in genuine text fields (name inputs, search). NOT the scan box.
+  var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1,'psearch':1,'cig-list-search':1};
+  if(a&&allowIds[a.id])return;
   var box=G(tgt==='cig'?'cig-scan':'scan-inp');
-  // If the scan field itself is focused, its own onkeydown (scanFieldKey) handles everything.
-  if(a&&box&&a.id===box.id)return;
-  // allow normal typing in genuine text fields (name inputs)
-  var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1};
-  if((tag==='INPUT'||tag==='TEXTAREA')&&allowIds[a.id])return;
-  // Focus drifted away or nothing focused: redirect this keystroke into the scan box.
   var now=Date.now();
   if(now-_scanLast>500){_scanBuf='';if(box)box.value='';}
   _scanLast=now;
-  if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
+  // END of scan (Enter / Tab from the scanner)
+  if(e.key==='Enter'||e.code==='NumpadEnter'||e.code==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9){
     e.preventDefault();e.stopPropagation();
-    if(_scanBuf.length>=3){var code=_scanBuf;_scanBuf='';markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);}
+    if(_scanBuf.length>=2){var code=_scanBuf;_scanBuf='';markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);}
     else{_scanBuf='';if(box)box.value='';}
     return false;
   }
+  // Swallow navigation keys so the page NEVER goes back / moves
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1,Backspace:1};
   if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
+  // Buffer any printable character (this is the SINGLE source of truth — works even if the
+  // field's IME would otherwise swallow it, and regardless of which element is focused)
   if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box){box.value=_scanBuf;}e.preventDefault();e.stopPropagation();return false;}
 },true);
 // Handler when the scan FIELD is focused (scanner types directly into it)
@@ -1293,9 +1294,9 @@ function handleScan(code){
   if(found){
     dbGetCustomPrice(CU.id,code).then(function(cp){
       var price=cp?cp.price:found.price;
-      G('pname-inp').value=found.name;dP=parseFloat(price)||0;dQ=0;updateNFs();
-      setScanMsg('✅ '+t('fd')+': '+found.name,1);
-      // keep barcode shown; do not clear
+      // AUTO-ADD the scanned product straight to the list (qty +1 if already there)
+      scanAddToList(code,found.name,parseFloat(price)||0);
+      setScanMsg('✅ '+found.name+' (+1)',1);
     });
     return;
   }
@@ -1304,11 +1305,11 @@ function handleScan(code){
     if(d.status===1&&d.product){
       var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;
       sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
-      G('pname-inp').value=name;dP=0;dQ=0;updateNFs();setScanMsg('✅ '+t('apiF')+': '+name,1);
+      scanAddToList(code,name,0);setScanMsg('✅ '+name+' (+1)',1);
     } else {
-      G('pname-inp').value='';setScanMsg('⚠️ '+t('nf')+' ('+code+')',0);
+      // unknown: still add it with the barcode as name so nothing is lost
+      scanAddToList(code,code,0);setScanMsg('⚠️ '+t('nf')+' ('+code+') — ajouté',0);
     }
-    // keep barcode shown
   }).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);});
 }
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
@@ -1353,6 +1354,23 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt&&tgt.indexOf('cigP_')===0){var ci2=parseInt(tgt.slice(5));if(CZ.cig[ci2]){CZ.cig[ci2].price=v;refreshCig();}return;}
   if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
 // items
+// Add a scanned product straight to the project list (increment qty if barcode already present)
+function scanAddToList(bc,name,price){
+  if(!CP||!CP.id){showToast('❌ Ouvrez un projet');return;}
+  // if this barcode is already in the list, just +1 its quantity
+  var existing=null;for(var i=0;i<(CACHE.items||[]).length;i++){if(CACHE.items[i].barcode&&CACHE.items[i].barcode===bc){existing=CACHE.items[i];break;}}
+  if(existing){
+    var nq=(parseFloat(existing.quantity)||0)+1;existing.quantity=nq;
+    sb.from('project_items').update({quantity:nq}).eq('id',existing.id).then(function(){refreshEdit();updateRT();});
+    return;
+  }
+  sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:parseFloat(price)||0,quantity:1}).select().then(function(r){
+    if(r.error){showToast('❌ '+r.error.message);return;}
+    if(bc&&price)saveCP(bc,price);
+    sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});
+    loadItems().then(function(){refreshEdit();updateRT();});
+  });
+}
 function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(bc&&dP)saveCP(bc,dP);sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
 function refreshEdit(){
   var items=CACHE.items;var card=G('prod-list-card');if(!card)return;
