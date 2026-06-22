@@ -1099,7 +1099,7 @@ function isNavNoise(e){
 function setupScanInput(){
   var s=G('scan-inp');
   if(s&&!s._wired){s._wired=true;
-    // keep the scan field focused so the global capture has a place to display the code
+    s.addEventListener('input',function(){if(window._scanDebug){var dbg=G('scan-debug');if(dbg)dbg.textContent='FIELD="'+s.value+'" | '+(window._dbgLog||'').slice(-60);}});
     s.addEventListener('blur',function(){setTimeout(function(){if(activeScanTarget()==='prod'&&!(G('np-ov')&&!G('np-ov').classList.contains('hidden'))&&!G('app-modal')){var a=document.activeElement;if(!a||a===document.body){try{s.focus();}catch(e){}}}},100);});
   }
   var c=G('cig-scan');
@@ -1118,8 +1118,8 @@ function activeScanTarget(){
   return null;
 }
 document.addEventListener('keydown',function(e){
-  // DEBUG
-  if(window._scanDebug){var _kc=e.keyCode||e.which||0;var _shown=(e.key==='Enter'||_kc===13)?'⏎':((e.key&&e.key.length===1&&e.key!=='Unidentified')?e.key:keyCodeToChar(_kc,e.shiftKey)||('?'+_kc));window._dbgLog=(window._dbgLog||'')+_shown;var dbg=G('scan-debug');if(dbg)dbg.textContent='buf="'+_scanBuf+'" seq='+(window._dbgLog).slice(-40);}
+  // DEBUG: show RAW key + keyCode for each event so we know exactly what the device sends
+  if(window._scanDebug){var _kc=e.keyCode||e.which||0;window._dbgLog=(window._dbgLog||'')+' ['+e.key+'/'+_kc+']';var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-90);}
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
