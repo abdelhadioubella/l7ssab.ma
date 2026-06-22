@@ -1389,6 +1389,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='ecP'){var e3=G('ec-p');if(e3)e3.textContent=nf2(v);return;}
   if(tgt==='ecQ'){var e4=G('ec-q');if(e4)e4.textContent=String(v);return;}
   if(tgt==='erM'){var e5=G('er-m');if(e5)e5.textContent=nf2(v);return;}
+  if(tgt==='erQ'){_erQty=v;var eq=G('er-q');if(eq)eq.textContent=nf2(v);var tt=G('er-total');if(tt)tt.textContent=nf2(_erDenom*_erQty)+' DH';return;}
   // caisse targets
   if(tgt==='cigRem'){CZ.cigRem=v;refreshCig();return;}
   if(tgt==='cigAddP'){CZ._cigP=v;var e=G('cig-add-p');if(e){e.textContent=nf2(v)+' DH';e.className='nf-val';}return;}
@@ -1428,11 +1429,12 @@ function scanAddToList(bc,name,price){
   });
 }
 function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}
-  if(bc&&dP){saveCP(bc,dP);
-    // also save the price on the product in the products DB so it's remembered for next projects
+  if(bc){
+    // PRICE is per-user only -> custom_prices. The shared products table keeps name+barcode (not the user's price).
+    if(dP)saveCP(bc,dP);
+    // ensure the product exists in the shared catalog (name + barcode), WITHOUT overwriting a shared price
     var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}}
-    if(prod){prod.price=dP;prod.name=name;sb.from('products').update({price:dP,name:name}).eq('id',prod.id).then(function(){loadProducts();});}
-    else{sb.from('products').insert({barcode:bc,name:name,price:dP}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}loadProducts();});}
+    if(!prod){sb.from('products').insert({barcode:bc,name:name,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}});}
   }
   sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
 function refreshEdit(){
@@ -1839,13 +1841,27 @@ function rechAdd(){rechAddDenom();} // back-compat
 function rechDel(i){CZ.rech.splice(i,1);refreshRech();}
 var _editRechIdx=-1;
 function openEditRech(i){var l=CZ.rech[i];if(!l)return;_editRechIdx=i;var ar=isAr();
-  var html='<div class="num-field" onclick="openNP(\'erM\',\''+(ar?'المبلغ':'Montant (DH)')+'\',true)"><span class="nf-label">'+(ar?'المبلغ':'Montant (DH)')+'</span><span class="nf-val" id="er-m">'+nf2(l.montant)+'</span></div>';
-  openModalHTML(ar?'تعديل':'Modifier',html,function(){
-    var m=parseFloat(G('er-m')&&G('er-m').textContent)||0;if(!m){showToast('❌ Montant vide');return;}
-    l.montant=m;if(l.kind==='recharge'&&l.denom)l.qty=Math.round(m/l.denom*100)/100;
+  if(l.kind==='dealer'){
+    // dealer line: just edit the amount
+    var html0='<div class="num-field" onclick="openNP(\'erM\',\''+(ar?'المبلغ':'Montant (DH)')+'\',true)"><span class="nf-label">'+(ar?'المبلغ (الموزع)':'Montant (Dealer)')+'</span><span class="nf-val" id="er-m">'+nf2(l.montant)+'</span></div>';
+    openModalHTML(ar?'تعديل':'Modifier',html0,function(){var m=parseFloat(G('er-m')&&G('er-m').textContent)||0;if(!m){showToast('❌ Montant vide');return;}l.montant=m;closeModal();refreshRech();showToast('✅ '+t('renamed'));});
+    return;
+  }
+  // recharge line: choose denomination (coupure) + quantity
+  _erDenom=l.denom||5;_erQty=l.qty||1;
+  var denoms=[5,10,20,30,50,100,200];
+  var btns=denoms.map(function(d){return '<button type="button" class="er-denom'+(d===_erDenom?' sel':'')+'" onclick="erPickDenom('+d+')" style="padding:10px;border:2px solid '+(d===_erDenom?'#1a7a4a':'#ccc')+';border-radius:10px;background:'+(d===_erDenom?'#e8f5ee':'#fff')+';font-weight:600;cursor:pointer">'+d+' DH</button>';}).join('');
+  var html='<div class="ml" style="font-size:12px;color:#888;margin-bottom:6px">'+(ar?'القيمة':'Coupure')+'</div>'+
+    '<div id="er-denoms" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+btns+'</div>'+
+    '<div class="num-field" onclick="openNP(\'erQ\',\''+(ar?'الكمية':'Quantité')+'\',true)"><span class="nf-label">'+(ar?'الكمية':'Quantité')+'</span><span class="nf-val" id="er-q">'+nf2(_erQty)+'</span></div>'+
+    '<div class="tbar" style="margin-top:10px"><span>'+(ar?'المجموع':'Total')+'</span><span id="er-total">'+nf2(_erDenom*_erQty)+' DH</span></div>';
+  openModalHTML(ar?'تعديل التعبئة':'Modifier recharge',html,function(){
+    l.denom=_erDenom;l.qty=_erQty;l.montant=_erDenom*_erQty;
     closeModal();refreshRech();showToast('✅ '+t('renamed'));
   });
 }
+var _erDenom=5,_erQty=1;
+function erPickDenom(d){_erDenom=d;var box=G('er-denoms');if(box){var bs=box.querySelectorAll('.er-denom');for(var i=0;i<bs.length;i++){var on=(parseInt(bs[i].textContent)===d);bs[i].style.borderColor=on?'#1a7a4a':'#ccc';bs[i].style.background=on?'#e8f5ee':'#fff';}}var tt=G('er-total');if(tt)tt.textContent=nf2(_erDenom*_erQty)+' DH';}
 
 // ---- SIMPLE (credit/change/cash/capital) ----
 function csSimpleRefresh(key){try{saveCaisseData();}catch(e){}var el=G(key+'-val');if(el)el.textContent=nf2(CZ[key]||0)+' DH';}
