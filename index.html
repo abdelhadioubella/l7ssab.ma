@@ -593,6 +593,8 @@ html.dark .mode-txt b{color:#e8f0ec}
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
       <div id="scan-msg" class="smsg hidden"></div>
+      <div id="scan-debug" style="display:none;margin-top:8px;padding:8px 10px;background:#1a1a1a;color:#0f0;font-family:monospace;font-size:12px;border-radius:8px;word-break:break-all">debug: en attente…</div>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#888"><input type="checkbox" id="dbg-toggle" onchange="toggleScanDebug(this.checked)"/> Mode debug scan</label>
       <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="prodNameSuggest(this.value)"/>
       <div id="pname-suggest" class="suggest-box hidden"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
