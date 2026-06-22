@@ -1101,19 +1101,24 @@ function setupScanInput(){
   if(s&&!s._wired){s._wired=true;
     // keep the scan field focused so the scanner always types into it
     s.addEventListener('blur',function(){setTimeout(function(){if(activeScanTarget()==='prod'&&!(G('np-ov')&&!G('np-ov').classList.contains('hidden'))&&!G('app-modal')){var a=document.activeElement;if(!a||a===document.body){try{s.focus();}catch(e){}}}},100);});
-    // The scanner types the barcode into this field then sends Enter.
+    // The scanner types the barcode into this field. We read the FIELD VALUE (reliable even when
+    // e.key is "Unidentified" on Android) and fire the scan shortly after typing stops, or on Enter.
     s.addEventListener('input',function(){
       if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' in:['+s.value+']';var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
       var v=s.value;
-      // scanner appended a newline/tab -> end of scan
-      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(vv.length>=2){markUSBconnected();handleScan(vv);}return;}
+      // scanner appended a newline/tab -> end of scan immediately
+      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(s._scanTimer){clearTimeout(s._scanTimer);s._scanTimer=null;}if(vv.length>=2){markUSBconnected();handleScan(vv);}return;}
       onScanInput(v); // live suggestions while typing
+      // end-of-scan timer: scanners type fast then stop; after 140ms of no new char, treat as complete
+      if(s._scanTimer)clearTimeout(s._scanTimer);
+      s._scanTimer=setTimeout(function(){s._scanTimer=null;var code=(s.value||'').trim();if(code.length>=3){markUSBconnected();handleScan(code);setTimeout(function(){s.value='';},250);}},140);
     });
     s.addEventListener('keydown',function(e){
-      if(e.key==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9){
+      if(e.key==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9||e.key==='Unidentified'&&e.keyCode===13){
         e.preventDefault();e.stopPropagation();
+        if(s._scanTimer){clearTimeout(s._scanTimer);s._scanTimer=null;}
         var code=(s.value||'').trim();
-        if(code.length>=2){markUSBconnected();handleScan(code);}
+        if(code.length>=2){markUSBconnected();handleScan(code);setTimeout(function(){s.value='';},250);}
         else if(code.length>0){doSearch();}
         return false;
       }
@@ -1123,14 +1128,17 @@ function setupScanInput(){
   if(c&&!c._wired2){c._wired2=true;
     c.addEventListener('input',function(){
       var v=c.value;
-      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();c.value=vv;if(vv.length>=2){markUSBconnected();cigScan(vv);}return;}
+      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();c.value=vv;if(c._scanTimer){clearTimeout(c._scanTimer);c._scanTimer=null;}if(vv.length>=2){markUSBconnected();cigScan(vv);}return;}
       cigSuggest(v);
+      if(c._scanTimer)clearTimeout(c._scanTimer);
+      c._scanTimer=setTimeout(function(){c._scanTimer=null;var code=(c.value||'').trim();if(code.length>=3){markUSBconnected();cigScan(code);setTimeout(function(){c.value='';},250);}},140);
     });
     c.addEventListener('keydown',function(e){
       if(e.key==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9){
         e.preventDefault();e.stopPropagation();
+        if(c._scanTimer){clearTimeout(c._scanTimer);c._scanTimer=null;}
         var code=(c.value||'').trim();
-        if(code.length>=2){markUSBconnected();cigScan(code);}
+        if(code.length>=2){markUSBconnected();cigScan(code);setTimeout(function(){c.value='';},250);}
         return false;
       }
     });
@@ -1147,37 +1155,20 @@ function activeScanTarget(){
   return null;
 }
 document.addEventListener('keydown',function(e){
-  // DEBUG: accumulate every key so we see the FULL sequence (not just the last)
+  // DEBUG: accumulate every key so we see the FULL sequence
   if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' kd:'+(e.key==='Enter'?'⏎':e.key);var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
-  // ignore while numpad/modal open
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
   var a=document.activeElement;
-  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
-  // If the scan field is focused, its own handlers capture the scan (scanner types into it). Don't double-handle.
-  if(a&&box&&a===box)return;
-  // allow normal typing in genuine text fields (name inputs, search). NOT the scan box.
   var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1,'psearch':1,'cig-list-search':1};
   if(a&&allowIds[a.id])return;
-  var now=Date.now();
-  if(now-_scanLast>500){_scanBuf='';if(box)box.value='';}
-  _scanLast=now;
-  // END of scan (Enter / Tab from the scanner)
-  if(e.key==='Enter'||e.code==='NumpadEnter'||e.code==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9){
-    e.preventDefault();e.stopPropagation();
-    if(_scanBuf.length>=2){var code=_scanBuf;_scanBuf='';markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);}
-    else{_scanBuf='';if(box)box.value='';}
-    return false;
-  }
-  // Swallow navigation keys so the page NEVER goes back / moves
-  var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Insert:1,Delete:1,Clear:1,Backspace:1};
+  // Prevent the page from EVER navigating back/moving due to scanner navigation-noise keys.
+  // We do NOT buffer characters here (e.key is "Unidentified" on many Android devices) —
+  // the scan field's own input event (below) is the reliable capture.
+  var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Backspace:1};
   if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
-  // Buffer any printable character (this is the SINGLE source of truth — works even if the
-  // field's IME would otherwise swallow it, and regardless of which element is focused)
-  if(e.key&&e.key.length===1){_scanBuf+=e.key;if(box){box.value=_scanBuf;}e.preventDefault();e.stopPropagation();return false;}
 },true);
-// Handler when the scan FIELD is focused (scanner types directly into it)
 function scanFieldKey(e,tgt){
   var box=G(tgt==='cig'?'cig-scan':'scan-inp');
   if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
