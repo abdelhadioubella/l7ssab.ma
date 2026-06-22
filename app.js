@@ -1155,20 +1155,47 @@ function activeScanTarget(){
   return null;
 }
 document.addEventListener('keydown',function(e){
-  // DEBUG: accumulate every key so we see the FULL sequence
-  if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' kd:'+(e.key==='Enter'?'⏎':e.key);var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
+  // DEBUG
+  if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' '+(e.key==='Enter'?'⏎':(e.key==='Unidentified'?('U'+(e.keyCode||e.which||'?')):e.key));var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
   var a=document.activeElement;
   var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1,'psearch':1,'cig-list-search':1};
   if(a&&allowIds[a.id])return;
-  // Prevent the page from EVER navigating back/moving due to scanner navigation-noise keys.
-  // We do NOT buffer characters here (e.key is "Unidentified" on many Android devices) —
-  // the scan field's own input event (below) is the reliable capture.
+  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
+  var kc=e.keyCode||e.which||0;
+  var now=Date.now();
+  if(now-_scanLast>500){_scanBuf='';if(box)box.value='';}
+  _scanLast=now;
+  // END of scan: Enter (13) or Tab (9)
+  if(e.key==='Enter'||kc===13||e.key==='Tab'||kc===9){
+    e.preventDefault();e.stopPropagation();
+    var code=_scanBuf||(box&&box.value)||'';code=String(code).trim();
+    _scanBuf='';
+    if(code.length>=2){markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);setTimeout(function(){if(box)box.value='';},300);}
+    else{if(box)box.value='';}
+    return false;
+  }
+  // Resolve the character: prefer e.key (Windows), else map keyCode (Android "Unidentified")
+  var ch='';
+  if(e.key&&e.key.length===1){ch=e.key;}
+  else{ch=keyCodeToChar(kc,e.shiftKey);}
+  if(ch){_scanBuf+=ch;if(box)box.value=_scanBuf;e.preventDefault();e.stopPropagation();return false;}
+  // swallow navigation noise so the page never goes back
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Backspace:1};
-  if(nav[e.key]){e.preventDefault();e.stopPropagation();return false;}
+  if(nav[e.key]||kc===8||kc===37||kc===38||kc===39||kc===40){e.preventDefault();e.stopPropagation();return false;}
 },true);
+// Map a keyCode to its character (handles Android scanners that report e.key="Unidentified")
+function keyCodeToChar(kc,shift){
+  if(kc>=48&&kc<=57)return String.fromCharCode(kc);        // 0-9 top row
+  if(kc>=96&&kc<=105)return String.fromCharCode(kc-48);    // 0-9 numpad
+  if(kc>=65&&kc<=90)return String.fromCharCode(shift?kc:kc+32); // A-Z
+  if(kc===189||kc===109)return '-';
+  if(kc===190||kc===110)return '.';
+  if(kc===32)return ' ';
+  return '';
+}
 function scanFieldKey(e,tgt){
   var box=G(tgt==='cig'?'cig-scan':'scan-inp');
   if(e.key==='Enter'||e.code==='NumpadEnter'||e.key==='Tab'){
@@ -1326,9 +1353,12 @@ function handleScan(code){
   if(found){
     dbGetCustomPrice(CU.id,code).then(function(cp){
       var price=cp?cp.price:found.price;
-      // AUTO-ADD the scanned product straight to the list (qty +1 if already there)
+      // show the product info in the form fields
+      var ni=G('pname-inp');if(ni)ni.value=found.name;
+      dP=parseFloat(price)||0;dQ=0;updateNFs();
+      // AND auto-add it to the list (qty +1 if already there)
       scanAddToList(code,found.name,parseFloat(price)||0);
-      setScanMsg('✅ '+found.name+' (+1)',1);
+      setScanMsg('✅ '+found.name+' — '+nf2(price)+' DH (+1)',1);
     });
     return;
   }
@@ -1337,9 +1367,10 @@ function handleScan(code){
     if(d.status===1&&d.product){
       var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;
       sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
+      var ni=G('pname-inp');if(ni)ni.value=name;dP=0;dQ=0;updateNFs();
       scanAddToList(code,name,0);setScanMsg('✅ '+name+' (+1)',1);
     } else {
-      // unknown: still add it with the barcode as name so nothing is lost
+      var ni2=G('pname-inp');if(ni2)ni2.value=code;dP=0;dQ=0;updateNFs();
       scanAddToList(code,code,0);setScanMsg('⚠️ '+t('nf')+' ('+code+') — ajouté',0);
     }
   }).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);});
