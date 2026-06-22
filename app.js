@@ -1117,9 +1117,10 @@ function activeScanTarget(){
   if(CURSEC==='products')return 'prod';
   return null;
 }
+var _altCode='',_altActive=false;
 document.addEventListener('keydown',function(e){
-  // DEBUG: show RAW key + keyCode for each event so we know exactly what the device sends
-  if(window._scanDebug){var _kc=e.keyCode||e.which||0;window._dbgLog=(window._dbgLog||'')+' ['+e.key+'/'+_kc+']';var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-90);}
+  // DEBUG: show RAW key + keyCode for each event
+  if(window._scanDebug){var _kc0=e.keyCode||e.which||0;window._dbgLog=(window._dbgLog||'')+' ['+e.key+'/'+_kc0+']';var dbg=G('scan-debug');if(dbg)dbg.textContent='buf="'+_scanBuf+'" '+(window._dbgLog).slice(-70);}
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
@@ -1129,19 +1130,26 @@ document.addEventListener('keydown',function(e){
   var box=G(tgt==='cig'?'cig-scan':'scan-inp');
   var kc=e.keyCode||e.which||0;
   var now=Date.now();
-  if(now-_scanLast>500){_scanBuf='';if(box)box.value='';}
+  if(now-_scanLast>500){_scanBuf='';_altCode='';if(box)box.value='';}
   _scanLast=now;
+  // ALT-CODE MODE: this scanner holds Alt and types the ASCII decimal code as digits.
+  // e.g. for "6" (ASCII 54) it sends Alt + 5 + 4, then releases Alt.
+  if(e.key==='Alt'||kc===18){_altActive=true;_altCode='';e.preventDefault();e.stopPropagation();return false;}
+  if(e.altKey||_altActive){
+    // collect the ASCII-code digits while Alt is held
+    var d=digitFromKeyCode(kc);
+    if(d!==''){_altCode+=d;e.preventDefault();e.stopPropagation();return false;}
+  }
   // END of scan: Enter (13) or Tab (9)
   if(e.key==='Enter'||kc===13||e.key==='Tab'||kc===9){
     e.preventDefault();e.stopPropagation();
     var code=_scanBuf||(box&&box.value)||'';code=String(code).trim();
-    _scanBuf='';
+    _scanBuf='';_altCode='';
     if(code.length>=2){markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);setTimeout(function(){if(box)box.value='';},300);}
     else{if(box)box.value='';}
     return false;
   }
-  // Resolve the character. On Windows e.key is the digit. On Android USB scanners e.key is
-  // "Unidentified" but e.keyCode is correct -> convert it. NEVER append the raw number.
+  // Normal mode: resolve the character from e.key or keyCode
   var ch='';
   if(e.key&&e.key.length===1&&e.key!=='Unidentified'){ch=e.key;}
   else if(kc){ch=keyCodeToChar(kc,e.shiftKey);}
@@ -1150,11 +1158,29 @@ document.addEventListener('keydown',function(e){
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Backspace:1};
   if(nav[e.key]||kc===8||kc===37||kc===38||kc===39||kc===40){e.preventDefault();e.stopPropagation();return false;}
 },true);
-// Map a keyCode to its character (handles Android scanners that report e.key="Unidentified")
+// When Alt is released, convert the accumulated ASCII code to a character
+document.addEventListener('keyup',function(e){
+  var kc=e.keyCode||e.which||0;
+  if((e.key==='Alt'||kc===18)&&_altActive){
+    _altActive=false;
+    if(_altCode){
+      var ascii=parseInt(_altCode,10);_altCode='';
+      if(ascii>=32&&ascii<=126){var c=String.fromCharCode(ascii);var tgt=activeScanTarget();var box=tgt?G(tgt==='cig'?'cig-scan':'scan-inp'):null;_scanBuf+=c;if(box)box.value=_scanBuf;}
+    }
+    e.preventDefault();e.stopPropagation();return false;
+  }
+},true);
+// digit from a keyCode (top row 48-57 or numpad 96-105), '' if not a digit
+function digitFromKeyCode(kc){
+  if(kc>=48&&kc<=57)return String(kc-48);
+  if(kc>=96&&kc<=105)return String(kc-96);
+  return '';
+}
+// Map a keyCode to its character (for normal-mode scanners)
 function keyCodeToChar(kc,shift){
-  if(kc>=48&&kc<=57)return String.fromCharCode(kc);        // 0-9 top row
-  if(kc>=96&&kc<=105)return String.fromCharCode(kc-48);    // 0-9 numpad
-  if(kc>=65&&kc<=90)return String.fromCharCode(shift?kc:kc+32); // A-Z
+  if(kc>=48&&kc<=57)return String.fromCharCode(kc);
+  if(kc>=96&&kc<=105)return String.fromCharCode(kc-48);
+  if(kc>=65&&kc<=90)return String.fromCharCode(shift?kc:kc+32);
   if(kc===189||kc===109)return '-';
   if(kc===190||kc===110)return '.';
   if(kc===32)return ' ';
