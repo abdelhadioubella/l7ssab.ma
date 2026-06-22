@@ -838,9 +838,9 @@ function showSection(name){
   applyTR();applyLangAttrs();
   // per-section refresh
   if(name==='inventory')refreshProjs();
-  else if(name==='products'){refreshEdit();updateRT();updateNFs();}
+  else if(name==='products'){refreshEdit();updateRT();updateNFs();setTimeout(focusScanField,200);}
   else if(name==='recap')refreshRecap();
-  else if(name==='cigarettes'){refreshCig();}
+  else if(name==='cigarettes'){refreshCig();setTimeout(focusScanField,200);}
   else if(name==='recharge')refreshRech();
   else if(name==='credit')csSimpleRefresh('credit');
   else if(name==='change')csSimpleRefresh('change');
@@ -1097,12 +1097,42 @@ function isNavNoise(e){
 }
 // (old per-field scan keydown handler removed — global scanner capture below handles all scan pages)
 function setupScanInput(){
-  var s=G('scan-inp');if(!s)return;
-  s.addEventListener('input',function(){
-    // some scanners append a newline/tab into the value -> treat as end of scan
-    if(/[\r\n\t]/.test(s.value)){var vv=s.value.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(vv.length>=3){markUSBconnected();handleScan(vv);return;}}
-    onScanInput(s.value); // live suggestions
-  });
+  var s=G('scan-inp');
+  if(s&&!s._wired){s._wired=true;
+    // The scanner types the barcode into this field then sends Enter.
+    s.addEventListener('input',function(){
+      if(window._scanDebug){var dbg=G('scan-debug');if(dbg)dbg.textContent='[INPUT] field="'+s.value+'"';}
+      var v=s.value;
+      // scanner appended a newline/tab -> end of scan
+      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(vv.length>=2){markUSBconnected();handleScan(vv);}return;}
+      onScanInput(v); // live suggestions while typing
+    });
+    s.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9){
+        e.preventDefault();e.stopPropagation();
+        var code=(s.value||'').trim();
+        if(code.length>=2){markUSBconnected();handleScan(code);}
+        else if(code.length>0){doSearch();}
+        return false;
+      }
+    });
+  }
+  var c=G('cig-scan');
+  if(c&&!c._wired2){c._wired2=true;
+    c.addEventListener('input',function(){
+      var v=c.value;
+      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();c.value=vv;if(vv.length>=2){markUSBconnected();cigScan(vv);}return;}
+      cigSuggest(v);
+    });
+    c.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9){
+        e.preventDefault();e.stopPropagation();
+        var code=(c.value||'').trim();
+        if(code.length>=2){markUSBconnected();cigScan(code);}
+        return false;
+      }
+    });
+  }
 }
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
 // ===== GLOBAL USB SCANNER CAPTURE (works on any scan page, even without focus) =====
@@ -1122,10 +1152,12 @@ document.addEventListener('keydown',function(e){
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
   var a=document.activeElement;
+  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
+  // If the scan field is focused, its own handlers capture the scan (scanner types into it). Don't double-handle.
+  if(a&&box&&a===box)return;
   // allow normal typing in genuine text fields (name inputs, search). NOT the scan box.
   var allowIds={'pname-inp':1,'cig-name':1,'modal-v':1,'ei-name':1,'ec-name':1,'cigdb-bc':1,'cigdb-nm':1,'cigdb-pr':1,'psearch':1,'cig-list-search':1};
   if(a&&allowIds[a.id])return;
-  var box=G(tgt==='cig'?'cig-scan':'scan-inp');
   var now=Date.now();
   if(now-_scanLast>500){_scanBuf='';if(box)box.value='';}
   _scanLast=now;
@@ -1687,7 +1719,6 @@ function refreshCig(){try{saveCaisseData();}catch(e){}
   setText('cig-brut',nf2(czCigBrut())+' DH');setText('cig-net',nf2(czCigNet())+' DH');
   renderCigList(CZ.cig);
   // wire scan input enter + list search
-  var si=G('cig-scan');if(si&&!si._wired){si._wired=true;si.addEventListener('keydown',function(e){if(e.key==='Enter'){cigScan(this.value);}});si.addEventListener('input',function(){cigSuggest(this.value);});}
   var fs=G('cig-list-search');if(fs&&!fs._wired){fs._wired=true;fs.addEventListener('input',function(){filterCigList(this.value);});}
 }
 function renderCigList(arr){
