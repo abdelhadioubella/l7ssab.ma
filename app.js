@@ -1099,9 +1099,11 @@ function isNavNoise(e){
 function setupScanInput(){
   var s=G('scan-inp');
   if(s&&!s._wired){s._wired=true;
+    // keep the scan field focused so the scanner always types into it
+    s.addEventListener('blur',function(){setTimeout(function(){if(activeScanTarget()==='prod'&&!(G('np-ov')&&!G('np-ov').classList.contains('hidden'))&&!G('app-modal')){var a=document.activeElement;if(!a||a===document.body){try{s.focus();}catch(e){}}}},100);});
     // The scanner types the barcode into this field then sends Enter.
     s.addEventListener('input',function(){
-      if(window._scanDebug){var dbg=G('scan-debug');if(dbg)dbg.textContent='[INPUT] field="'+s.value+'"';}
+      if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' in:['+s.value+']';var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
       var v=s.value;
       // scanner appended a newline/tab -> end of scan
       if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(vv.length>=2){markUSBconnected();handleScan(vv);}return;}
@@ -1145,8 +1147,8 @@ function activeScanTarget(){
   return null;
 }
 document.addEventListener('keydown',function(e){
-  // DEBUG: show every key the page receives (when debug mode is on)
-  if(window._scanDebug){var dbg=G('scan-debug');if(dbg){dbg.textContent='key="'+e.key+'" code="'+e.code+'" kc='+e.keyCode+' | buf="'+_scanBuf+'" sec='+CURSEC;}}
+  // DEBUG: accumulate every key so we see the FULL sequence (not just the last)
+  if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' kd:'+(e.key==='Enter'?'⏎':e.key);var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
   // ignore while numpad/modal open
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
@@ -1192,10 +1194,10 @@ function scanFieldKey(e,tgt){
 }
 // Auto-focus the scan field when on a scan page so the scanner always lands there
 function focusScanField(){var t=activeScanTarget();if(!t)return;var box=G(t==='cig'?'cig-scan':'scan-inp');if(box){try{box.focus();}catch(e){}}}
-function toggleScanDebug(on){window._scanDebug=on;var dbg=G('scan-debug');if(dbg)dbg.style.display=on?'block':'none';if(on&&dbg)dbg.textContent='debug ON — scannez un code…';}
+function toggleScanDebug(on){window._scanDebug=on;window._dbgLog='';var dbg=G('scan-debug');if(dbg)dbg.style.display=on?'block':'none';if(on&&dbg)dbg.textContent='debug ON — scannez (kd=keydown, kp=keypress, in=input)';}
 // FALLBACK: also capture via keypress (some Android browsers/scanners only fire keypress reliably)
 document.addEventListener('keypress',function(e){
-  if(window._scanDebug){var dbg=G('scan-debug');if(dbg){dbg.textContent='[keypress] key="'+e.key+'" charCode='+e.charCode+' kc='+e.keyCode+' | buf="'+_scanBuf+'"';}}
+  if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' kp:'+(e.key==='Enter'?'⏎':e.key);var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
 },true);
 function markUSBconnected(){_usbOn=true;var dot=G('usb-mini-dot'),badge=G('usb-mini-badge');if(dot)dot.style.background='#1a7a4a';if(badge){badge.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge.className='badge b-ok';}var dot2=G('usb-mini-dot2'),badge2=G('usb-mini-badge2');if(dot2)dot2.style.background='#1a7a4a';if(badge2){badge2.textContent=(isAr()?'متصل':'Connecté')+' ✅';badge2.className='badge b-ok';}updateScanPopup();}
 // ===== SCAN POPUP (USB + BT status, connect BT) =====
