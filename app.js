@@ -1390,6 +1390,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='eiQ'){var e2=G('ei-q');if(e2)e2.textContent=String(v);return;}
   if(tgt==='ecP'){var e3=G('ec-p');if(e3)e3.textContent=nf2(v);return;}
   if(tgt==='ecQ'){var e4=G('ec-q');if(e4)e4.textContent=String(v);return;}
+  if(tgt==='erM'){var e5=G('er-m');if(e5)e5.textContent=nf2(v);return;}
   // caisse targets
   if(tgt==='cigRem'){CZ.cigRem=v;refreshCig();return;}
   if(tgt==='cigAddP'){CZ._cigP=v;var e=G('cig-add-p');if(e){e.textContent=nf2(v)+' DH';e.className='nf-val';}return;}
@@ -1764,10 +1765,13 @@ function prodNameSuggest(q){var box=G('pname-suggest');if(!box)return;q=(q||'').
 function prodNamePick(bc,name,price){var ni=G('pname-inp');if(ni)ni.value=name;var si=G('scan-inp');if(si&&bc)si.value=bc;dP=parseFloat(price)||0;dQ=0;updateNFs();var box=G('pname-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
 function cigNameSuggest(q){var box=G('cig-name-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.cigProducts||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="cigNamePick(\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
 function cigNamePick(name,price){var ni=G('cig-name');if(ni)ni.value=name;CZ._cigP=parseFloat(price)||0;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(CZ._cigP)+' DH';ep.className='nf-val';}var box=G('cig-name-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
-function cigScan(code){code=(code||'').trim();if(!code)return;var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===code){f=CACHE.cigProducts[i];break;}}var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}
-  if(f){cigPick(f.barcode,f.name,f.price);return;}
-  // unknown: try internet lookup, fall back to barcode as name
-  if(navigator.onLine){showToast('🔎 '+(isAr()?'بحث…':'Recherche…'),1200);apiLookupBarcode(code).then(function(res){var nm=res.found?res.name:code;cigPick(code,nm,0);dbAddCig(code,nm,0);if(res.found)showToast('✅ '+nm);});}
+function cigScan(code){code=(code||'').trim();if(!code)return;
+  var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}
+  // search ONLY the cigarettes database (separate from products)
+  var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===code){f=CACHE.cigProducts[i];break;}}
+  if(f){cigPick(f.barcode,f.name,parseFloat(f.price)||0);showToast('✅ '+f.name+' — '+nf2(f.price)+' DH');return;}
+  // not in cigarettes DB: try internet lookup. If found, add with its name (price 0, to be set once).
+  if(navigator.onLine){showToast('🔎 '+(isAr()?'بحث…':'Recherche…'),1200);apiLookupBarcode(code).then(function(res){if(res.found){cigPick(code,res.name,0);dbAddCig(code,res.name,0);showToast('✅ '+res.name);}else{cigPick(code,code,0);dbAddCig(code,code,0);showToast('⚠️ '+(isAr()?'غير موجود':'Introuvable')+' ('+code+')');}});}
   else{cigPick(code,code,0);dbAddCig(code,code,0);}
 }
 function cigPick(bc,name,price){var cp=(CACHE.cigCustom&&(CACHE.cigCustom[bc]||CACHE.cigCustom[name]));if(cp!=null)price=cp;var found=null;CZ.cig.forEach(function(x){if(x.name===name)found=x;});if(found)found.qty=(found.qty||1)+1;else CZ.cig.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}refreshCig();}
@@ -1797,7 +1801,15 @@ function rechAddDenom(){var denom=CZ._rDenom,qty=parseFloat(CZ._rQty)||0;if(!den
 function rechAddDealer(){var montant=parseFloat(CZ._rMont)||0;if(!montant){showToast('❌ Montant vide');return;}CZ.rech.push({denom:0,qty:0,montant:montant,kind:'dealer'});CZ._rMont=0;refreshRech();}
 function rechAdd(){rechAddDenom();} // back-compat
 function rechDel(i){CZ.rech.splice(i,1);refreshRech();}
-function openEditRech(i){var l=CZ.rech[i];if(!l)return;openModal({title:isAr()?'تعديل':'Modifier',confirmText:t('upd'),cancelText:t('can'),fields:[{key:'montant',label:'Montant (DH)',value:String(l.montant||0),type:'number'}],onConfirm:function(v){var m=parseFloat(v.montant)||0;if(!m){showToast('❌ Montant vide');return;}l.montant=m;if(l.kind==='recharge'&&l.denom)l.qty=Math.round(m/l.denom*100)/100;closeModal();refreshRech();showToast('✅ '+t('renamed'));}});}
+var _editRechIdx=-1;
+function openEditRech(i){var l=CZ.rech[i];if(!l)return;_editRechIdx=i;var ar=isAr();
+  var html='<div class="num-field" onclick="openNP(\'erM\',\''+(ar?'المبلغ':'Montant (DH)')+'\',true)"><span class="nf-label">'+(ar?'المبلغ':'Montant (DH)')+'</span><span class="nf-val" id="er-m">'+nf2(l.montant)+'</span></div>';
+  openModalHTML(ar?'تعديل':'Modifier',html,function(){
+    var m=parseFloat(G('er-m')&&G('er-m').textContent)||0;if(!m){showToast('❌ Montant vide');return;}
+    l.montant=m;if(l.kind==='recharge'&&l.denom)l.qty=Math.round(m/l.denom*100)/100;
+    closeModal();refreshRech();showToast('✅ '+t('renamed'));
+  });
+}
 
 // ---- SIMPLE (credit/change/cash/capital) ----
 function csSimpleRefresh(key){try{saveCaisseData();}catch(e){}var el=G(key+'-val');if(el)el.textContent=nf2(CZ[key]||0)+' DH';}
