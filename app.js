@@ -1337,18 +1337,15 @@ function doSearch(){
 }
 function handleScan(code){
   hideSuggest&&hideSuggest();
-  // Always WRITE the scanned barcode into the field and keep it there.
   var si=G('scan-inp');if(si)si.value=code;
   var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}
   if(found){
     dbGetCustomPrice(CU.id,code).then(function(cp){
       var price=cp?cp.price:found.price;
-      // show the product info in the form fields
+      // fill the form (name + price). User sets quantity then clicks "Ajouter".
       var ni=G('pname-inp');if(ni)ni.value=found.name;
       dP=parseFloat(price)||0;dQ=0;updateNFs();
-      // AND auto-add it to the list (qty +1 if already there)
-      scanAddToList(code,found.name,parseFloat(price)||0);
-      setScanMsg('✅ '+found.name+' — '+nf2(price)+' DH (+1)',1);
+      setScanMsg('✅ '+found.name+' — '+nf2(price)+' DH · '+(isAr()?'أدخل الكمية واضغط إضافة':'mettez la quantité puis Ajouter'),1);
     });
     return;
   }
@@ -1359,10 +1356,10 @@ function handleScan(code){
       var dupP=false;for(var pi=0;pi<(CACHE.products||[]).length;pi++){if(CACHE.products[pi].barcode===code){dupP=true;break;}}
       if(!dupP)sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
       var ni=G('pname-inp');if(ni)ni.value=name;dP=0;dQ=0;updateNFs();
-      scanAddToList(code,name,0);setScanMsg('✅ '+name+' (+1)',1);
+      setScanMsg('✅ '+name+' · '+(isAr()?'أدخل الثمن والكمية':'mettez prix + quantité'),1);
     } else {
       var ni2=G('pname-inp');if(ni2)ni2.value=code;dP=0;dQ=0;updateNFs();
-      scanAddToList(code,code,0);setScanMsg('⚠️ '+t('nf')+' ('+code+') — ajouté',0);
+      setScanMsg('⚠️ '+t('nf')+' ('+code+') · '+(isAr()?'أدخل الاسم والثمن':'mettez nom + prix'),0);
     }
   }).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);});
 }
@@ -1430,7 +1427,14 @@ function scanAddToList(bc,name,price){
     loadItems().then(function(){refreshEdit();updateRT();});
   });
 }
-function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(bc&&dP)saveCP(bc,dP);sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
+function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}
+  if(bc&&dP){saveCP(bc,dP);
+    // also save the price on the product in the products DB so it's remembered for next projects
+    var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}}
+    if(prod){sb.from('products').update({price:dP,name:name}).eq('id',prod.id).then(function(){loadProducts();});}
+    else{sb.from('products').insert({barcode:bc,name:name,price:dP}).then(function(){loadProducts();});}
+  }
+  sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
 function refreshEdit(){
   var items=CACHE.items;var card=G('prod-list-card');if(!card)return;
   card.classList.remove('hidden');
@@ -1771,15 +1775,22 @@ function prodNamePick(bc,name,price){var ni=G('pname-inp');if(ni)ni.value=name;v
 function cigNameSuggest(q){var box=G('cig-name-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.cigProducts||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="cigNamePick(\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
 function cigNamePick(name,price){var ni=G('cig-name');if(ni)ni.value=name;CZ._cigP=parseFloat(price)||0;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(CZ._cigP)+' DH';ep.className='nf-val';}var box=G('cig-name-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
 function cigScan(code){code=(code||'').trim();if(!code)return;
-  var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}
-  // already in the current cigarette list? -> show it, don't +1
-  var inList=null;for(var j=0;j<(CZ.cig||[]).length;j++){if(CZ.cig[j].barcode&&CZ.cig[j].barcode===code){inList=CZ.cig[j];break;}}
-  if(inList){showToast('ℹ️ '+inList.name+' — '+nf2(inList.price)+' DH × '+(inList.qty||1)+' ('+(isAr()?'موجود':'déjà')+')');return;}
+  var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}
   // search ONLY the cigarettes database (NOT products, NOT the food API)
   var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===code){f=CACHE.cigProducts[i];break;}}
-  if(f){cigPick(f.barcode,f.name,parseFloat(f.price)||0);showToast('✅ '+f.name+' — '+nf2(f.price)+' DH');return;}
-  // not a known cigarette: add it with the barcode as name (you'll rename + price it once, saved for next time)
-  cigPick(code,code,0);dbAddCig(code,code,0);showToast('➕ '+(isAr()?'سيجارة جديدة':'Nouvelle cigarette')+' ('+code+')');
+  if(f){
+    // fill the form: name + price (apply user custom price if set). User sets qty then clicks Ajouter.
+    var cp=(CACHE.cigCustom&&(CACHE.cigCustom[f.barcode]||CACHE.cigCustom[f.name]));
+    var price=(cp!=null)?cp:(parseFloat(f.price)||0);
+    var nm=G('cig-name');if(nm)nm.value=f.name;
+    CZ._cigP=price;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(price)+' DH';ep.className='nf-val';}
+    CZ._cigBC=code;
+    showToast('✅ '+f.name+' — '+nf2(price)+' DH · '+(isAr()?'أدخل الكمية':'mettez la quantité'));
+    return;
+  }
+  // not a known cigarette: fill the name with the barcode so the user can name + price it
+  var nm2=G('cig-name');if(nm2)nm2.value=code;CZ._cigP=0;var ep2=G('cig-add-p');if(ep2){ep2.textContent='Appuyer';ep2.className='nf-ph';}CZ._cigBC=code;
+  showToast('➕ '+(isAr()?'سيجارة جديدة - أدخل الاسم والثمن':'Nouvelle - nom + prix')+' ('+code+')');
 }
 function cigPick(bc,name,price){var cp=(CACHE.cigCustom&&(CACHE.cigCustom[bc]||CACHE.cigCustom[name]));if(cp!=null)price=cp;var found=null;CZ.cig.forEach(function(x){if(x.name===name)found=x;});if(found)found.qty=(found.qty||1)+1;else CZ.cig.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}refreshCig();}
 // save a new cigarette product to the dedicated cigarettes table (so it's known next time)
@@ -1797,7 +1808,21 @@ function apiLookupBarcode(code){
   }).catch(function(){return {found:false};});
 }
 function cigDel(i){CZ.cig.splice(i,1);refreshCig();}
-function cigAddManual(){var nn=G('cig-name');var name=(nn&&nn.value||'').trim();var price=parseFloat(CZ._cigP)||0;var qty=parseFloat(CZ._cigQ)||1;if(!name){showToast('❌ Nom vide');return;}CZ.cig.push({barcode:'',name:name,price:price,qty:qty});dbAddCig('',name,price);CZ._cigP=0;CZ._cigQ=0;if(nn)nn.value='';var ep=G('cig-add-p');if(ep){ep.textContent='Appuyer';ep.className='nf-ph';}var eq=G('cig-add-q');if(eq){eq.textContent='Appuyer';eq.className='nf-ph';}refreshCig();}
+function cigAddManual(){var nn=G('cig-name');var name=(nn&&nn.value||'').trim();var price=parseFloat(CZ._cigP)||0;var qty=parseFloat(CZ._cigQ)||1;if(!name){showToast('❌ Nom vide');return;}
+  var bc=CZ._cigBC||'';
+  CZ.cig.push({barcode:bc,name:name,price:price,qty:qty});
+  // save price for next time: update cigarettes DB + user custom price
+  if(bc){var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===bc){f=CACHE.cigProducts[i];break;}}
+    if(f){if(price){sb.from('cigarettes').update({price:price,name:name}).eq('id',f.id).then(function(){dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});});}}
+    else{dbAddCig(bc,name,price);}
+    if(price)saveCigCP(bc,name,price);
+    CACHE.cigCustom=CACHE.cigCustom||{};if(price)CACHE.cigCustom[bc]=price;
+  } else { dbAddCig('',name,price); }
+  CZ._cigP=0;CZ._cigQ=0;CZ._cigBC='';if(nn)nn.value='';
+  var ep=G('cig-add-p');if(ep){ep.textContent='Appuyer';ep.className='nf-ph';}var eq=G('cig-add-q');if(eq){eq.textContent='Appuyer';eq.className='nf-ph';}
+  var cs=G('cig-scan');if(cs)cs.value='';
+  refreshCig();showToast('✅ '+(isAr()?'أضيف':'Ajouté')+': '+name);
+}
 
 // ---- RECHARGE ----
 function refreshRech(){try{saveCaisseData();}catch(e){}
