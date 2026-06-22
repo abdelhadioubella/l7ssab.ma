@@ -1099,49 +1099,12 @@ function isNavNoise(e){
 function setupScanInput(){
   var s=G('scan-inp');
   if(s&&!s._wired){s._wired=true;
-    // keep the scan field focused so the scanner always types into it
+    // keep the scan field focused so the global capture has a place to display the code
     s.addEventListener('blur',function(){setTimeout(function(){if(activeScanTarget()==='prod'&&!(G('np-ov')&&!G('np-ov').classList.contains('hidden'))&&!G('app-modal')){var a=document.activeElement;if(!a||a===document.body){try{s.focus();}catch(e){}}}},100);});
-    // The scanner types the barcode into this field. We read the FIELD VALUE (reliable even when
-    // e.key is "Unidentified" on Android) and fire the scan shortly after typing stops, or on Enter.
-    s.addEventListener('input',function(){
-      if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' in:['+s.value+']';var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
-      var v=s.value;
-      // scanner appended a newline/tab -> end of scan immediately
-      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();s.value=vv;if(s._scanTimer){clearTimeout(s._scanTimer);s._scanTimer=null;}if(vv.length>=2){markUSBconnected();handleScan(vv);}return;}
-      onScanInput(v); // live suggestions while typing
-      // end-of-scan timer: scanners type fast then stop; after 140ms of no new char, treat as complete
-      if(s._scanTimer)clearTimeout(s._scanTimer);
-      s._scanTimer=setTimeout(function(){s._scanTimer=null;var code=(s.value||'').trim();if(code.length>=3){markUSBconnected();handleScan(code);setTimeout(function(){s.value='';},250);}},140);
-    });
-    s.addEventListener('keydown',function(e){
-      if(e.key==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9||e.key==='Unidentified'&&e.keyCode===13){
-        e.preventDefault();e.stopPropagation();
-        if(s._scanTimer){clearTimeout(s._scanTimer);s._scanTimer=null;}
-        var code=(s.value||'').trim();
-        if(code.length>=2){markUSBconnected();handleScan(code);setTimeout(function(){s.value='';},250);}
-        else if(code.length>0){doSearch();}
-        return false;
-      }
-    });
   }
   var c=G('cig-scan');
   if(c&&!c._wired2){c._wired2=true;
-    c.addEventListener('input',function(){
-      var v=c.value;
-      if(/[\r\n\t]/.test(v)){var vv=v.replace(/[\r\n\t]/g,'').trim();c.value=vv;if(c._scanTimer){clearTimeout(c._scanTimer);c._scanTimer=null;}if(vv.length>=2){markUSBconnected();cigScan(vv);}return;}
-      cigSuggest(v);
-      if(c._scanTimer)clearTimeout(c._scanTimer);
-      c._scanTimer=setTimeout(function(){c._scanTimer=null;var code=(c.value||'').trim();if(code.length>=3){markUSBconnected();cigScan(code);setTimeout(function(){c.value='';},250);}},140);
-    });
-    c.addEventListener('keydown',function(e){
-      if(e.key==='Enter'||e.keyCode===13||e.key==='Tab'||e.keyCode===9){
-        e.preventDefault();e.stopPropagation();
-        if(c._scanTimer){clearTimeout(c._scanTimer);c._scanTimer=null;}
-        var code=(c.value||'').trim();
-        if(code.length>=2){markUSBconnected();cigScan(code);setTimeout(function(){c.value='';},250);}
-        return false;
-      }
-    });
+    c.addEventListener('blur',function(){setTimeout(function(){if(activeScanTarget()==='cig'&&!(G('np-ov')&&!G('np-ov').classList.contains('hidden'))&&!G('app-modal')){var a=document.activeElement;if(!a||a===document.body){try{c.focus();}catch(e){}}}},100);});
   }
 }
 window.addEventListener('focus',function(){setTimeout(focusScan,60);});
@@ -1156,7 +1119,7 @@ function activeScanTarget(){
 }
 document.addEventListener('keydown',function(e){
   // DEBUG
-  if(window._scanDebug){window._dbgLog=(window._dbgLog||'')+' '+(e.key==='Enter'?'⏎':(e.key==='Unidentified'?('U'+(e.keyCode||e.which||'?')):e.key));var dbg=G('scan-debug');if(dbg)dbg.textContent=(window._dbgLog).slice(-120);}
+  if(window._scanDebug){var _kc=e.keyCode||e.which||0;var _shown=(e.key==='Enter'||_kc===13)?'⏎':((e.key&&e.key.length===1&&e.key!=='Unidentified')?e.key:keyCodeToChar(_kc,e.shiftKey)||('?'+_kc));window._dbgLog=(window._dbgLog||'')+_shown;var dbg=G('scan-debug');if(dbg)dbg.textContent='buf="'+_scanBuf+'" seq='+(window._dbgLog).slice(-40);}
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
   var tgt=activeScanTarget();if(!tgt)return;
@@ -1177,10 +1140,11 @@ document.addEventListener('keydown',function(e){
     else{if(box)box.value='';}
     return false;
   }
-  // Resolve the character: prefer e.key (Windows), else map keyCode (Android "Unidentified")
+  // Resolve the character. On Windows e.key is the digit. On Android USB scanners e.key is
+  // "Unidentified" but e.keyCode is correct -> convert it. NEVER append the raw number.
   var ch='';
-  if(e.key&&e.key.length===1){ch=e.key;}
-  else{ch=keyCodeToChar(kc,e.shiftKey);}
+  if(e.key&&e.key.length===1&&e.key!=='Unidentified'){ch=e.key;}
+  else if(kc){ch=keyCodeToChar(kc,e.shiftKey);}
   if(ch){_scanBuf+=ch;if(box)box.value=_scanBuf;e.preventDefault();e.stopPropagation();return false;}
   // swallow navigation noise so the page never goes back
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Backspace:1};
