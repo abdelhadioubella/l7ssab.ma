@@ -1356,7 +1356,8 @@ function handleScan(code){
   fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){
     if(d.status===1&&d.product){
       var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;
-      sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
+      var dupP=false;for(var pi=0;pi<(CACHE.products||[]).length;pi++){if(CACHE.products[pi].barcode===code){dupP=true;break;}}
+      if(!dupP)sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
       var ni=G('pname-inp');if(ni)ni.value=name;dP=0;dQ=0;updateNFs();
       scanAddToList(code,name,0);setScanMsg('✅ '+name+' (+1)',1);
     } else {
@@ -1411,13 +1412,17 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
 // Add a scanned product straight to the project list (increment qty if barcode already present)
 function scanAddToList(bc,name,price){
   if(!CP||!CP.id){showToast('❌ Ouvrez un projet');return;}
-  // if this barcode is already in the list, just +1 its quantity
+  // if this barcode is already in the list: DON'T add +1 — just show its saved price & quantity
   var existing=null;for(var i=0;i<(CACHE.items||[]).length;i++){if(CACHE.items[i].barcode&&CACHE.items[i].barcode===bc){existing=CACHE.items[i];break;}}
   if(existing){
-    var nq=(parseFloat(existing.quantity)||0)+1;existing.quantity=nq;
-    sb.from('project_items').update({quantity:nq}).eq('id',existing.id).then(function(){refreshEdit();updateRT();});
+    var ni=G('pname-inp');if(ni)ni.value=existing.name;
+    dP=parseFloat(existing.price)||0;dQ=parseFloat(existing.quantity)||0;updateNFs();
+    setScanMsg('ℹ️ '+existing.name+' — '+nf2(existing.price)+' DH × '+nf2(existing.quantity)+' ('+(isAr()?'موجود':'déjà dans la liste')+')',1);
+    // highlight the existing row
+    eI=CACHE.items.indexOf(existing);refreshEdit();
     return;
   }
+  // not in list yet: add it once
   sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:parseFloat(price)||0,quantity:1}).select().then(function(r){
     if(r.error){showToast('❌ '+r.error.message);return;}
     if(bc&&price)saveCP(bc,price);
@@ -1767,16 +1772,22 @@ function cigNameSuggest(q){var box=G('cig-name-suggest');if(!box)return;q=(q||''
 function cigNamePick(name,price){var ni=G('cig-name');if(ni)ni.value=name;CZ._cigP=parseFloat(price)||0;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(CZ._cigP)+' DH';ep.className='nf-val';}var box=G('cig-name-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
 function cigScan(code){code=(code||'').trim();if(!code)return;
   var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}
-  // search ONLY the cigarettes database (separate from products)
+  // already in the current cigarette list? -> show it, don't +1
+  var inList=null;for(var j=0;j<(CZ.cig||[]).length;j++){if(CZ.cig[j].barcode&&CZ.cig[j].barcode===code){inList=CZ.cig[j];break;}}
+  if(inList){showToast('ℹ️ '+inList.name+' — '+nf2(inList.price)+' DH × '+(inList.qty||1)+' ('+(isAr()?'موجود':'déjà')+')');return;}
+  // search ONLY the cigarettes database (NOT products, NOT the food API)
   var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===code){f=CACHE.cigProducts[i];break;}}
   if(f){cigPick(f.barcode,f.name,parseFloat(f.price)||0);showToast('✅ '+f.name+' — '+nf2(f.price)+' DH');return;}
-  // not in cigarettes DB: try internet lookup. If found, add with its name (price 0, to be set once).
-  if(navigator.onLine){showToast('🔎 '+(isAr()?'بحث…':'Recherche…'),1200);apiLookupBarcode(code).then(function(res){if(res.found){cigPick(code,res.name,0);dbAddCig(code,res.name,0);showToast('✅ '+res.name);}else{cigPick(code,code,0);dbAddCig(code,code,0);showToast('⚠️ '+(isAr()?'غير موجود':'Introuvable')+' ('+code+')');}});}
-  else{cigPick(code,code,0);dbAddCig(code,code,0);}
+  // not a known cigarette: add it with the barcode as name (you'll rename + price it once, saved for next time)
+  cigPick(code,code,0);dbAddCig(code,code,0);showToast('➕ '+(isAr()?'سيجارة جديدة':'Nouvelle cigarette')+' ('+code+')');
 }
 function cigPick(bc,name,price){var cp=(CACHE.cigCustom&&(CACHE.cigCustom[bc]||CACHE.cigCustom[name]));if(cp!=null)price=cp;var found=null;CZ.cig.forEach(function(x){if(x.name===name)found=x;});if(found)found.qty=(found.qty||1)+1;else CZ.cig.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}refreshCig();}
 // save a new cigarette product to the dedicated cigarettes table (so it's known next time)
-function dbAddCig(bc,name,price){sb.from('cigarettes').insert({barcode:bc||'',name:name,price:parseFloat(price)||0}).then(function(r){if(!(r&&r.error)){dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});}});}
+function dbAddCig(bc,name,price){
+  // avoid duplicating a cigarette already in the database (same barcode)
+  if(bc){for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===bc)return;}}
+  sb.from('cigarettes').insert({barcode:bc||'',name:name,price:parseFloat(price)||0}).then(function(r){if(!(r&&r.error)){dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});}});
+}
 // ===== Internet barcode lookup (OpenFoodFacts - free public API) =====
 function apiLookupBarcode(code){
   // returns a promise resolving to {name, found} or {found:false}
