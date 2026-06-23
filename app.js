@@ -759,6 +759,7 @@ function toggleLangApp(){
   if(CU&&!isAdmin){
     buildHeader({title:G('hdr-title')?G('hdr-title').textContent:'📦 L7ssab.ma',role:'user',activeTab:CURSEC,showLang:true});
     applyTR();applyLangAttrs();
+    if(CURSEC)showSection(CURSEC); // re-render so product/cigarette names translate
   }
 }
 function langLabel(){return LANG==='fr'?'🇫🇷 FR':LANG==='ar'?'🇲🇦 AR':'🇬🇧 EN';}
@@ -1489,10 +1490,39 @@ function renderProdList(items){
   if(!items.length){list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا توجد منتجات':'Aucun produit')+'</p>';return;}
   var ar=isAr();
   var h='<table class="itbl"><thead><tr><th>'+(ar?'الاسم':'Nom')+'</th><th class="num">'+(ar?'الكمية':'Qté')+'</th><th class="num">'+(ar?'الثمن':'Prix')+'</th><th class="num">'+(ar?'المجموع':'Total')+'</th><th></th></tr></thead><tbody>';
-  items.forEach(function(it){var idx=CACHE.items.indexOf(it);var pr=parseFloat(it.price)||0,q=parseFloat(it.quantity)||0;h+='<tr><td class="it-name">'+esc(it.name||'—')+'</td><td class="num">'+q+'</td><td class="num">'+pr.toFixed(2)+'</td><td class="num">'+fmt(pr*q)+'</td><td class="it-act"><button class="it-edit" onclick="openEditItem('+idx+')">✏️</button><button class="it-del" onclick="delItemAt('+idx+')">🗑</button></td></tr>';});
+  items.forEach(function(it){var idx=CACHE.items.indexOf(it);var pr=parseFloat(it.price)||0,q=parseFloat(it.quantity)||0;var dispName=ar?trName(it.name):it.name;h+='<tr><td class="it-name" data-trkey="'+esc(it.name||'')+'">'+esc(dispName||'—')+'</td><td class="num">'+q+'</td><td class="num">'+pr.toFixed(2)+'</td><td class="num">'+fmt(pr*q)+'</td><td class="it-act"><button class="it-edit" onclick="openEditItem('+idx+')">✏️</button><button class="it-del" onclick="delItemAt('+idx+')">🗑</button></td></tr>';});
   h+='</tbody></table>';list.innerHTML=h;
+  if(ar)translateVisibleNames();
 }
 function filterProdList(q){q=(q||'').trim().toLowerCase();if(!q){renderProdList(CACHE.items);return;}var f=CACHE.items.filter(function(it){return (it.name||'').toLowerCase().indexOf(q)>=0;});renderProdList(f);}
+// ===== AUTO-TRANSLATION of product/cigarette names (FR -> AR) with cache =====
+var _trCache=null,_trPending={};
+function loadTrCache(){if(_trCache)return;try{_trCache=JSON.parse(localStorage.getItem('l7tr')||'{}');}catch(e){_trCache={};}}
+function saveTrCache(){try{localStorage.setItem('l7tr',JSON.stringify(_trCache||{}));}catch(e){}}
+// return cached arabic translation or the original name (until translated)
+function trName(name){if(!name)return name;loadTrCache();var k=name.trim();return (_trCache[k]!=null&&_trCache[k]!=='')?_trCache[k]:name;}
+// translate every visible .it-name cell that isn't cached yet
+function translateVisibleNames(){
+  if(!isAr())return;loadTrCache();
+  var cells=document.querySelectorAll('[data-trkey]');
+  var toDo=[];
+  for(var i=0;i<cells.length;i++){var key=cells[i].getAttribute('data-trkey');if(!key)continue;if(_trCache[key]!=null&&_trCache[key]!==''){cells[i].textContent=_trCache[key];}else if(!_trPending[key]){toDo.push(key);}}
+  // unique
+  toDo=toDo.filter(function(v,i,a){return a.indexOf(v)===i;});
+  toDo.forEach(function(key){
+    if(_trPending[key])return;_trPending[key]=true;
+    // skip pure numbers / barcodes
+    if(/^[0-9\s\-]+$/.test(key)){_trCache[key]=key;return;}
+    fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(key)+'&langpair=fr|ar').then(function(r){return r.json();}).then(function(d){
+      var tr=(d&&d.responseData&&d.responseData.translatedText)||'';
+      if(tr&&tr.toLowerCase()!==key.toLowerCase()){_trCache[key]=tr;saveTrCache();
+        // apply to all matching cells
+        var cs=document.querySelectorAll('[data-trkey]');for(var j=0;j<cs.length;j++){if(cs[j].getAttribute('data-trkey')===key)cs[j].textContent=tr;}
+      } else {_trCache[key]=key;saveTrCache();}
+      delete _trPending[key];
+    }).catch(function(){delete _trPending[key];});
+  });
+}
 function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),'"'+(it.name||'')+'" ?',function(){sb.from('project_items').delete().eq('id',it.id).then(function(){CACHE.items.splice(i,1);refreshEdit();updateRT();});},t('del'));}
 // edit popup (form) for a project item
 var _editItemIdx=-1,_editCigIdx=-1;
@@ -1833,8 +1863,9 @@ function renderCigList(arr){
   if(!arr.length){list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا توجد سجائر':'Aucune cigarette')+'</p>';return;}
   var ar=isAr();
   var h='<table class="itbl"><thead><tr><th>'+(ar?'الاسم':'Nom')+'</th><th class="num">'+(ar?'الكمية':'Qté')+'</th><th class="num">'+(ar?'الثمن':'Prix')+'</th><th class="num">'+(ar?'المجموع':'Total')+'</th><th></th></tr></thead><tbody>';
-  arr.forEach(function(x){var i=CZ.cig.indexOf(x);var pr=parseFloat(x.price)||0,q=x.qty||1;h+='<tr><td class="it-name">'+esc(x.name)+'</td><td class="num">'+q+'</td><td class="num">'+nf2(pr)+'</td><td class="num">'+nf2(pr*q)+'</td><td class="it-act"><button class="it-edit" onclick="openEditCig('+i+')">✏️</button><button class="it-del" onclick="cigDel('+i+')">🗑</button></td></tr>';});
+  arr.forEach(function(x){var i=CZ.cig.indexOf(x);var pr=parseFloat(x.price)||0,q=x.qty||1;var dn=ar?trName(x.name):x.name;h+='<tr><td class="it-name" data-trkey="'+esc(x.name||'')+'">'+esc(dn||'—')+'</td><td class="num">'+q+'</td><td class="num">'+nf2(pr)+'</td><td class="num">'+nf2(pr*q)+'</td><td class="it-act"><button class="it-edit" onclick="openEditCig('+i+')">✏️</button><button class="it-del" onclick="cigDel('+i+')">🗑</button></td></tr>';});
   h+='</tbody></table>';list.innerHTML=h;
+  if(ar)translateVisibleNames();
 }
 function filterCigList(q){q=(q||'').trim().toLowerCase();if(!q){renderCigList(CZ.cig);return;}renderCigList(CZ.cig.filter(function(x){return (x.name||'').toLowerCase().indexOf(q)>=0;}));}
 function openEditCig(i){var x=CZ.cig[i];if(!x)return;_editCigIdx=i;var ar=isAr();

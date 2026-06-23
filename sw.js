@@ -1,11 +1,11 @@
-var CACHE='l7ssab-v87';
+var CACHE='l7ssab-v88';
 var ASSETS=['./','./index.html','./app.js','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS).catch(function(){});}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.map(function(k){if(k!==CACHE)return caches.delete(k);}));}));self.clients.claim();});
 self.addEventListener('fetch',function(e){
   if(e.request.method!=='GET')return;
   var url=e.request.url;
-  if(url.indexOf('openfoodfacts.org')>=0||url.indexOf('supabase.co')>=0||url.indexOf('cdn.jsdelivr')>=0||url.indexOf('cdnjs')>=0){
+  if(url.indexOf('openfoodfacts.org')>=0||url.indexOf('supabase.co')>=0||url.indexOf('mymemory.translated.net')>=0||url.indexOf('cdn.jsdelivr')>=0||url.indexOf('cdnjs')>=0){
     e.respondWith(fetch(e.request).catch(function(){return new Response('{"status":0}',{headers:{'Content-Type':'application/json'}});}));return;
   }
   if(/\.(html|js|css)$/.test(url)||url.endsWith('/')){
