@@ -1111,7 +1111,7 @@ window.addEventListener('focus',function(){setTimeout(focusScan,60);});
 // ===== GLOBAL USB SCANNER CAPTURE (works on any scan page, even without focus) =====
 // A USB barcode scanner types fast then sends Enter. We buffer keystrokes globally
 // and, on Enter, route the code to the active scan page (products or cigarettes).
-var _scanBuf='',_scanLast=0;
+var _scanBuf='',_scanLast=0,_lastScanBC='';
 function activeScanTarget(){
   if(CURSEC==='cigarettes')return 'cig';
   if(CURSEC==='products')return 'prod';
@@ -1337,28 +1337,35 @@ function doSearch(){
 }
 function handleScan(code){
   hideSuggest&&hideSuggest();
+  _lastScanBC=code; // remember the barcode so Add can save the price even if the field is cleared
   var si=G('scan-inp');if(si)si.value=code;
   var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}
-  if(found){
-    dbGetCustomPrice(CU.id,code).then(function(cp){
-      var price=cp?cp.price:found.price;
-      // fill the form (name + price). User sets quantity then clicks "Ajouter".
+  // Always look up the user's saved price for this barcode (works across projects)
+  dbGetCustomPrice(CU.id,code).then(function(cp){
+    if(found){
       var ni=G('pname-inp');if(ni)ni.value=found.name;
+      var price=(cp&&cp.price!=null)?cp.price:(parseFloat(found.price)||0);
       dP=parseFloat(price)||0;dQ=0;updateNFs();
-      setScanMsg('✅ '+found.name+' — '+nf2(price)+' DH · '+(isAr()?'أدخل الكمية واضغط إضافة':'mettez la quantité puis Ajouter'),1);
-    });
-    return;
-  }
+      setScanMsg('✅ '+found.name+' — '+nf2(price)+' DH · '+(isAr()?'أدخل الكمية واضغط إضافة':'quantité puis Ajouter'),1);
+      return;
+    }
+    // not in local catalog: still recall a saved price if the user had one
+    if(cp&&cp.price!=null){var ni2=G('pname-inp');if(ni2&&!ni2.value)ni2.value=code;dP=parseFloat(cp.price)||0;dQ=0;updateNFs();}
+    // try the catalog / API for the name
+    handleScanLookup(code);
+  });
+}
+function handleScanLookup(code){
   setScanMsg('🔎 '+t('onl'),2);
   fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){
     if(d.status===1&&d.product){
       var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;
       var dupP=false;for(var pi=0;pi<(CACHE.products||[]).length;pi++){if(CACHE.products[pi].barcode===code){dupP=true;break;}}
       if(!dupP)sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
-      var ni=G('pname-inp');if(ni)ni.value=name;dP=0;dQ=0;updateNFs();
+      var ni=G('pname-inp');if(ni)ni.value=name;updateNFs();
       setScanMsg('✅ '+name+' · '+(isAr()?'أدخل الثمن والكمية':'mettez prix + quantité'),1);
     } else {
-      var ni2=G('pname-inp');if(ni2)ni2.value=code;dP=0;dQ=0;updateNFs();
+      var ni2=G('pname-inp');if(ni2&&!ni2.value)ni2.value=code;updateNFs();
       setScanMsg('⚠️ '+t('nf')+' ('+code+') · '+(isAr()?'أدخل الاسم والثمن':'mettez nom + prix'),0);
     }
   }).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);});
@@ -1448,14 +1455,16 @@ function scanAddToList(bc,name,price){
     loadItems().then(function(){refreshEdit();updateRT();});
   });
 }
-function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}
+function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();
+  if(!bc&&_lastScanBC)bc=_lastScanBC; // fallback to the last scanned barcode if the field was cleared
+  sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}
   if(bc){
-    // PRICE is per-user only -> custom_prices. The shared products table keeps name+barcode (not the user's price).
-    if(dP)saveCP(bc,dP);
-    // ensure the product exists in the shared catalog (name + barcode), WITHOUT overwriting a shared price
+    // PRICE is per-user only -> custom_prices. Shared catalog keeps name+barcode.
+    saveCP(bc,dP); // save even if 0, so the user's last value is remembered
     var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}}
     if(!prod){sb.from('products').insert({barcode:bc,name:name,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}});}
-  }
+  } else { showToast('⚠️ '+(isAr()?'بدون باركود - الثمن لا يُحفظ':'Sans code-barres - prix non mémorisé')); }
+  _lastScanBC='';
   sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
 function refreshEdit(){
   var items=CACHE.items;var card=G('prod-list-card');if(!card)return;
