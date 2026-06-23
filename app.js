@@ -1364,8 +1364,28 @@ function handleScan(code){
   }).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);});
 }
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
-function saveCP(bc,price){if(!bc||!CU)return;var payload={user_id:CU.id,barcode:bc,price:parseFloat(price)||0};sb.from('custom_prices').upsert(payload,{onConflict:'user_id,barcode'}).then(function(r){if(r&&r.error){console.log('saveCP error:',r.error.message);try{queueWrite('custom_prices','upsert',payload,{onConflict:'user_id,barcode'});}catch(e){}}}).catch(function(e){try{queueWrite('custom_prices','upsert',payload,{onConflict:'user_id,barcode'});}catch(_){}}); }
-function saveCigCP(bc,name,price){if(!CU)return;sb.from('custom_cig_prices').upsert({user_id:CU.id,barcode:bc||'',name:name||'',price:price},{onConflict:'user_id,barcode'}).then(function(){}).catch(function(){});}
+function saveCP(bc,price){
+  if(!bc||!CU){showToast('⚠️ prix non sauvé (pas connecté)');return;}
+  var pr=parseFloat(price)||0;
+  // Manual upsert: works even WITHOUT a UNIQUE constraint on (user_id,barcode).
+  sb.from('custom_prices').select('id').eq('user_id',CU.id).eq('barcode',bc).limit(1).then(function(r){
+    if(r&&r.error){showToast('❌ prix: '+r.error.message);return;}
+    var existing=(r&&r.data&&r.data[0])?r.data[0]:null;
+    if(existing){
+      sb.from('custom_prices').update({price:pr}).eq('id',existing.id).then(function(u){if(u&&u.error)showToast('❌ MAJ prix: '+u.error.message);});
+    } else {
+      sb.from('custom_prices').insert({user_id:CU.id,barcode:bc,price:pr}).then(function(ins){if(ins&&ins.error)showToast('❌ INS prix: '+ins.error.message);});
+    }
+  }).catch(function(e){showToast('❌ prix réseau');try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:bc,price:pr});}catch(_){}}); }
+function saveCigCP(bc,name,price){
+  if(!CU)return;var pr=parseFloat(price)||0,b=bc||'';
+  sb.from('custom_cig_prices').select('id').eq('user_id',CU.id).eq('barcode',b).limit(1).then(function(r){
+    if(r&&r.error)return;
+    var existing=(r&&r.data&&r.data[0])?r.data[0]:null;
+    if(existing){sb.from('custom_cig_prices').update({price:pr,name:name||''}).eq('id',existing.id).then(function(){});}
+    else{sb.from('custom_cig_prices').insert({user_id:CU.id,barcode:b,name:name||'',price:pr}).then(function(){});}
+  }).catch(function(){});
+}
 function updateNFs(){var p=G('nf-dp'),q=G('nf-dq');if(p){p.className=dP>0?'nf-val':'nf-ph';p.textContent=dP>0?dP.toFixed(2)+' DH':t('tap');}if(q){q.className=dQ>0?'nf-val':'nf-ph';q.textContent=dQ>0?String(dQ):t('tap');}}
 // numpad
 function openNP(target,label,decimal){
