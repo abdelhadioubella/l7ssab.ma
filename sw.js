@@ -1,4 +1,4 @@
-var CACHE='l7ssab-v88';
+var CACHE='l7ssab-v89';
 var ASSETS=['./','./index.html','./app.js','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS).catch(function(){});}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.map(function(k){if(k!==CACHE)return caches.delete(k);}));}));self.clients.claim();});

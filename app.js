@@ -1501,6 +1501,24 @@ function loadTrCache(){if(_trCache)return;try{_trCache=JSON.parse(localStorage.g
 function saveTrCache(){try{localStorage.setItem('l7tr',JSON.stringify(_trCache||{}));}catch(e){}}
 // return cached arabic translation or the original name (until translated)
 function trName(name){if(!name)return name;loadTrCache();var k=name.trim();return (_trCache[k]!=null&&_trCache[k]!=='')?_trCache[k]:name;}
+// Phonetic transliteration FR -> Arabic letters (for brand names the API can't translate)
+function translitFrToAr(word){
+  if(!word)return word;
+  var s=word.toLowerCase();var out='';var i=0;
+  var pairs=[['eau','و'],['ch','ش'],['ph','ف'],['gn','ن'],['ou','و'],['ai','ي'],['ei','ي'],['au','و'],['on','ون'],['an','ان'],['en','ان'],['in','ين'],['ll','ل'],['ss','س'],['tt','ت'],['mm','م'],['nn','ن'],['pp','ب'],['oo','و'],['ee','ي']];
+  function sw(str,pos,p){return str.substr(pos,p.length)===p;}
+  while(i<s.length){
+    var matched=false;
+    for(var p=0;p<pairs.length;p++){var key=pairs[p][0];if(sw(s,i,key)){out+=pairs[p][1];i+=key.length;matched=true;break;}}
+    if(matched)continue;
+    var ch=s[i];
+    var map={'a':'ا','b':'ب','c':'ك','d':'د','e':'ي','f':'ف','g':'غ','h':'ه','i':'ي','j':'ج','k':'ك','l':'ل','m':'م','n':'ن','o':'و','p':'ب','q':'ق','r':'ر','s':'س','t':'ت','u':'و','v':'ف','w':'و','x':'كس','y':'ي','z':'ز','é':'ي','è':'ي','ê':'ي','à':'ا','â':'ا','ô':'و','û':'و','î':'ي','ç':'س',' ':' ','-':' '};
+    if(map[ch]!=null)out+=map[ch];else if(/[0-9]/.test(ch))out+=ch;
+    i++;
+  }
+  return out.replace(/\s+/g,' ').trim();
+}
+function looksArabic(s){return /[\u0600-\u06FF]/.test(s||'');}
 // translate every visible .it-name cell that isn't cached yet
 function translateVisibleNames(){
   if(!isAr())return;loadTrCache();
@@ -1515,12 +1533,21 @@ function translateVisibleNames(){
     if(/^[0-9\s\-]+$/.test(key)){_trCache[key]=key;return;}
     fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(key)+'&langpair=fr|ar').then(function(r){return r.json();}).then(function(d){
       var tr=(d&&d.responseData&&d.responseData.translatedText)||'';
-      if(tr&&tr.toLowerCase()!==key.toLowerCase()){_trCache[key]=tr;saveTrCache();
-        // apply to all matching cells
-        var cs=document.querySelectorAll('[data-trkey]');for(var j=0;j<cs.length;j++){if(cs[j].getAttribute('data-trkey')===key)cs[j].textContent=tr;}
-      } else {_trCache[key]=key;saveTrCache();}
+      var result;
+      if(tr&&looksArabic(tr)&&tr.toLowerCase()!==key.toLowerCase()){
+        result=tr; // real translation found (e.g. lait -> حليب)
+      } else {
+        result=translitFrToAr(key); // brand/unknown -> phonetic (e.g. Camel -> كاميل)
+      }
+      _trCache[key]=result;saveTrCache();
+      var cs=document.querySelectorAll('[data-trkey]');for(var j=0;j<cs.length;j++){if(cs[j].getAttribute('data-trkey')===key)cs[j].textContent=result;}
       delete _trPending[key];
-    }).catch(function(){delete _trPending[key];});
+    }).catch(function(){
+      // offline / error -> use phonetic transliteration so it still shows arabic
+      var res=translitFrToAr(key);_trCache[key]=res;saveTrCache();
+      var cs2=document.querySelectorAll('[data-trkey]');for(var j2=0;j2<cs2.length;j2++){if(cs2[j2].getAttribute('data-trkey')===key)cs2[j2].textContent=res;}
+      delete _trPending[key];
+    });
   });
 }
 function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),'"'+(it.name||'')+'" ?',function(){sb.from('project_items').delete().eq('id',it.id).then(function(){CACHE.items.splice(i,1);refreshEdit();updateRT();});},t('del'));}
