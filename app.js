@@ -732,7 +732,12 @@ function setInputMode(m){INPUT_MODE=m;localStorage.setItem('l7_inputmode',m);sho
 function toggleInputMode(){setInputMode(INPUT_MODE==='tactile'?'keyboard':'tactile');}
 var _npCb=null; // generic numpad callback: openNPcb(label, current, function(value){...})
 function openNPcb(label,current,cb){_npCb=cb;npT='__cb__';npD=true;npV=(current!=null&&current!=='')?String(current):'';setText('np-lbl',label||'');G('np-disp').textContent=npV||'0';var db=G('np-dot-btn');if(db)db.style.display='block';var grid=G('np-grid');if(grid){grid.innerHTML='';['7','8','9','4','5','6','1','2','3','C','0','⌫'].forEach(function(k){var b=document.createElement('button');b.className='nk'+(k==='C'?' nk-c':'');b.textContent=k;b.onclick=function(){if(k==='C')npV='';else if(k==='⌫')npV=npV.slice(0,-1);else npV+=k;G('np-disp').textContent=npV||'0';};grid.appendChild(b);});}show('np-ov');}
-var CACHE={products:[],cigProducts:[],items:[],adjs:[]};
+var CACHE={products:[],cigProducts:[],items:[],adjs:[],cp:{},cigcp:{}};
+// Local price cache (offline): { barcode: price } for the current user
+function cpKey(){return CU?('l7cp_'+CU.id):null;}
+function loadCPCache(){var k=cpKey();if(!k){CACHE.cp={};return;}try{var v=localStorage.getItem(k);CACHE.cp=v?JSON.parse(v):{};}catch(e){CACHE.cp={};}}
+function saveCPCache(){var k=cpKey();if(!k)return;try{localStorage.setItem(k,JSON.stringify(CACHE.cp||{}));}catch(e){}}
+function getCP(bc){if(!bc)return null;CACHE.cp=CACHE.cp||{};return (CACHE.cp[bc]!=null)?CACHE.cp[bc]:null;}
 var isAdmin=false;
 
 // ---- LOGIN ----
@@ -811,6 +816,7 @@ function logout(){clearSession();LS.set('fs',0);CU=null;CP=null;isAdmin=false;lo
 function enterApp(user){
   CU=user;isAdmin=(user.role==='admin');
   hide('login-page');show('main-app');
+  loadCPCache();
   if(isAdmin){LANG='fr';document.documentElement.dir='ltr';document.documentElement.lang='en';}
   else if(LANG==='en'){LANG='fr';LS.set('lang','fr');document.documentElement.dir='ltr';document.documentElement.lang='fr';} // EN is login-only; users use FR/AR
   loadProducts().then(function(){
@@ -1009,7 +1015,10 @@ function applyTR(){
   if(G('t-backapp'))G('t-backapp').textContent=t('back');
 }
 
-function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});if(CU&&!isAdmin){sb.from('custom_cig_prices').select('*').eq('user_id',CU.id).then(function(r){CACHE.cigCustom={};((r&&r.data)||[]).forEach(function(x){CACHE.cigCustom[x.barcode||x.name]=parseFloat(x.price)||0;});}).catch(function(){});}return p;});}
+function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p;dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});if(CU&&!isAdmin){sb.from('custom_cig_prices').select('*').eq('user_id',CU.id).then(function(r){CACHE.cigCustom={};((r&&r.data)||[]).forEach(function(x){CACHE.cigCustom[x.barcode||x.name]=parseFloat(x.price)||0;});}).catch(function(){});
+  // load all of this user's product prices into cache (merge with offline cache)
+  sb.from('custom_prices').select('*').eq('user_id',CU.id).then(function(r){CACHE.cp=CACHE.cp||{};((r&&r.data)||[]).forEach(function(x){if(x.barcode)CACHE.cp[x.barcode]=parseFloat(x.price)||0;});saveCPCache();}).catch(function(){});
+  }return p;});}
 function loadItems(){return CP?dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;}):Promise.resolve([]);}
 function loadAdjs(){return CP?dbGetAdjs(CP.id).then(function(a){CACHE.adjs=a;return a;}):Promise.resolve([]);}
 // ================= USER SECTION FUNCTIONS =================
@@ -1340,20 +1349,16 @@ function handleScan(code){
   _lastScanBC=code; // remember the barcode so Add can save the price even if the field is cleared
   var si=G('scan-inp');if(si)si.value=code;
   var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}
-  // Always look up the user's saved price for this barcode (works across projects)
-  dbGetCustomPrice(CU.id,code).then(function(cp){
-    if(found){
-      var ni=G('pname-inp');if(ni)ni.value=found.name;
-      var price=(cp&&cp.price!=null)?cp.price:(parseFloat(found.price)||0);
-      dP=parseFloat(price)||0;dQ=0;updateNFs();
-      setScanMsg('✅ '+found.name+' — '+nf2(price)+' DH · '+(isAr()?'أدخل الكمية واضغط إضافة':'quantité puis Ajouter'),1);
-      return;
-    }
-    // not in local catalog: still recall a saved price if the user had one
-    if(cp&&cp.price!=null){var ni2=G('pname-inp');if(ni2&&!ni2.value)ni2.value=code;dP=parseFloat(cp.price)||0;dQ=0;updateNFs();}
-    // try the catalog / API for the name
-    handleScanLookup(code);
-  });
+  var cachedPrice=getCP(code); // instant offline price for this user
+  if(found){
+    var ni=G('pname-inp');if(ni)ni.value=found.name;
+    var price=(cachedPrice!=null)?cachedPrice:(parseFloat(found.price)||0);
+    dP=parseFloat(price)||0;dQ=0;updateNFs();
+    setScanMsg('✅ '+found.name+(price?(' — '+nf2(price)+' DH'):'')+' · '+(isAr()?'أدخل الكمية واضغط إضافة':'quantité puis Ajouter'),1);
+    return;
+  }
+  if(cachedPrice!=null){dP=parseFloat(cachedPrice)||0;dQ=0;updateNFs();}
+  handleScanLookup(code);
 }
 function handleScanLookup(code){
   setScanMsg('🔎 '+t('onl'),2);
@@ -1372,18 +1377,18 @@ function handleScanLookup(code){
 }
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
 function saveCP(bc,price){
-  if(!bc||!CU){showToast('⚠️ prix non sauvé (pas connecté)');return;}
+  if(!bc||!CU)return;
   var pr=parseFloat(price)||0;
-  // Manual upsert: works even WITHOUT a UNIQUE constraint on (user_id,barcode).
+  // 1) save to local cache immediately (offline-friendly, instant recall)
+  CACHE.cp=CACHE.cp||{};CACHE.cp[bc]=pr;saveCPCache();
+  // 2) save to database (manual upsert, works without UNIQUE constraint)
   sb.from('custom_prices').select('id').eq('user_id',CU.id).eq('barcode',bc).limit(1).then(function(r){
-    if(r&&r.error){showToast('❌ prix: '+r.error.message);return;}
+    if(r&&r.error){try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:bc,price:pr});}catch(e){}return;}
     var existing=(r&&r.data&&r.data[0])?r.data[0]:null;
-    if(existing){
-      sb.from('custom_prices').update({price:pr}).eq('id',existing.id).then(function(u){if(u&&u.error)showToast('❌ MAJ prix: '+u.error.message);});
-    } else {
-      sb.from('custom_prices').insert({user_id:CU.id,barcode:bc,price:pr}).then(function(ins){if(ins&&ins.error)showToast('❌ INS prix: '+ins.error.message);});
-    }
-  }).catch(function(e){showToast('❌ prix réseau');try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:bc,price:pr});}catch(_){}}); }
+    if(existing){sb.from('custom_prices').update({price:pr}).eq('id',existing.id).then(function(){});}
+    else{sb.from('custom_prices').insert({user_id:CU.id,barcode:bc,price:pr}).then(function(){});}
+  }).catch(function(){try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:bc,price:pr});}catch(e){}});
+}
 function saveCigCP(bc,name,price){
   if(!CU)return;var pr=parseFloat(price)||0,b=bc||'';
   sb.from('custom_cig_prices').select('id').eq('user_id',CU.id).eq('barcode',b).limit(1).then(function(r){
@@ -1432,7 +1437,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='prisMont'){CZ._pMont=v;refreshPris();return;}
   if(tgt&&tgt.indexOf('cigQ_')===0){var ci=parseInt(tgt.slice(5));if(CZ.cig[ci]){CZ.cig[ci].qty=v||1;refreshCig();}return;}
   if(tgt&&tgt.indexOf('cigP_')===0){var ci2=parseInt(tgt.slice(5));if(CZ.cig[ci2]){CZ.cig[ci2].price=v;refreshCig();}return;}
-  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
+  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();if(_lastScanBC)saveCP(_lastScanBC,v);}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
 // items
 // Add a scanned product straight to the project list (increment qty if barcode already present)
 function scanAddToList(bc,name,price){
@@ -1455,17 +1460,24 @@ function scanAddToList(bc,name,price){
     loadItems().then(function(){refreshEdit();updateRT();});
   });
 }
-function addProd(){var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();if(!name){showToast('❌ '+t('enterName'));return;}var si=G('scan-inp');var bc=(si?si.value||'':'').trim();
-  if(!bc&&_lastScanBC)bc=_lastScanBC; // fallback to the last scanned barcode if the field was cleared
-  sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}
-  if(bc){
-    // PRICE is per-user only -> custom_prices. Shared catalog keeps name+barcode.
-    saveCP(bc,dP); // save even if 0, so the user's last value is remembered
-    var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}}
-    if(!prod){sb.from('products').insert({barcode:bc,name:name,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}});}
-  } else { showToast('⚠️ '+(isAr()?'بدون باركود - الثمن لا يُحفظ':'Sans code-barres - prix non mémorisé')); }
-  _lastScanBC='';
-  sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();focusScan();showToast('✅ '+t('added')+': '+name);});});}
+function addProd(){
+  var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();
+  if(!name){showToast('❌ '+(isAr()?'أدخل الاسم':'Entrez le nom'));return;}
+  // require price AND quantity
+  if(!(parseFloat(dP)>0)||!(parseFloat(dQ)>0)){showToast('⚠️ '+(isAr()?'أدخل الثمن والكمية':'Mettez le prix et la quantité'));return;}
+  var si=G('scan-inp');var bc=(si?si.value||'':'').trim();if(!bc&&_lastScanBC)bc=_lastScanBC;
+  // save the user's price for this barcode (cache + DB) BEFORE clearing
+  if(bc)saveCP(bc,dP);
+  sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){
+    if(r.error){showToast('❌ '+r.error.message);return;}
+    if(bc){var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}}
+      if(!prod){sb.from('products').insert({barcode:bc,name:name,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}});}}
+    sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});
+    // clear ALL fields
+    _lastScanBC='';if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();
+    loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅ '+t('added')+': '+name);});
+  });
+}
 function refreshEdit(){
   var items=CACHE.items;var card=G('prod-list-card');if(!card)return;
   card.classList.remove('hidden');
