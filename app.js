@@ -2109,27 +2109,25 @@ function genCaissePDF(){
   (function cover(){
     if(!amiriOK)return;
     var cx=W/2;var cy=40;
-    // shape Arabic letters AND reverse for jsPDF LTR layout (whole line as RTL)
-    function shapeRTL(s){try{var r=ArabicReshaper.convertArabic(String(s));return r.split('').reverse().join('');}catch(e){return s;}}
-    function ctrAr(txt,size,color){try{doc.setFont('Amiri','normal');}catch(e){}doc.setFontSize(size);doc.setTextColor(color?color[0]:0,color?color[1]:0,color?color[2]:0);doc.text(shapeRTL(txt),cx,cy,{align:'center'});}
-    function ctrPlain(txt,size,color){try{doc.setFont('helvetica','normal');}catch(e){}doc.setFontSize(size);doc.setTextColor(color?color[0]:0,color?color[1]:0,color?color[2]:0);doc.text(String(txt),cx,cy,{align:'center'});}
+    function hasAr(s){return /[\u0600-\u06FF]/.test(String(s||''));}
+    function ctrAr(txt,size,color){try{doc.setFont('Amiri','normal');}catch(e){}doc.setFontSize(size);doc.setTextColor(color?color[0]:0,color?color[1]:0,color?color[2]:0);doc.text(String(txt),cx,cy,{align:'center'});}
+    function ctrVal(txt,size,color){var f=hasAr(txt)?'Amiri':'helvetica';try{doc.setFont(f,'normal');}catch(e){}doc.setFontSize(size);doc.setTextColor(color?color[0]:0,color?color[1]:0,color?color[2]:0);doc.text(String(txt),cx,cy,{align:'center'});}
     doc.setFillColor(26,122,74);doc.rect(0,0,W,8,'F');
     cy=45;ctrAr('بسم الله الرحمن الرحيم',24,[26,122,74]);
-    cy+=18;ctrAr('على الله توكلنا',16,[80,80,80]);
-    cy+=28;ctrAr('بتاريخ',13);cy+=8;ctrPlain(new Date().toLocaleDateString('fr-MA'),12,[80,80,80]);
+    cy+=18;ctrAr('توكلنا على الله',16,[80,80,80]);
+    cy+=28;ctrAr('بتاريخ',13);cy+=8;ctrVal(new Date().toLocaleDateString('fr-MA'),12,[80,80,80]);
     var fromN=(CP&&CP.from_name||'').trim();var toN=(CP&&CP.to_name||'').trim();
     cy+=20;
     if(fromN&&toN){
-      ctrAr('هذا الحساب من سيد',13);cy+=8;ctrPlain(fromN,13,[26,122,74]);
-      cy+=10;ctrAr('إلى سيد',13);cy+=8;ctrPlain(toN,13,[26,122,74]);
+      ctrAr('هذا الحساب من سيد',13);cy+=8;ctrVal(fromN,13,[26,122,74]);
+      cy+=10;ctrAr('إلى سيد',13);cy+=8;ctrVal(toN,13,[26,122,74]);
     } else if(fromN||toN){
-      ctrAr('هذا الحساب لسيد',13);cy+=8;ctrPlain(fromN||toN,13,[26,122,74]);
+      ctrAr('هذا الحساب لسيد',13);cy+=8;ctrVal(fromN||toN,13,[26,122,74]);
     }
     var authAr=(CU&&CU.name_ar||'').trim();var authFr=(CU&&(CU.fullname||CU.username))||'';var ph=(CU&&CU.phone||'').trim();
     cy+=20;ctrAr('هذا الحساب من طرف السيد',13);
-    cy+=8;
-    if(authAr){ctrAr(authAr,14,[26,122,74]);}else{ctrPlain(authFr,13,[26,122,74]);}
-    if(ph){cy+=9;ctrPlain(''+ph,12,[80,80,80]);}
+    cy+=8;ctrVal(authAr||authFr,14,[26,122,74]);
+    if(ph){cy+=9;ctrVal(ph,12,[80,80,80]);}
     cy+=24;ctrAr('على بركة الرحمن',18,[26,122,74]);
     doc.setFillColor(26,122,74);doc.rect(0,289,W,8,'F');
     doc.addPage();
