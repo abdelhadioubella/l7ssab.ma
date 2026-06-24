@@ -563,7 +563,9 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" id="t-newproj">Nouveau projet</div>
-    <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…" data-ph-fr="Nom du projet…" data-ph-ar="اسم المشروع…"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <input class="inp" type="text" id="proj-from" placeholder="De (من سيد)… optionnel" data-ph-fr="De (من)… optionnel" data-ph-ar="من السيد… اختياري"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <input class="inp" type="text" id="proj-to" placeholder="À (إلى سيد)… optionnel" data-ph-fr="À (إلى)… optionnel" data-ph-ar="إلى السيد… اختياري"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <button class="btn-p" onclick="createProj()" id="t-createproj">Créer le projet →</button>
   </div>
   <div class="card"><div class="card-title" id="t-savedproj">Projets sauvegardés</div>
@@ -985,6 +987,8 @@ html.dark .mode-txt b{color:#e8f0ec}
       <div class="card-title" id="t-createuser">Create a user</div>
       <input class="inp" type="text" id="new-uname" placeholder="Username"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <input class="inp" type="text" id="new-ufull" placeholder="Full name"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="text" id="new-uar" placeholder="الاسم بالعربية (nom arabe)" dir="rtl"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="tel" id="new-uphone" placeholder="Téléphone / الهاتف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <input class="inp" type="password" id="new-upin" placeholder="PIN (6 digits)" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <select class="inp" id="new-urole"><option value="user">User</option><option value="admin">Administrator</option></select>
       <p class="hidden" id="user-err" style="color:#d63031;font-size:13px;margin-bottom:8px"></p>
