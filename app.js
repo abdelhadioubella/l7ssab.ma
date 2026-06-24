@@ -320,7 +320,7 @@ function hashPIN(pin){return crypto.subtle.digest('SHA-256',new TextEncoder().en
 
 // ====== SESSION (keeps you logged in across refreshes / pages) ======
 // stores only identity (id, username, fullname, role, color) — NEVER the PIN
-function setSession(u){LS.set('session',{id:u.id,username:u.username,fullname:u.fullname,role:u.role,color:u.color,ts:Date.now()});}
+function setSession(u){LS.set('session',{id:u.id,username:u.username,fullname:u.fullname,name_ar:u.name_ar,phone:u.phone,role:u.role,color:u.color,ts:Date.now()});}
 function getSession(){return LS.get('session',null);}
 function clearSession(){LS.del('session');}
 
@@ -1611,6 +1611,8 @@ function refreshProfile(){
   var bd=G('prof-badge');if(bd){bd.textContent=isAdmin?'Administrator':(isAr()?'مستخدم':'Utilisateur');bd.className=isAdmin?'badge b-admin':'badge b-user';}
   var un=G('prof-newuname');if(un)un.value=CU.username||'';
   var ni=G('prof-newname');if(ni)ni.value=CU.fullname||CU.username;
+  var na=G('prof-namear');if(na)na.value=CU.name_ar||'';
+  var ph=G('prof-phone');if(ph)ph.value=CU.phone||'';
   var bc=G('back-to-app-card');if(bc)bc.classList.remove('hidden');
 }
 function updateProf(type){
@@ -1632,6 +1634,10 @@ function updateProf(type){
   else if(type==='name'){
     var n=(G('prof-newname')?G('prof-newname').value||'':'').trim();if(!n)return;
     sb.from('app_users').update({fullname:n}).eq('id',CU.id).then(function(){CU.fullname=n;setSession(CU);var rem=LS.get('remembered',[])||[];for(var i=0;i<rem.length;i++){if(rem[i].id===CU.id)rem[i].fullname=n;}LS.set('remembered',rem);showToast('✅ '+L('updated'));refreshProfile();});
+  }
+  else if(type==='arphone'){
+    var ar=(G('prof-namear')?G('prof-namear').value||'':'').trim();var ph=(G('prof-phone')?G('prof-phone').value||'':'').trim();
+    sb.from('app_users').update({name_ar:ar,phone:ph}).eq('id',CU.id).then(function(r){if(r&&r.error){showToast('❌ '+r.error.message);return;}CU.name_ar=ar;CU.phone=ph;setSession(CU);showToast('✅ '+L('updated'));});
   }
   else{
     var p=(G('prof-newpin')?G('prof-newpin').value||'':'');var c=(G('prof-confpin')?G('prof-confpin').value||'':'');
@@ -1695,7 +1701,7 @@ function renderCigDBTable(prods){var tb=G('cigdb-all-tbody');if(!tb)return;tb.in
 function cigDbSearch(q){var res=G('cigdb-results');if(!res)return;res.innerHTML='';if(!q||!q.trim())return;var f=(CACHE.cigProducts||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.barcode||'').indexOf(q)>=0;}).slice(0,15);if(!f.length){res.innerHTML='<p style="font-size:13px;color:#888;padding:8px 0">Aucun résultat</p>';return;}f.forEach(function(p){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px';var info=document.createElement('div');info.style.flex='1';info.innerHTML='<p style="font-size:14px;font-weight:500;margin:0 0 1px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">'+(p.barcode||'')+'</p>';var pe=document.createElement('strong');pe.style.cssText='color:#1a7a4a;font-size:14px;white-space:nowrap';pe.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var eb=document.createElement('button');eb.className='btn-b';eb.style.marginLeft='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Modifier cigarette',confirmText:'Enregistrer',fields:[{key:'name',label:'Nom',value:p.name},{key:'barcode',label:'Code-barres',value:p.barcode||''},{key:'price',label:'Prix (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('cigarettes').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();refreshCigDB();showToast('✅ Modifié');});}});};var db=document.createElement('button');db.className='btn-r';db.style.marginLeft='4px';db.textContent='🗑';db.onclick=function(){confirmModal('Supprimer','Supprimer "'+p.name+'" ?',function(){sb.from('cigarettes').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);refreshCigDB();showToast('✅ Supprimé');});},'Supprimer');};var btns=document.createElement('div');btns.style.cssText='display:flex;align-items:center';btns.appendChild(pe);btns.appendChild(eb);btns.appendChild(db);row.appendChild(info);row.appendChild(btns);res.appendChild(row);});}
 function toggleCigAddForm(){var f=G('cigdb-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('cigdb-bc');if(b)b.focus();}}
 function cigDbAdd(){var bc=(G('cigdb-bc')?G('cigdb-bc').value||'':'').trim();var nm=(G('cigdb-nm')?G('cigdb-nm').value||'':'').trim();var pr=parseFloat(G('cigdb-pr')?G('cigdb-pr').value||'0':'0')||0;if(!nm){showToast('❌ Nom requis');return;}sb.from('cigarettes').insert({barcode:bc,name:nm,price:pr}).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(G('cigdb-bc'))G('cigdb-bc').value='';if(G('cigdb-nm'))G('cigdb-nm').value='';if(G('cigdb-pr'))G('cigdb-pr').value='';showToast('✅ Ajouté: '+nm);refreshCigDB();});}
-function renderDBTable(prods){var tb=G('db-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name||'—';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'name_ar',label:'الاسم بالعربية',value:p.name_ar||''},{key:'barcode',label:'Barcode',value:p.barcode||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),name_ar:(v.name_ar||'').trim(),barcode:v.barcode.trim()}).eq('id',p.id).then(function(){closeModal();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){refreshDB();showToast('✅ Deleted');});},'Delete');};var ub=document.createElement('button');ub.className='btn-b';ub.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';ub.textContent='👥';ub.title='Prix par utilisateur';ub.onclick=function(){openUserPrices('product',p.barcode,p.name);};c4.appendChild(ub);c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c3);tr.appendChild(c4);tb.appendChild(tr);});}
+function renderDBTable(prods){var tb=G('db-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name||'—';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'name_ar',label:'الاسم بالعربية',value:p.name_ar||''},{key:'barcode',label:'Barcode',value:p.barcode||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),name_ar:(v.name_ar||'').trim(),barcode:v.barcode.trim()}).eq('id',p.id).then(function(){closeModal();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){refreshDB();showToast('✅ Deleted');});},'Delete');};var ub=document.createElement('button');ub.className='btn-b';ub.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';ub.textContent='👥';ub.title='Prix par utilisateur';ub.onclick=function(){openUserPrices('product',p.barcode,p.name);};c4.appendChild(ub);c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c4);tb.appendChild(tr);});}
 function dbSearch(q){var res=G('db-results');if(!res)return;res.innerHTML='';if(!q||!q.trim())return;var f=CACHE.products.filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.barcode||'').indexOf(q)>=0;}).slice(0,15);if(!f.length){res.innerHTML='<p style="font-size:13px;color:#888;padding:8px 0">No results</p>';return;}f.forEach(function(p){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px';var info=document.createElement('div');info.style.flex='1';info.innerHTML='<p style="font-size:14px;font-weight:500;margin:0 0 1px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">'+(p.barcode||'')+'</p>';var pe=document.createElement('strong');pe.style.cssText='color:#1a7a4a;font-size:14px;white-space:nowrap';pe.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var eb=document.createElement('button');eb.className='btn-b';eb.style.marginLeft='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'barcode',label:'Barcode',value:p.barcode||''},{key:'price',label:'Price (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();loadProducts();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.marginLeft='4px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);loadProducts();refreshDB();showToast('✅ Deleted');});},'Delete');};var btns=document.createElement('div');btns.style.cssText='display:flex;align-items:center';btns.appendChild(pe);btns.appendChild(eb);btns.appendChild(db);row.appendChild(info);row.appendChild(btns);res.appendChild(row);});}
 function toggleAddForm(){var f=G('db-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('db-bc');if(b)b.focus();}}
 function dbAddProd(){var bc=(G('db-bc')?G('db-bc').value||'':'').trim();var nm=(G('db-nm')?G('db-nm').value||'':'').trim();var pr=parseFloat(G('db-pr')?G('db-pr').value||'0':'0')||0;if(!nm){showToast('❌ Name required');return;}sb.from('products').insert({barcode:bc,name:nm,price:pr}).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(G('db-bc'))G('db-bc').value='';if(G('db-nm'))G('db-nm').value='';if(G('db-pr'))G('db-pr').value='';showToast('✅ Added: '+nm);refreshDB();});}
@@ -2101,22 +2107,26 @@ function genCaissePDF(){
   function shapeC(s){return (isArStr(s)&&typeof reshapeAr==='function')?reshapeAr(s):s;}
   // ---- COVER PAGE (Arabic religious header with from/to and author) ----
   (function cover(){
-    if(!amiriOK)return; // need the Arabic font for the cover
+    if(!amiriOK)return;
     var cx=W/2;var cy=40;
-    function ctr(txt,size,color){try{doc.setFont('Amiri','normal');}catch(e){}doc.setFontSize(size);doc.setTextColor(color?color[0]:0,color?color[1]:0,color?color[2]:0);doc.text(shapeC(txt),cx,cy,{align:'center'});}
+    function ctrAr(txt,size,color){try{doc.setFont('Amiri','normal');}catch(e){}doc.setFontSize(size);doc.setTextColor(color?color[0]:0,color?color[1]:0,color?color[2]:0);doc.text(shapeC(txt),cx,cy,{align:'center'});}
+    function ctrPlain(txt,size,color){try{doc.setFont('helvetica','normal');}catch(e){}doc.setFontSize(size);doc.setTextColor(color?color[0]:0,color?color[1]:0,color?color[2]:0);doc.text(String(txt),cx,cy,{align:'center'});}
     doc.setFillColor(26,122,74);doc.rect(0,0,W,8,'F');
-    cy=45;ctr('بسم الله الرحمان الرحيم',24,[26,122,74]);
-    cy+=18;ctr('على الله توكلنا',16,[80,80,80]);
-    cy+=30;ctr('بتاريخ : '+new Date().toLocaleDateString('fr-MA'),13);
+    cy=45;ctrAr('بسم الله الرحمان الرحيم',24,[26,122,74]);
+    cy+=18;ctrAr('على الله توكلنا',16,[80,80,80]);
+    cy+=28;ctrAr('بتاريخ',13);cy+=8;ctrPlain(new Date().toLocaleDateString('fr-MA'),12,[80,80,80]);
     var fromN=(CP&&CP.from_name||'').trim();var toN=(CP&&CP.to_name||'').trim();
-    cy+=22;
-    if(fromN&&toN){ctr('هذا الحساب من سيد '+fromN+' إلى سيد '+toN,14);}
-    else if(fromN){ctr('هذا الحساب لسيد '+fromN,14);}
-    else if(toN){ctr('هذا الحساب لسيد '+toN,14);}
-    // author (current user) arabic name + phone
+    cy+=20;
+    if(fromN&&toN){
+      ctrAr('هذا الحساب من سيد',13);cy+=8;ctrPlain(fromN,13,[26,122,74]);
+      cy+=10;ctrAr('إلى سيد',13);cy+=8;ctrPlain(toN,13,[26,122,74]);
+    } else if(fromN||toN){
+      ctrAr('هذا الحساب لسيد',13);cy+=8;ctrPlain(fromN||toN,13,[26,122,74]);
+    }
     var auth=(CU&&(CU.name_ar||CU.fullname||CU.username))||'';var ph=(CU&&CU.phone)||'';
-    cy+=24;ctr('هذا الحساب من طرف السيد '+auth+(ph?(' - '+ph):''),14);
-    cy+=40;ctr('على بركة الرحمان',18,[26,122,74]);
+    cy+=20;ctrAr('هذا الحساب من طرف السيد',13);
+    cy+=8;ctrPlain(auth+(ph?('  -  '+ph):''),13,[26,122,74]);
+    cy+=26;ctrAr('على بركة الرحمان',18,[26,122,74]);
     doc.setFillColor(26,122,74);doc.rect(0,289,W,8,'F');
     doc.addPage();
   })();

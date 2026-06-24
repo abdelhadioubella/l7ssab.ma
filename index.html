@@ -887,6 +887,11 @@ html.dark .mode-txt b{color:#e8f0ec}
       <input class="inp" type="text" id="prof-newname"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <button class="btn-p" onclick="updateProf('name')" id="t-update1">Mettre à jour</button>
     </div>
+    <div class="card"><div class="card-title">الاسم بالعربية والهاتف / Nom arabe & téléphone</div>
+      <input class="inp" type="text" id="prof-namear" placeholder="الاسم بالعربية" dir="rtl"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input class="inp" type="tel" id="prof-phone" placeholder="Téléphone / الهاتف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="btn-p" onclick="updateProf('arphone')">Mettre à jour</button>
+    </div>
     <div class="card"><div class="card-title" id="t-chgpin">Changer le PIN</div>
       <input class="inp" type="password" id="prof-newpin" placeholder="Nouveau PIN (6 chiffres)" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <input class="inp" type="password" id="prof-confpin" placeholder="Confirmer le PIN" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
