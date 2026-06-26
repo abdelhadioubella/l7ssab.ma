@@ -579,7 +579,7 @@ function generatePDF(project,items,adjs,authorName,lang){
   var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});var W=210,M=15,y=36;
   function R(x){
     x=String(x==null?'':x);
-    // reshape any string that contains Arabic, regardless of the PDF language
+    // tables need reshaping (reverse) for RTL display
     if(/[\u0600-\u06FF]/.test(x)&&typeof reshapeAr==='function')return reshapeAr(x);
     return x;
   }
@@ -670,11 +670,12 @@ function setLangBtn(){var b=G('lang-app-btn');if(b)b.textContent=LANG==='fr'?'�
 // ====== IN-APP MODAL SYSTEM ======
 // openModal({title, fields:[{key,label,value,type,maxlength}], confirmText, onConfirm(values)})
 // open a modal with arbitrary inner HTML + an OK/Cancel footer (used for numpad-based editors)
-function openModalHTML(title,innerHTML,onOk){
+function openModalHTML(title,innerHTML,onOk,okLabel){
   closeModal();
   var ov=document.createElement('div');ov.className='modal-ov';ov.id='app-modal';
   var ar=isAr();
-  ov.innerHTML='<div class="modal-box"><div class="modal-head">'+esc(title)+'</div><div class="modal-body">'+innerHTML+'</div><div class="modal-foot"><button class="btn-g" onclick="closeModal()">'+(ar?'إلغاء':'Annuler')+'</button><button class="btn-p" id="modal-ok" style="margin-top:0">'+(ar?'حفظ':'Enregistrer')+'</button></div></div>';
+  var dir=ar?' dir="rtl"':'';
+  ov.innerHTML='<div class="modal-box"'+dir+'><div class="modal-head">'+esc(title)+'</div><div class="modal-body">'+innerHTML+'</div><div class="modal-foot"><button class="btn-g" onclick="closeModal()">'+(ar?'إلغاء':'Annuler')+'</button><button class="btn-p" id="modal-ok" style="margin-top:0">'+(okLabel||(ar?'حفظ':'Enregistrer'))+'</button></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
   var ok=G('modal-ok');if(ok)ok.onclick=onOk;
@@ -866,6 +867,7 @@ function showSection(name){
   else if(name==='users')refreshUsers();
   else if(name==='projects')refreshAdminProjects();
   else if(name==='backup'){/* backup has no load */}
+  applyLangAttrs();
   window.scrollTo(0,0);
 }
 function backToApp(){showSection(isAdmin?'statistics':'inventory');}
@@ -1073,6 +1075,24 @@ function createProj(){
     if(G('proj-from'))G('proj-from').value='';if(G('proj-to'))G('proj-to').value='';if(inp)inp.value='';
     showSection('products');
   });
+}
+// Single-button project creation via popup (name + from + to)
+function openNewProjectModal(){
+  var ar=isAr();
+  var html=''+
+    '<input class="inp" type="text" id="np-name" placeholder="'+(ar?'اسم المشروع…':'Nom du projet…')+'" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="margin-bottom:10px"/>'+
+    '<input class="inp" type="text" id="np-from" placeholder="'+(ar?'من السيد… (اختياري)':'De (optionnel)…')+'" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="margin-bottom:10px"/>'+
+    '<input class="inp" type="text" id="np-to" placeholder="'+(ar?'إلى السيد… (اختياري)':'À (optionnel)…')+'" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>';
+  openModalHTML((ar?'مشروع جديد':'Nouveau projet'),html,function(){
+    var name=(G('np-name')?G('np-name').value||'':'').trim();
+    if(!name){showToast('❌ '+(ar?'أدخل اسم المشروع':'Entrez le nom du projet'));return;}
+    var fromN=(G('np-from')?G('np-from').value||'':'').trim();var toN=(G('np-to')?G('np-to').value||'':'').trim();
+    sb.from('projects').insert({user_id:CU.id,name:name,from_name:fromN,to_name:toN}).select().then(function(r){
+      if(r.error){showToast('❌ '+r.error.message);return;}
+      CP=r.data[0];setCurrentProject(CP);CACHE.items=[];CACHE.adjs=[];dP=0;dQ=0;eI=0;
+      closeModal();showSection('products');
+    });
+  },(ar?'إنشاء ←':'Créer →'));
 }
 // ===== PRODUCTS / SCANNER =====
 
@@ -1426,6 +1446,8 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='ecQ'){var e4=G('ec-q');if(e4)e4.textContent=String(v);return;}
   if(tgt==='erM'){var e5=G('er-m');if(e5)e5.textContent=nf2(v);return;}
   if(tgt==='erQ'){_erQty=v;var eq=G('er-q');if(eq)eq.textContent=nf2(v);var tt=G('er-total');if(tt)tt.textContent=nf2(_erDenom*_erQty)+' DH';return;}
+  if(tgt==='emM'){if(_editMoinsIdx>=0&&CZ.moins[_editMoinsIdx]){CZ.moins[_editMoinsIdx].montant=v;refreshMoins();}return;}
+  if(tgt==='epM'){if(_editPrisIdx>=0&&CZ.pris[_editPrisIdx]){CZ.pris[_editPrisIdx].montant=v;refreshPris();}return;}
   // caisse targets
   if(tgt==='cigRem'){CZ.cigRem=v;refreshCig();return;}
   if(tgt==='cigAddP'){CZ._cigP=v;var e=G('cig-add-p');if(e){e.textContent=nf2(v)+' DH';e.className='nf-val';}return;}
@@ -1445,7 +1467,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
 // items
 // Add a scanned product straight to the project list (increment qty if barcode already present)
 function scanAddToList(bc,name,price){
-  if(!CP||!CP.id){showToast('❌ Ouvrez un projet');return;}
+  if(!CP||!CP.id){showToast('❌ '+L('Ouvrez un projet','افتح مشروعاً'));return;}
   // if this barcode is already in the list: DON'T add +1 — just show its saved price & quantity
   var existing=null;for(var i=0;i<(CACHE.items||[]).length;i++){if(CACHE.items[i].barcode&&CACHE.items[i].barcode===bc){existing=CACHE.items[i];break;}}
   if(existing){
@@ -1570,16 +1592,27 @@ var _editItemIdx=-1,_editCigIdx=-1;
 function openEditItem(i){
   var it=CACHE.items[i];if(!it)return;_editItemIdx=i;
   var ar=isAr();
-  var html='<div class="ml">'+(ar?'الاسم':'Nom')+'</div><input class="inp" id="ei-name" type="text" autocomplete="off" value="'+esc(it.name||'')+'"/>'+
+  // find current arabic name from catalog
+  var curAr='';for(var k=0;k<(CACHE.products||[]).length;k++){if(CACHE.products[k].barcode&&CACHE.products[k].barcode===it.barcode){curAr=CACHE.products[k].name_ar||'';break;}}
+  var html='<div class="ml">'+(ar?'الاسم (فرنسي)':'Nom (latin)')+'</div><input class="inp" id="ei-name" type="text" autocomplete="off" value="'+esc(it.name||'')+'"/>'+
+    '<div class="ml" style="margin-top:6px">'+(ar?'الاسم بالعربية':'Nom arabe')+'</div><input class="inp" id="ei-namear" type="text" dir="rtl" autocomplete="off" value="'+esc(curAr)+'"/>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">'+
     '<div class="num-field" onclick="openNP(\'eiP\',\''+(ar?'الثمن':'Prix (DH)')+'\',true)"><span class="nf-label">'+(ar?'الثمن':'Prix')+'</span><span class="nf-val" id="ei-p">'+nf2(it.price)+'</span></div>'+
     '<div class="num-field" onclick="openNP(\'eiQ\',\''+(ar?'الكمية':'Quantité')+'\',true)"><span class="nf-label">'+(ar?'الكمية':'Qté')+'</span><span class="nf-val" id="ei-q">'+(parseFloat(it.quantity)||0)+'</span></div>'+
     '</div>';
   openModalHTML(ar?'تعديل المنتج':'Modifier le produit',html,function(){
-    var nm=(G('ei-name')&&G('ei-name').value||'').trim();var pr=parseFloat(G('ei-p')&&G('ei-p').textContent)||0;var q=parseFloat(G('ei-q')&&G('ei-q').textContent)||0;
-    if(!nm){showToast('❌ Nom vide');return;}
+    var nm=(G('ei-name')&&G('ei-name').value||'').trim();var nmar=(G('ei-namear')&&G('ei-namear').value||'').trim();var pr=parseFloat(G('ei-p')&&G('ei-p').textContent)||0;var q=parseFloat(G('ei-q')&&G('ei-q').textContent)||0;
+    if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
     it.name=nm;it.price=pr;it.quantity=q;
     sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,pr);});
+    // save name + arabic name to the shared catalog (database)
+    if(it.barcode){
+      var prod=null;for(var j=0;j<(CACHE.products||[]).length;j++){if(CACHE.products[j].barcode===it.barcode){prod=CACHE.products[j];break;}}
+      if(prod){prod.name=nm;prod.name_ar=nmar;sb.from('products').update({name:nm,name_ar:nmar}).eq('id',prod.id).then(function(){});}
+      else{sb.from('products').insert({barcode:it.barcode,name:nm,name_ar:nmar,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.products.push(rr.data[0]);});}
+      // update translation cache so the list shows the new arabic name
+      if(nmar){_trCache=_trCache||{};_trCache[nm]=nmar;saveTrCache();}
+    }
     closeModal();refreshEdit();updateRT();showToast('✅ '+t('renamed'));
   });
 }
@@ -1922,7 +1955,7 @@ function openEditCig(i){var x=CZ.cig[i];if(!x)return;_editCigIdx=i;var ar=isAr()
     '<div class="num-field" onclick="openNP(\'ecQ\',\''+(ar?'الكمية':'Quantité')+'\',true)"><span class="nf-label">'+(ar?'الكمية':'Qté')+'</span><span class="nf-val" id="ec-q">'+(x.qty||1)+'</span></div>'+
     '</div>';
   openModalHTML(ar?'تعديل':'Modifier',html,function(){
-    var nm=(G('ec-name')&&G('ec-name').value||'').trim();if(!nm){showToast('❌ Nom vide');return;}
+    var nm=(G('ec-name')&&G('ec-name').value||'').trim();if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
     x.name=nm;x.price=parseFloat(G('ec-p')&&G('ec-p').textContent)||0;x.qty=parseFloat(G('ec-q')&&G('ec-q').textContent)||1;
     saveCigCP(x.barcode||'',nm,x.price);CACHE.cigCustom=CACHE.cigCustom||{};CACHE.cigCustom[x.barcode||nm]=x.price;
     closeModal();refreshCig();showToast('✅ '+t('renamed'));
@@ -1969,7 +2002,7 @@ function apiLookupBarcode(code){
   }).catch(function(){return {found:false};});
 }
 function cigDel(i){CZ.cig.splice(i,1);refreshCig();}
-function cigAddManual(){var nn=G('cig-name');var name=(nn&&nn.value||'').trim();var price=parseFloat(CZ._cigP)||0;var qty=parseFloat(CZ._cigQ)||1;if(!name){showToast('❌ Nom vide');return;}
+function cigAddManual(){var nn=G('cig-name');var name=(nn&&nn.value||'').trim();var price=parseFloat(CZ._cigP)||0;var qty=parseFloat(CZ._cigQ)||1;if(!name){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
   var bc=CZ._cigBC||'';
   CZ.cig.push({barcode:bc,name:name,price:price,qty:qty});
   // save price for next time: update cigarettes DB + user custom price
@@ -1994,8 +2027,8 @@ function refreshRech(){try{saveCaisseData();}catch(e){}
   setText('rech-brut',nf2(czRechBrut())+' DH');setText('rech-net',nf2(czRechNet())+' DH');
   var list=G('rech-list');if(list){if(!CZ.rech.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا توجد سطور':'Aucune ligne')+'</p>';else{list.innerHTML='';CZ.rech.forEach(function(l,i){var sub=l.kind==='dealer'?'💵 Dealer':(l.denom?('📱 '+l.denom+' × '+l.qty):'📱 Recharge');var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+nf2(l.montant)+' DH</b><span>'+sub+'</span></div><div><button class="cl-q" onclick="openEditRech('+i+')">✏️</button><button class="cl-del" onclick="rechDel('+i+')">🗑</button></div>';list.appendChild(d);});}}
 }
-function rechAddDenom(){var denom=CZ._rDenom,qty=parseFloat(CZ._rQty)||0;if(!denom){showToast('❌ Choisissez une recharge');return;}if(!qty){showToast('❌ Quantité vide');return;}var montant=denom*qty;CZ.rech.push({denom:denom,qty:qty,montant:montant,kind:'recharge'});CZ._rDenom=null;CZ._rQty=0;refreshRech();}
-function rechAddDealer(){var montant=parseFloat(CZ._rMont)||0;if(!montant){showToast('❌ Montant vide');return;}CZ.rech.push({denom:0,qty:0,montant:montant,kind:'dealer'});CZ._rMont=0;refreshRech();}
+function rechAddDenom(){var denom=CZ._rDenom,qty=parseFloat(CZ._rQty)||0;if(!denom){showToast('❌ '+L('Choisissez une recharge','اختر التعبئة'));return;}if(!qty){showToast('❌ '+L('Quantité vide','الكمية فارغة'));return;}var montant=denom*qty;CZ.rech.push({denom:denom,qty:qty,montant:montant,kind:'recharge'});CZ._rDenom=null;CZ._rQty=0;refreshRech();}
+function rechAddDealer(){var montant=parseFloat(CZ._rMont)||0;if(!montant){showToast('❌ '+L('Montant vide','المبلغ فارغ'));return;}CZ.rech.push({denom:0,qty:0,montant:montant,kind:'dealer'});CZ._rMont=0;refreshRech();}
 function rechAdd(){rechAddDenom();} // back-compat
 function rechDel(i){CZ.rech.splice(i,1);refreshRech();}
 var _editRechIdx=-1;
@@ -2003,7 +2036,7 @@ function openEditRech(i){var l=CZ.rech[i];if(!l)return;_editRechIdx=i;var ar=isA
   if(l.kind==='dealer'){
     // dealer line: just edit the amount
     var html0='<div class="num-field" onclick="openNP(\'erM\',\''+(ar?'المبلغ':'Montant (DH)')+'\',true)"><span class="nf-label">'+(ar?'المبلغ (الموزع)':'Montant (Dealer)')+'</span><span class="nf-val" id="er-m">'+nf2(l.montant)+'</span></div>';
-    openModalHTML(ar?'تعديل':'Modifier',html0,function(){var m=parseFloat(G('er-m')&&G('er-m').textContent)||0;if(!m){showToast('❌ Montant vide');return;}l.montant=m;closeModal();refreshRech();showToast('✅ '+t('renamed'));});
+    openModalHTML(ar?'تعديل':'Modifier',html0,function(){var m=parseFloat(G('er-m')&&G('er-m').textContent)||0;if(!m){showToast('❌ '+L('Montant vide','المبلغ فارغ'));return;}l.montant=m;closeModal();refreshRech();showToast('✅ '+t('renamed'));});
     return;
   }
   // recharge line: choose denomination (coupure) + quantity
@@ -2031,14 +2064,17 @@ function refreshMoins(){try{saveCaisseData();}catch(e){}
   setText('moins-mont-val',nf2(CZ._mMont||0));var b=G('moins-sign');if(b)b.textContent=CZ._mSign;
   var sel=G('moins-type');if(sel&&!sel._wired){sel._wired=true;sel.addEventListener('change',function(){var nn=G('moins-new');if(nn){if(this.value==='__new__')nn.classList.remove('hidden');else nn.classList.add('hidden');}});}
   setText('moins-total',nf2(czMoins())+' DH');
-  var list=G('moins-list');if(list){if(!CZ.moins.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">Aucune dépense</p>';else{list.innerHTML='';CZ.moins.forEach(function(m,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+(m.sign==='+'?'+':'−')+nf2(m.montant)+' DH</b><span>'+esc(m.label)+'</span></div><button class="cl-del" onclick="moinsDel('+i+')">🗑</button>';list.appendChild(d);});}}
+  var list=G('moins-list');if(list){if(!CZ.moins.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا مصاريف':'Aucune dépense')+'</p>';else{list.innerHTML='';CZ.moins.forEach(function(m,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+(m.sign==='+'?'+':'−')+nf2(m.montant)+' DH</b><span>'+esc(m.label)+'</span></div><button class="cl-edit" onclick="editMoins('+i+')" style="background:none;border:none;font-size:16px;cursor:pointer;margin-right:4px">✏️</button><button class="cl-del" onclick="moinsDel('+i+')">🗑</button>';list.appendChild(d);});}}
 }
-function moinsAdd(){var sel=G('moins-type');var type=sel?sel.value:'';var label=moinsLbl(type);if(type==='__new__'){var nn=G('moins-new');label=(nn&&nn.value||'').trim();if(!label){showToast('❌ Nom vide');return;}}var m=parseFloat(CZ._mMont)||0;if(!m){showToast('❌ Montant vide');return;}CZ.moins.push({type:type,label:label,montant:m,sign:CZ._mSign||'-'});CZ._mMont=0;CZ._mSign='-';var nn2=G('moins-new');if(nn2){nn2.value='';nn2.classList.add('hidden');}refreshMoins();}
+function moinsAdd(){var sel=G('moins-type');var type=sel?sel.value:'';var label=moinsLbl(type);if(type==='__new__'){var nn=G('moins-new');label=(nn&&nn.value||'').trim();if(!label){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}}var m=parseFloat(CZ._mMont)||0;if(!m){showToast('❌ '+L('Montant vide','المبلغ فارغ'));return;}CZ.moins.push({type:type,label:label,montant:m,sign:CZ._mSign||'-'});CZ._mMont=0;CZ._mSign='-';var nn2=G('moins-new');if(nn2){nn2.value='';nn2.classList.add('hidden');}refreshMoins();}
 function moinsDel(i){CZ.moins.splice(i,1);refreshMoins();}
 
 // ---- PRIS ----
-function refreshPris(){try{saveCaisseData();}catch(e){}setText('pris-mont-val',nf2(CZ._pMont||0));setText('pris-total',nf2(czPris())+' DH');var list=G('pris-list');if(list){if(!CZ.pris.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">Personne</p>';else{list.innerHTML='';CZ.pris.forEach(function(p,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+nf2(p.montant)+' DH</b><span>'+esc(p.name)+'</span></div><button class="cl-del" onclick="prisDel('+i+')">🗑</button>';list.appendChild(d);});}}}
-function prisAdd(){var nn=G('pris-name');var name=(nn&&nn.value||'').trim();var m=parseFloat(CZ._pMont)||0;if(!name){showToast('❌ Nom vide');return;}if(!m){showToast('❌ Montant vide');return;}CZ.pris.push({name:name,montant:m});CZ._pMont=0;if(nn)nn.value='';refreshPris();}
+function refreshPris(){try{saveCaisseData();}catch(e){}setText('pris-mont-val',nf2(CZ._pMont||0));setText('pris-total',nf2(czPris())+' DH');var list=G('pris-list');if(list){if(!CZ.pris.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا أحد':'Personne')+'</p>';else{list.innerHTML='';CZ.pris.forEach(function(p,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+nf2(p.montant)+' DH</b><span>'+esc(p.name)+'</span></div><button class="cl-edit" onclick="editPris('+i+')" style="background:none;border:none;font-size:16px;cursor:pointer;margin-right:4px">✏️</button><button class="cl-del" onclick="prisDel('+i+')">🗑</button>';list.appendChild(d);});}}}
+function editMoins(i){var m=CZ.moins[i];if(!m)return;_editMoinsIdx=i;openNP('emM',isAr()?'تعديل المبلغ':'Modifier le montant',true);}
+function editPris(i){var p=CZ.pris[i];if(!p)return;_editPrisIdx=i;openNP('epM',isAr()?'تعديل المبلغ':'Modifier le montant',true);}
+var _editMoinsIdx=-1,_editPrisIdx=-1;
+function prisAdd(){var nn=G('pris-name');var name=(nn&&nn.value||'').trim();var m=parseFloat(CZ._pMont)||0;if(!name){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}if(!m){showToast('❌ '+L('Montant vide','المبلغ فارغ'));return;}CZ.pris.push({name:name,montant:m});CZ._pMont=0;if(nn)nn.value='';refreshPris();}
 function prisDel(i){CZ.pris.splice(i,1);refreshPris();}
 
 // ---- BILAN ----
@@ -2046,7 +2082,7 @@ function brow(l,v,strong){return '<div class="brow'+(strong?' strong':'')+'"><sp
 function refreshBilan(){try{saveCaisseData();}catch(e){}var c=G('bilan-rows');if(!c)return;var h='';h+=brow(L('Produits','المنتجات'),czProd())+brow(L('Cigarettes','السجائر')+' (net − '+nf2(CZ.cigRem)+'%)',czCigNet())+brow(L('Recharge','التعبئة')+' (net − '+nf2(CZ.rechRem)+'%)',czRechNet())+brow(L('Crédit','الكريدي'),parseFloat(CZ.credit)||0)+brow(L('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0);h+=brow(L('PREMIER TOTAL','المجموع الأول'),czVentes(),true);h+=brow('Cash',parseFloat(CZ.cash)||0);h+=brow(L('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),true);h+=brow(L('Dépenses','المصاريف'),czMoins());h+=brow(L('Argent pris','المال المأخوذ'),czPris());h+=brow(L('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),true);h+=brow(L('Capital','رأس المال'),-(parseFloat(CZ.capital)||0));h+=brow(L('BÉNÉFICE','الربح'),czBenefice(),true);c.innerHTML=h;}
 
 // ---- PARTAGE ----
-function partnerAdd(){var nn=G('partner-name');var name=(nn&&nn.value||'').trim();if(!name){showToast('❌ Nom vide');return;}CZ.partners.push({name:name});if(nn)nn.value='';refreshPartage();}
+function partnerAdd(){var nn=G('partner-name');var name=(nn&&nn.value||'').trim();if(!name){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}CZ.partners.push({name:name});if(nn)nn.value='';refreshPartage();}
 function partnerDel(i){CZ.partners.splice(i,1);refreshPartage();}
 function refreshPartage(){try{saveCaisseData();}catch(e){}var list=G('partner-list');var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;if(list){if(!n)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">Aucun associé</p>';else{list.innerHTML='';CZ.partners.forEach(function(p,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+esc(p.name)+'</b><span>'+nf2(part)+' DH</span></div><button class="cl-del" onclick="partnerDel('+i+')">🗑</button>';list.appendChild(d);});}}var info=G('partage-info');if(info){if(n)info.innerHTML='<span>Bénéfice ÷ '+n+'</span><span>'+nf2(part)+' DH / pers.</span>';else info.innerHTML='<span>Ajoutez au moins un associé</span><span></span>';}}
 
@@ -2132,9 +2168,10 @@ function genCaissePDF(){
     doc.setFillColor(26,122,74);doc.rect(0,289,W,8,'F');
     doc.addPage();
   })();
-  // P(): pick label by language, reshape Arabic so it renders correctly
+  // P(): pick label by language. TABLES need reshaping (reverse) for RTL; the COVER uses raw text.
   function P(fr,arr){var s=ar?arr:fr;return s;}
-  function shape(s){return (isArStr(s)&&typeof reshapeAr==='function')?reshapeAr(s):s;}
+  // For autoTable cells: connect Arabic glyphs then reverse CHARACTERS (not words) for RTL.
+  function shape(s){if(!isArStr(s))return s;try{var r=(typeof ArabicReshaper!=='undefined'&&ArabicReshaper.convertArabic)?ArabicReshaper.convertArabic(String(s)):String(s);return r.split('').reverse().join('');}catch(e){return s;}}
   // font for autotable cells: Amiri if Arabic content present
   var TFONT=(ar&&amiriOK)?'Amiri':'helvetica';
   function header(){doc.setFillColor(26,122,74);doc.rect(0,0,W,26,'F');doc.setTextColor(255,255,255);doc.setFontSize(17);try{doc.setFont('helvetica','bold');}catch(e){}doc.text('L7ssab.ma',M,13);doc.setFontSize(9);try{doc.setFont('helvetica','normal');}catch(e){}doc.text((CP?CP.name+' · ':'')+(ar?'':'Généré le ')+new Date().toLocaleDateString('fr-MA'),M,20);}
@@ -2186,7 +2223,7 @@ function genCaissePDF(){
   if(CZ.partners.length){var part=czBenefice()/CZ.partners.length;titleBar(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح')+' ('+CZ.partners.length+')');if(hasAT){doc.autoTable({startY:y+1,head:[[P('Associé','الشريك'),P('Part (DH)','الحصة')]],body:CZ.partners.map(function(p){return [shape(p.name),nf2(part)];}),theme:'striped',styles:{font:TFONT},headStyles:{fillColor:GREEN,font:(amiriOK&&ar)?'Amiri':'helvetica'},columnStyles:{1:{halign:'right',cellWidth:45}},margin:{left:M,right:M},didParseCell:function(d){var t=String(d.cell.text.join(''));if(isArStr(t))d.cell.styles.font='Amiri';}});y=doc.lastAutoTable.finalY+4;}else{CZ.partners.forEach(function(p){totalRow(p.name,part);});}}
   CZ.adjustments=CZ.adjustments||[];
   if(CZ.adjustments.length){titleBar(P('⚖️ Ajustement','⚖️ التسوية'));if(hasAT){doc.autoTable({startY:y+1,head:[[P('Associé','الشريك'),P('Part','الحصة'),P('− Pris','− المأخوذ'),P('Net','الصافي')]],body:CZ.adjustments.map(function(a){return [shape(a.partner),nf2(a.part),a.prisAmt?('− '+nf2(a.prisAmt)):'—',nf2(a.net)];}),theme:'striped',styles:{font:TFONT},headStyles:{fillColor:GREEN,font:(amiriOK&&ar)?'Amiri':'helvetica'},columnStyles:{1:{halign:'right'},3:{halign:'right'}},margin:{left:M,right:M},didParseCell:function(d){var t=String(d.cell.text.join(''));if(isArStr(t))d.cell.styles.font='Amiri';}});y=doc.lastAutoTable.finalY+4;}else{CZ.adjustments.forEach(function(a){totalRow(a.partner,a.net);});}}
-  doc.save('recap-'+(CP?CP.name.replace(/[^a-z0-9]/gi,'_'):'caisse')+'-'+new Date().toISOString().substring(0,10)+'.pdf');showToast('✅ PDF téléchargé');
+  doc.save('recap-'+(CP?CP.name.replace(/[^a-z0-9]/gi,'_'):'caisse')+'-'+new Date().toISOString().substring(0,10)+'.pdf');showToast('✅ '+L('PDF téléchargé','تم تحميل PDF'));
 }
 function escJs2(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 

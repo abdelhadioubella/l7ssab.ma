@@ -563,10 +563,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" id="t-newproj">Nouveau projet</div>
-    <input class="inp" type="text" id="proj-inp" placeholder="Nom du projet…" data-ph-fr="Nom du projet…" data-ph-ar="اسم المشروع…"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <input class="inp" type="text" id="proj-from" placeholder="De (من سيد)… optionnel" data-ph-fr="De (من)… optionnel" data-ph-ar="من السيد… اختياري"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <input class="inp" type="text" id="proj-to" placeholder="À (إلى سيد)… optionnel" data-ph-fr="À (إلى)… optionnel" data-ph-ar="إلى السيد… اختياري"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <button class="btn-p" onclick="createProj()" id="t-createproj">Créer le projet →</button>
+    <button class="btn-p" onclick="openNewProjectModal()" id="t-createproj">+ Créer un projet</button>
   </div>
   <div class="card"><div class="card-title" id="t-savedproj">Projets sauvegardés</div>
     <div class="filter-bar">
@@ -589,14 +586,12 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="card">
       <div class="card-title" id="t-addprod">Ajouter un produit</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-        <input class="inp" type="text" id="scan-inp" inputmode="none" onclick="openBarcodeNP('prod')" placeholder="Scannez le code-barres…" data-ph-fr="Scannez le code-barres…" data-ph-ar="امسح الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+        <input class="inp" type="text" id="scan-inp" inputmode="none" readonly onclick="openBarcodeNP('prod')" placeholder="Scannez le code-barres…" data-ph-fr="Scannez le code-barres…" data-ph-ar="امسح الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
         <button type="button" onclick="openBarcodeNP('prod')" title="Saisir manuellement" style="padding:0 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:18px;flex-shrink:0">⌨️</button>
         <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
       <div id="scan-msg" class="smsg hidden"></div>
-      <div id="scan-debug" style="display:none;margin-top:8px;padding:8px 10px;background:#1a1a1a;color:#0f0;font-family:monospace;font-size:12px;border-radius:8px;word-break:break-all">debug: en attente…</div>
-      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#888"><input type="checkbox" id="dbg-toggle" onchange="toggleScanDebug(this.checked)"/> Mode debug scan</label>
       <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="prodNameSuggest(this.value)"/>
       <div id="pname-suggest" class="suggest-box hidden"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
@@ -606,7 +601,7 @@ html.dark .mode-txt b{color:#e8f0ec}
       <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
     </div>
     <div class="card" id="prod-list-card">
-      <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
+      <div class="card-title" data-fr="Liste" data-ar="اللائحة" data-fr="Liste" data-ar="اللائحة">Liste</div>
       <input class="inp" type="text" id="psearch" placeholder="Rechercher dans les produits…" data-ph-fr="Rechercher dans les produits…" data-ph-ar="ابحث في المنتجات…" oninput="filterProdList(this.value)" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <div id="prod-list"></div>
     </div>
@@ -623,7 +618,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="🚬 Cigarettes" data-ar="🚬 السجائر">🚬 Cigarettes</div>
     <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
-      <input class="inp" type="text" id="cig-scan" inputmode="none" onclick="openBarcodeNP('cig')" placeholder="Scannez le code-barres…" data-ph-fr="Scannez le code-barres…" data-ph-ar="امسح الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input class="inp" type="text" id="cig-scan" inputmode="none" readonly onclick="openBarcodeNP('cig')" placeholder="Scannez le code-barres…" data-ph-fr="Scannez le code-barres…" data-ph-ar="امسح الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <button type="button" onclick="openBarcodeNP('cig')" title="Saisir manuellement" style="padding:0 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:18px;flex-shrink:0">⌨️</button>
       <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
     </div>
@@ -637,7 +632,7 @@ html.dark .mode-txt b{color:#e8f0ec}
     <button class="btn-p" onclick="cigAddManual()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
-    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <input class="inp" type="text" id="cig-list-search" placeholder="Rechercher dans la liste…" data-ph-fr="Rechercher dans la liste…" data-ph-ar="ابحث في اللائحة…" style="margin-bottom:10px"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div id="cig-list"></div>
   </div>
@@ -667,7 +662,7 @@ html.dark .mode-txt b{color:#e8f0ec}
     <button class="btn-p" onclick="rechAddDealer()" data-fr="+ Ajouter dealer" data-ar="+ إضافة موزع">+ Ajouter dealer</button>
   </div>
   <div class="card">
-    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="rech-list"></div>
   </div>
   <div class="card">
@@ -687,7 +682,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="📖 Crédit" data-ar="📖 الكريدي">📖 Crédit</div>
     <div class="big-field" onclick="openNP('credit','Crédit (DH)',true)"><span>Crédit (DH)</span><b id="credit-val">0.00 DH</b></div>
-    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px" data-fr="Cliquez pour saisir le montant" data-ar="اضغط لإدخال المبلغ">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('recharge')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
@@ -701,7 +696,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="🧾 Argent de caisse" data-ar="🧾 مال الصندوق">🧾 Argent de caisse</div>
     <div class="big-field" onclick="openNP('change','Argent de caisse (DH)',true)"><span>Argent de caisse (DH)</span><b id="change-val">0.00 DH</b></div>
-    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px" data-fr="Cliquez pour saisir le montant" data-ar="اضغط لإدخال المبلغ">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('credit')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
@@ -715,7 +710,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="💵 Cash" data-ar="💵 كاش">💵 Cash</div>
     <div class="big-field" onclick="openNP('cash','Cash (DH)',true)"><span>Cash (DH)</span><b id="cash-val">0.00 DH</b></div>
-    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Cliquez pour saisir le montant</p>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px" data-fr="Cliquez pour saisir le montant" data-ar="اضغط لإدخال المبلغ">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('change')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
@@ -741,7 +736,7 @@ html.dark .mode-txt b{color:#e8f0ec}
     <button class="btn-p" onclick="moinsAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
-    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="moins-list"></div>
     <div class="tbar"><span>Total Dépenses</span><span id="moins-total">0.00 DH</span></div>
   </div>
@@ -761,7 +756,7 @@ html.dark .mode-txt b{color:#e8f0ec}
     <button class="btn-p" onclick="prisAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
-    <div class="card-title" data-fr="Liste" data-ar="اللائحة">Liste</div>
+    <div class="card-title" data-fr="Liste" data-ar="اللائحة" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="pris-list"></div>
     <div class="tbar"><span>Total argent pris</span><span id="pris-total">0.00 DH</span></div>
   </div>
