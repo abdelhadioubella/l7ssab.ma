@@ -637,8 +637,8 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div id="cig-list"></div>
   </div>
   <div class="card">
-    <div class="num-field" onclick="openNP('cigRem','Remise %',true)"><span class="nf-label">Remise par défaut</span><span class="nf-val" id="cig-rem-val">5 %</span></div>
-    <div class="tbar"><span>Total brut</span><span id="cig-brut">0.00 DH</span></div>
+    <div class="num-field" onclick="openNP('cigRem','Remise %',true)"><span class="nf-label" data-fr="Remise par défaut" data-ar="التخفيض الافتراضي">Remise par défaut</span><span class="nf-val" id="cig-rem-val">5 %</span></div>
+    <div class="tbar"><span data-fr="Total brut" data-ar="المجموع الإجمالي">Total brut</span><span id="cig-brut">0.00 DH</span></div>
     <div class="tbar"><span id="cig-net-lbl">Total (− 5%)</span><span id="cig-net">0.00 DH</span></div>
   </div>
   <div class="nav-row">
@@ -658,7 +658,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   </div>
   <div class="card">
     <div class="card-title" data-fr="💵 Dealer" data-ar="💵 الموزع">💵 Dealer</div>
-    <div class="num-field" onclick="openNP('rechMont','Dealer (Montant DH)',true)"><span class="nf-label">Dealer (Montant DH)</span><span class="nf-val" id="rech-mont-val">0.00</span></div>
+    <div class="num-field" onclick="openNP('rechMont','Dealer (Montant DH)',true)"><span class="nf-label" data-fr="Dealer (Montant DH)" data-ar="ديلر (المبلغ درهم)">Dealer (Montant DH)</span><span class="nf-val" id="rech-mont-val">0.00</span></div>
     <button class="btn-p" onclick="rechAddDealer()" data-fr="+ Ajouter dealer" data-ar="+ إضافة موزع">+ Ajouter dealer</button>
   </div>
   <div class="card">
@@ -666,8 +666,8 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div id="rech-list"></div>
   </div>
   <div class="card">
-    <div class="num-field" onclick="openNP('rechRem','Remise %',true)"><span class="nf-label">Remise par défaut</span><span class="nf-val" id="rech-rem-val">6.5 %</span></div>
-    <div class="tbar"><span>Total brut</span><span id="rech-brut">0.00 DH</span></div>
+    <div class="num-field" onclick="openNP('rechRem','Remise %',true)"><span class="nf-label" data-fr="Remise par défaut" data-ar="التخفيض الافتراضي">Remise par défaut</span><span class="nf-val" id="rech-rem-val">6.5 %</span></div>
+    <div class="tbar"><span data-fr="Total brut" data-ar="المجموع الإجمالي">Total brut</span><span id="rech-brut">0.00 DH</span></div>
     <div class="tbar"><span id="rech-net-lbl">Total (− 6.5%)</span><span id="rech-net">0.00 DH</span></div>
   </div>
   <div class="nav-row">
@@ -681,7 +681,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" data-fr="📖 Crédit" data-ar="📖 الكريدي">📖 Crédit</div>
-    <div class="big-field" onclick="openNP('credit','Crédit (DH)',true)"><span>Crédit (DH)</span><b id="credit-val">0.00 DH</b></div>
+    <div class="big-field" onclick="openNP('credit','Crédit (DH)',true)"><span data-fr="Crédit (DH)" data-ar="الكريدي (درهم)">Crédit (DH)</span><b id="credit-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px" data-fr="Cliquez pour saisir le montant" data-ar="اضغط لإدخال المبلغ">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
@@ -724,21 +724,21 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="➖ Dépenses" data-ar="➖ المصاريف">➖ Dépenses</div>
     <select class="inp" id="moins-type">
-      <option value="credit_fourn">Crédit de fournisseur</option>
+      <option value="credit_fourn" data-fr="Crédit de fournisseur" data-ar="كريدي المورد">Crédit de fournisseur</option>
       <option value="impot">Les impôts</option>
       <option value="eau_elec">Eau + Électricité</option>
       <option value="loyer">Loyer</option>
       <option value="__new__">+ Ajouter un autre choix…</option>
     </select>
     <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense" data-ph-fr="Nom de la dépense" data-ph-ar="اسم المصروف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
-    <div class="sign-field"><span>Signe</span><button class="sign-btn" id="moins-sign" onclick="moinsToggleSign()">-</button></div>
+    <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label" data-fr="Montant (DH)" data-ar="المبلغ (درهم)">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
+    <div class="sign-field"><span data-fr="Signe" data-ar="الإشارة">Signe</span><button class="sign-btn" id="moins-sign" onclick="moinsToggleSign()">-</button></div>
     <button class="btn-p" onclick="moinsAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
     <div class="card-title" data-fr="Liste" data-ar="اللائحة" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="moins-list"></div>
-    <div class="tbar"><span>Total Dépenses</span><span id="moins-total">0.00 DH</span></div>
+    <div class="tbar"><span data-fr="Total Dépenses" data-ar="مجموع المصاريف">Total Dépenses</span><span id="moins-total">0.00 DH</span></div>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('cash')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
@@ -752,7 +752,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="🤝 Argent pris" data-ar="🤝 المال المأخوذ">🤝 Argent pris</div>
     <input class="inp" id="pris-name" placeholder="Nom" data-ph-fr="Nom" data-ph-ar="الاسم"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <div class="num-field" onclick="openNP('prisMont','Montant (DH)',true)"><span class="nf-label">Montant (DH)</span><span class="nf-val" id="pris-mont-val">0.00</span></div>
+    <div class="num-field" onclick="openNP('prisMont','Montant (DH)',true)"><span class="nf-label" data-fr="Montant (DH)" data-ar="المبلغ (درهم)">Montant (DH)</span><span class="nf-val" id="pris-mont-val">0.00</span></div>
     <button class="btn-p" onclick="prisAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
   <div class="card">
@@ -804,7 +804,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="Associés" data-ar="الشركاء">Associés</div>
     <div id="partner-list"></div>
-    <div class="tbar" id="partage-info"><span>Ajoutez au moins un associé</span><span></span></div>
+    <div class="tbar" id="partage-info"><span data-fr="Ajoutez au moins un associé" data-ar="أضف شريكاً واحداً على الأقل">Ajoutez au moins un associé</span><span></span></div>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('bilan')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>

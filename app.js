@@ -1482,11 +1482,35 @@ function saveCigCP(bc,name,price){
 function updateNFs(){var p=G('nf-dp'),q=G('nf-dq');if(p){p.className=dP>0?'nf-val':'nf-ph';p.textContent=dP>0?dP.toFixed(2)+' DH':t('tap');}if(q){q.className=dQ>0?'nf-val':'nf-ph';q.textContent=dQ>0?String(dQ):t('tap');}}
 // numpad
 function openNP(target,label,decimal){
+  label=npLabelAr(label);
   // keyboard mode: use a native prompt-style modal input instead of the numpad
   if(INPUT_MODE==='keyboard'){
     npKeyboard(target,label,decimal);return;
   }
+  // bilingual confirm/cancel buttons
+  var okb=G('t-ok');if(okb)okb.textContent=isAr()?'تأكيد ✓':'Confirmer ✓';
+  var cab=G('t-cancel');if(cab)cab.textContent=isAr()?'إلغاء':'Annuler';
   npT=target;npD=(decimal!==false);npV='';setText('np-lbl',label||'');G('np-disp').textContent='0';var db=G('np-dot-btn');if(db)db.style.display=npD?'block':'none';var grid=G('np-grid');if(grid){grid.innerHTML='';['7','8','9','4','5','6','1','2','3','C','0','⌫'].forEach(function(k){var b=document.createElement('button');b.className='nk'+(k==='C'?' nk-c':'');b.textContent=k;b.onclick=function(){if(k==='C')npV='';else if(k==='⌫')npV=npV.slice(0,-1);else npV+=k;G('np-disp').textContent=npV||'0';};grid.appendChild(b);});}show('np-ov');}
+// translate the common numpad titles to Arabic when in Arabic mode
+function npLabelAr(label){
+  if(!isAr()||!label)return label;
+  var m={
+    'Dealer (Montant DH)':'ديلر (المبلغ درهم)',
+    'Crédit (DH)':'الكريدي (درهم)',
+    'Montant (DH)':'المبلغ (درهم)',
+    'Prix (DH)':'الثمن (درهم)',
+    'Quantité':'الكمية',
+    'Prix':'الثمن',
+    'Qté':'الكمية',
+    'Cash (DH)':'الكاش (درهم)',
+    'Capital (DH)':'رأس المال (درهم)',
+    'Total brut':'المجموع الإجمالي',
+    'Remise par défaut':'التخفيض الافتراضي'
+  };
+  if(m[label])return m[label];
+  // strip "(Montant DH)" style suffix fallbacks
+  return label;
+}
 function npKeyboard(target,label,decimal){
   openModal({title:label||'Valeur',confirmText:isAr()?'تأكيد':'OK',cancelText:isAr()?'إلغاء':'Annuler',fields:[{key:'v',label:label||'',value:'',type:'number'}],onConfirm:function(vals){var v=parseFloat(vals.v)||0;closeModal();npApplyValue(target,v);}});
   setTimeout(function(){var inp=G('modal-v');if(inp){inp.focus();inp.select&&inp.select();}},120);
@@ -1582,6 +1606,8 @@ function loadTrCache(){if(_trCache)return;try{_trCache=JSON.parse(localStorage.g
 function saveTrCache(){try{localStorage.setItem('l7tr',JSON.stringify(_trCache||{}));}catch(e){}}
 // return cached arabic translation or the original name (until translated)
 function trName(name){if(!name)return name;
+  // 0) if the name is ALREADY Arabic, show it as-is (no translation needed)
+  if(/[\u0600-\u06FF]/.test(name))return name;
   // 1) prefer a manual arabic name set by admin on the product/cigarette
   for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].name===name&&CACHE.products[i].name_ar)return CACHE.products[i].name_ar;}
   for(var j=0;j<(CACHE.cigProducts||[]).length;j++){if(CACHE.cigProducts[j].name===name&&CACHE.cigProducts[j].name_ar)return CACHE.cigProducts[j].name_ar;}
@@ -1611,7 +1637,9 @@ function translateVisibleNames(){
   if(!isAr())return;loadTrCache();
   var cells=document.querySelectorAll('[data-trkey]');
   var toDo=[];
-  for(var i=0;i<cells.length;i++){var key=cells[i].getAttribute('data-trkey');if(!key)continue;if(_trCache[key]!=null&&_trCache[key]!==''){cells[i].textContent=_trCache[key];}else if(!_trPending[key]){toDo.push(key);}}
+  for(var i=0;i<cells.length;i++){var key=cells[i].getAttribute('data-trkey');if(!key)continue;
+    if(/[\u0600-\u06FF]/.test(key)){cells[i].textContent=key;continue;} // already Arabic, leave as-is
+    if(_trCache[key]!=null&&_trCache[key]!==''){cells[i].textContent=_trCache[key];}else if(!_trPending[key]){toDo.push(key);}}
   // unique
   toDo=toDo.filter(function(v,i,a){return a.indexOf(v)===i;});
   toDo.forEach(function(key){
@@ -1981,7 +2009,7 @@ function czBenefice(){return czPremier()+czMoins()+czPris()-(parseFloat(CZ.capit
 
 // ---- CIGARETTES ----
 function refreshCig(){try{saveCaisseData();}catch(e){}
-  setText('cig-rem-val',nf2(CZ.cigRem)+' %');setText('cig-net-lbl','Total (− '+nf2(CZ.cigRem)+'%)');
+  setText('cig-rem-val',nf2(CZ.cigRem)+' %');setText('cig-net-lbl',L('Total (− ','المجموع (− ')+nf2(CZ.cigRem)+'%)');
   setText('cig-brut',nf2(czCigBrut())+' DH');setText('cig-net',nf2(czCigNet())+' DH');
   renderCigList(CZ.cig);
   // wire scan input enter + list search
@@ -2071,7 +2099,7 @@ function refreshRech(){try{saveCaisseData();}catch(e){}
   var dg=G('rech-denoms');if(dg&&!dg._built){dg._built=true;dg.innerHTML='';[5,10,20,30,50,100,200].forEach(function(d){var b=document.createElement('button');b.className='denom-btn';b.textContent=d+' DH';b.onclick=function(){CZ._rDenom=(CZ._rDenom===d?null:d);refreshRech();};dg.appendChild(b);});}
   if(dg){var btns=dg.querySelectorAll('.denom-btn');var ds=[5,10,20,30,50,100,200];btns.forEach&&btns.forEach(function(b,i){if(ds[i]===CZ._rDenom)b.classList.add('sel');else b.classList.remove('sel');});}
   setText('rech-qty-val',String(CZ._rQty||0));setText('rech-mont-val',nf2(CZ._rMont||0));
-  setText('rech-rem-val',nf2(CZ.rechRem)+' %');setText('rech-net-lbl','Total (− '+nf2(CZ.rechRem)+'%)');
+  setText('rech-rem-val',nf2(CZ.rechRem)+' %');setText('rech-net-lbl',L('Total (− ','المجموع (− ')+nf2(CZ.rechRem)+'%)');
   setText('rech-brut',nf2(czRechBrut())+' DH');setText('rech-net',nf2(czRechNet())+' DH');
   var list=G('rech-list');if(list){if(!CZ.rech.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا توجد سطور':'Aucune ligne')+'</p>';else{list.innerHTML='';CZ.rech.forEach(function(l,i){var sub=l.kind==='dealer'?'💵 Dealer':(l.denom?('📱 '+l.denom+' × '+l.qty):'📱 Recharge');var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+nf2(l.montant)+' DH</b><span>'+sub+'</span></div><div><button class="cl-q" onclick="openEditRech('+i+')">✏️</button><button class="cl-del" onclick="rechDel('+i+')">🗑</button></div>';list.appendChild(d);});}}
 }
@@ -2127,12 +2155,12 @@ function prisDel(i){CZ.pris.splice(i,1);refreshPris();}
 
 // ---- BILAN ----
 function brow(l,v,strong){return '<div class="brow'+(strong?' strong':'')+'"><span>'+l+'</span><b>'+nf2(v)+' DH</b></div>';}
-function refreshBilan(){try{saveCaisseData();}catch(e){}var c=G('bilan-rows');if(!c)return;var h='';h+=brow(L('Produits','المنتجات'),czProd())+brow(L('Cigarettes','السجائر')+' (net − '+nf2(CZ.cigRem)+'%)',czCigNet())+brow(L('Recharge','التعبئة')+' (net − '+nf2(CZ.rechRem)+'%)',czRechNet())+brow(L('Crédit','الكريدي'),parseFloat(CZ.credit)||0)+brow(L('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0);h+=brow(L('PREMIER TOTAL','المجموع الأول'),czVentes(),true);h+=brow('Cash',parseFloat(CZ.cash)||0);h+=brow(L('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),true);h+=brow(L('Dépenses','المصاريف'),czMoins());h+=brow(L('Argent pris','المال المأخوذ'),czPris());h+=brow(L('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),true);h+=brow(L('Capital','رأس المال'),-(parseFloat(CZ.capital)||0));h+=brow(L('BÉNÉFICE','الربح'),czBenefice(),true);c.innerHTML=h;}
+function refreshBilan(){try{saveCaisseData();}catch(e){}var c=G('bilan-rows');if(!c)return;var h='';h+=brow(L('Produits','المنتجات'),czProd())+brow(L('Cigarettes','السجائر')+' (net − '+nf2(CZ.cigRem)+'%)',czCigNet())+brow(L('Recharge','التعبئة')+' (net − '+nf2(CZ.rechRem)+'%)',czRechNet())+brow(L('Crédit','الكريدي'),parseFloat(CZ.credit)||0)+brow(L('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0);h+=brow(L('PREMIER TOTAL','المجموع الأول'),czVentes(),true);h+=brow(L('Cash','الكاش'),parseFloat(CZ.cash)||0);h+=brow(L('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),true);h+=brow(L('Dépenses','المصاريف'),czMoins());h+=brow(L('Argent pris','المال المأخوذ'),czPris());h+=brow(L('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),true);h+=brow(L('Capital','رأس المال'),-(parseFloat(CZ.capital)||0));h+=brow(L('BÉNÉFICE','الربح'),czBenefice(),true);c.innerHTML=h;}
 
 // ---- PARTAGE ----
 function partnerAdd(){var nn=G('partner-name');var name=(nn&&nn.value||'').trim();if(!name){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}CZ.partners.push({name:name});if(nn)nn.value='';refreshPartage();}
 function partnerDel(i){CZ.partners.splice(i,1);refreshPartage();}
-function refreshPartage(){try{saveCaisseData();}catch(e){}var list=G('partner-list');var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;if(list){if(!n)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">Aucun associé</p>';else{list.innerHTML='';CZ.partners.forEach(function(p,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+esc(p.name)+'</b><span>'+nf2(part)+' DH</span></div><button class="cl-del" onclick="partnerDel('+i+')">🗑</button>';list.appendChild(d);});}}var info=G('partage-info');if(info){if(n)info.innerHTML='<span>Bénéfice ÷ '+n+'</span><span>'+nf2(part)+' DH / pers.</span>';else info.innerHTML='<span>Ajoutez au moins un associé</span><span></span>';}}
+function refreshPartage(){try{saveCaisseData();}catch(e){}var list=G('partner-list');var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;if(list){if(!n)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+L('Aucun associé','لا يوجد شريك')+'</p>';else{list.innerHTML='';CZ.partners.forEach(function(p,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+esc(p.name)+'</b><span>'+nf2(part)+' DH</span></div><button class="cl-del" onclick="partnerDel('+i+')">🗑</button>';list.appendChild(d);});}}var info=G('partage-info');if(info){if(n)info.innerHTML='<span>'+L('Bénéfice ÷ ','الربح ÷ ')+n+'</span><span>'+nf2(part)+' DH</span>';else info.innerHTML='<span>'+L('Ajoutez au moins un associé','أضف شريكاً واحداً على الأقل')+'</span><span></span>';}}
 
 // ---- RECAP2 ----
 // ---- ADJUSTMENT (associé - argent pris) ----
@@ -2166,7 +2194,7 @@ function refreshRecap2(){
   var h='';
   h+=brow(L('Produits','المنتجات'),czProd())+brow(L('Cigarettes','السجائر')+' (net − '+nf2(CZ.cigRem)+'%)',czCigNet())+brow(L('Recharge','التعبئة')+' (net − '+nf2(CZ.rechRem)+'%)',czRechNet())+brow(L('Crédit','الكريدي'),parseFloat(CZ.credit)||0)+brow(L('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0);
   h+=brow(L('PREMIER TOTAL','المجموع الأول'),czVentes(),true);
-  h+=brow('Cash',parseFloat(CZ.cash)||0);
+  h+=brow(L('Cash','الكاش'),parseFloat(CZ.cash)||0);
   h+=brow(L('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),true);
   h+=brow(L('Dépenses','المصاريف'),czMoins());
   h+=brow(L('Argent pris','المال المأخوذ'),czPris());
