@@ -325,7 +325,17 @@ function getSession(){return LS.get('session',null);}
 function clearSession(){LS.del('session');}
 
 // ====== DATA LAYER (Supabase) ======
-function dbGetUserByUsername(u){return sb.from('app_users').select('*').ilike('username',u).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
+function dbGetUserByUsername(u){
+  return sb.from('app_users').select('*').ilike('username',u).limit(1).then(function(r){
+    if(r.error)throw r.error;
+    var found=(r.data&&r.data[0])||null;
+    if(found){try{var c=JSON.parse(localStorage.getItem('l7users')||'{}');c[found.username.toLowerCase()]=found;localStorage.setItem('l7users',JSON.stringify(c));}catch(e){}}
+    return found;
+  }).catch(function(){
+    // offline -> look up the cached user
+    try{var c=JSON.parse(localStorage.getItem('l7users')||'{}');return c[String(u).toLowerCase()]||null;}catch(e){return null;}
+  });
+}
 function dbGetUserById(id){return sb.from('app_users').select('*').eq('id',id).limit(1).then(function(r){return r.error?null:((r.data&&r.data[0])||null);});}
 // ---- OFFLINE CACHE: every read tries Supabase, caches to localStorage, falls back to cache when offline ----
 function offlineGet(key,promise,fallback){
@@ -820,7 +830,7 @@ function enterApp(user){
   hide('login-page');show('main-app');
   loadCPCache();
   if(isAdmin){LANG='fr';document.documentElement.dir='ltr';document.documentElement.lang='en';}
-  else if(LANG==='en'){LANG='fr';LS.set('lang','fr');document.documentElement.dir='ltr';document.documentElement.lang='fr';} // EN is login-only; users use FR/AR
+  else{LANG='ar';LS.set('lang','ar');document.documentElement.dir='rtl';document.documentElement.lang='ar';applyLangAttrs();} // users are 100% Arabic
   loadProducts().then(function(){
     if(isAdmin){buildHeaderFor();showSection('statistics');}
     else{
@@ -831,7 +841,7 @@ function enterApp(user){
   });
 }
 function buildHeaderFor(){
-  buildHeader({title:isAdmin?'Statistics':'📦 L7ssab.ma',role:isAdmin?'admin':'user',activeTab:CURSEC,showLang:!isAdmin});
+  buildHeader({title:isAdmin?'Statistics':'📦 L7ssab.ma',role:isAdmin?'admin':'user',activeTab:CURSEC,showLang:false});
 }
 
 // ---- UNIFIED ROUTER (user + admin sections) ----
@@ -842,7 +852,7 @@ function showSection(name){
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
   var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(isAr()?'منتج':'Produit'),adjustments:t('adj'),recap:t('recap'),cigarettes:'🚬 '+(isAr()?'السجائر':'Cigarettes'),recharge:'📱 '+(isAr()?'التعبئة':'Recharge'),credit:'📖 '+(isAr()?'الكريدي':'Crédit'),change:'🧾 '+(isAr()?'مال الصندوق':'Argent de caisse'),cash:'💵 '+(isAr()?'كاش':'Cash'),moins:'➖ '+(isAr()?'المصاريف':'Dépenses'),pris:'🤝 '+(isAr()?'المال المأخوذ':'Argent pris'),capital:'🏦 '+(isAr()?'رأس المال':'Capital'),bilan:'📊 '+(isAr()?'الحصيلة':'Bilan'),partage:'🤝 '+(isAr()?'تقسيم الأرباح':'Division des bénéfices'),adjustment:'⚖️ '+(isAr()?'التسوية':'Ajustement'),recap2:'📄 '+(isAr()?'الملخص':'Récapitulatif'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',cigdb:'Cigarettes',users:'Users',projects:'Projects',backup:'Backup'};
   // rebuild header so the active admin tab highlights
-  buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:!isAdmin});
+  buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:false});
   applyTR();applyLangAttrs();
   // per-section refresh
   if(name==='inventory')refreshProjs();
@@ -1388,16 +1398,63 @@ function handleScanLookup(code){
   setScanMsg('🔎 '+t('onl'),2);
   fetch('https://world.openfoodfacts.org/api/v0/product/'+code+'.json').then(function(r){return r.json();}).then(function(d){
     if(d.status===1&&d.product){
-      var p=d.product,name=p.product_name_fr||p.product_name_en||p.product_name||code;
-      var dupP=false;for(var pi=0;pi<(CACHE.products||[]).length;pi++){if(CACHE.products[pi].barcode===code){dupP=true;break;}}
-      if(!dupP)sb.from('products').insert({barcode:code,name:name,price:0}).then(function(){loadProducts();});
-      var ni=G('pname-inp');if(ni)ni.value=name;updateNFs();
-      setScanMsg('✅ '+name+' · '+(isAr()?'أدخل الثمن والكمية':'mettez prix + quantité'),1);
+      var p=d.product,latin=p.product_name_fr||p.product_name_en||p.product_name||'';
+      // translate the API name to Arabic, then store ONLY the Arabic name
+      translateToArabic(latin).then(function(arname){
+        var finalName=arname||latin||code;
+        var dupP=false;for(var pi=0;pi<(CACHE.products||[]).length;pi++){if(CACHE.products[pi].barcode===code){dupP=true;break;}}
+        if(!dupP)sb.from('products').insert({barcode:code,name:finalName,name_ar:finalName,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.products.push(rr.data[0]);});
+        var ni=G('pname-inp');if(ni)ni.value=finalName;updateNFs();
+        setScanMsg('✅ '+finalName+' · '+L('mettez prix + quantité','أدخل الثمن والكمية'),1);
+      });
     } else {
-      var ni2=G('pname-inp');if(ni2&&!ni2.value)ni2.value=code;updateNFs();
-      setScanMsg('⚠️ '+t('nf')+' ('+code+') · '+(isAr()?'أدخل الاسم والثمن':'mettez nom + prix'),0);
+      // NOT found anywhere -> ask the user for name + price (saved with the barcode)
+      askNewProductPopup(code,'prod');
     }
-  }).catch(function(){setScanMsg('⚠️ Pas de connexion ('+code+')',0);});
+  }).catch(function(){
+    // offline / no connection -> still let the user enter name + price
+    askNewProductPopup(code,'prod');
+  });
+}
+// Popup to enter a new product's name + price when scan finds nothing
+function askNewProductPopup(code,kind){
+  var html=''+
+    '<div class="ml">'+L('Nom (arabe)','الاسم بالعربية')+'</div>'+
+    '<input class="inp" id="np-pname" type="text" dir="rtl" autocomplete="off" placeholder="'+L('Nom du produit','اسم المنتج')+'" style="margin-bottom:10px"/>'+
+    '<div class="num-field" onclick="openNP(\'npP\',\''+L('Prix (DH)','الثمن')+'\',true)"><span class="nf-label">'+L('Prix (DH)','الثمن (درهم)')+'</span><span class="nf-val" id="np-pprice">0.00</span></div>';
+  openModalHTML(L('Nouveau produit','منتج جديد'),html,function(){
+    var nm=(G('np-pname')&&G('np-pname').value||'').trim();
+    var pr=parseFloat(G('np-pprice')&&G('np-pprice').textContent)||0;
+    if(!nm){showToast('❌ '+L('Entrez le nom','أدخل الاسم'));return;}
+    if(!(pr>0)){showToast('⚠️ '+L('Entrez le prix','أدخل الثمن'));return;}
+    // save to shared catalog (arabic name) + barcode
+    if(kind==='cig'){
+      sb.from('cigarettes').insert({barcode:code,name:nm,name_ar:nm,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.cigProducts.push(rr.data[0]);});
+      saveCigCP(code,nm,pr);CACHE.cigCustom=CACHE.cigCustom||{};CACHE.cigCustom[code]=pr;
+      var cn=G('cig-name');if(cn)cn.value=nm;CZ._cigP=pr;CZ._cigBC=code;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(pr)+' DH';ep.className='nf-val';}
+    } else {
+      sb.from('products').insert({barcode:code,name:nm,name_ar:nm,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.products.push(rr.data[0]);});
+      saveCP(code,pr);
+      var ni=G('pname-inp');if(ni)ni.value=nm;dP=pr;_lastScanBC=code;updateNFs();
+    }
+    closeModal();showToast('✅ '+L('Ajouté','أضيف')+': '+nm);
+  });
+}
+// numpad target for the new-product popup price
+function _npPriceSet(v){var e=G('np-pprice');if(e)e.textContent=nf2(v);}
+// translate any text to Arabic (returns a Promise) - uses cache + MyMemory + transliteration
+function translateToArabic(txt){
+  return new Promise(function(resolve){
+    if(!txt){resolve('');return;}
+    loadTrCache();var k=String(txt).trim();
+    if(_trCache[k]!=null&&_trCache[k]!==''){resolve(_trCache[k]);return;}
+    if(/^[0-9\s\-]+$/.test(k)){_trCache[k]=k;resolve(k);return;}
+    fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(k)+'&langpair=fr|ar').then(function(r){return r.json();}).then(function(d){
+      var tr=(d&&d.responseData&&d.responseData.translatedText)||'';
+      var res=(tr&&/[\u0600-\u06FF]/.test(tr)&&tr.toLowerCase()!==k.toLowerCase())?tr:translitFrToAr(k);
+      _trCache[k]=res;saveTrCache();resolve(res);
+    }).catch(function(){var res=translitFrToAr(k);_trCache[k]=res;saveTrCache();resolve(res);});
+  });
 }
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
 function saveCP(bc,price){
@@ -1448,6 +1505,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='erQ'){_erQty=v;var eq=G('er-q');if(eq)eq.textContent=nf2(v);var tt=G('er-total');if(tt)tt.textContent=nf2(_erDenom*_erQty)+' DH';return;}
   if(tgt==='emM'){if(_editMoinsIdx>=0&&CZ.moins[_editMoinsIdx]){CZ.moins[_editMoinsIdx].montant=v;refreshMoins();}return;}
   if(tgt==='epM'){if(_editPrisIdx>=0&&CZ.pris[_editPrisIdx]){CZ.pris[_editPrisIdx].montant=v;refreshPris();}return;}
+  if(tgt==='npP'){_npPriceSet(v);return;}
   // caisse targets
   if(tgt==='cigRem'){CZ.cigRem=v;refreshCig();return;}
   if(tgt==='cigAddP'){CZ._cigP=v;var e=G('cig-add-p');if(e){e.textContent=nf2(v)+' DH';e.className='nf-val';}return;}
@@ -1488,18 +1546,16 @@ function scanAddToList(bc,name,price){
 }
 function addProd(){
   var ni=G('pname-inp');var name=(ni?ni.value||'':'').trim();
-  if(!name){showToast('❌ '+(isAr()?'أدخل الاسم':'Entrez le nom'));return;}
-  // require price AND quantity
-  if(!(parseFloat(dP)>0)||!(parseFloat(dQ)>0)){showToast('⚠️ '+(isAr()?'أدخل الثمن والكمية':'Mettez le prix et la quantité'));return;}
+  if(!name){showToast('❌ '+L('Entrez le nom','أدخل الاسم'));return;}
+  if(!(parseFloat(dP)>0)||!(parseFloat(dQ)>0)){showToast('⚠️ '+L('Mettez le prix et la quantité','أدخل الثمن والكمية'));return;}
   var si=G('scan-inp');var bc=(si?si.value||'':'').trim();if(!bc&&_lastScanBC)bc=_lastScanBC;
-  // save the user's price for this barcode (cache + DB) BEFORE clearing
   if(bc)saveCP(bc,dP);
   sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){
     if(r.error){showToast('❌ '+r.error.message);return;}
-    if(bc){var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if(CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}}
-      if(!prod){sb.from('products').insert({barcode:bc,name:name,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}});}}
+    // save to shared catalog (arabic name). With barcode if scanned, without if manual.
+    var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if((bc&&CACHE.products[i].barcode===bc)||(!bc&&CACHE.products[i].name===name)){prod=CACHE.products[i];break;}}
+    if(!prod){sb.from('products').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}});}
     sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});
-    // clear ALL fields
     _lastScanBC='';if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();
     loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅ '+t('added')+': '+name);});
   });
@@ -1591,27 +1647,20 @@ function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),
 var _editItemIdx=-1,_editCigIdx=-1;
 function openEditItem(i){
   var it=CACHE.items[i];if(!it)return;_editItemIdx=i;
-  var ar=isAr();
-  // find current arabic name from catalog
-  var curAr='';for(var k=0;k<(CACHE.products||[]).length;k++){if(CACHE.products[k].barcode&&CACHE.products[k].barcode===it.barcode){curAr=CACHE.products[k].name_ar||'';break;}}
-  var html='<div class="ml">'+(ar?'الاسم (فرنسي)':'Nom (latin)')+'</div><input class="inp" id="ei-name" type="text" autocomplete="off" value="'+esc(it.name||'')+'"/>'+
-    '<div class="ml" style="margin-top:6px">'+(ar?'الاسم بالعربية':'Nom arabe')+'</div><input class="inp" id="ei-namear" type="text" dir="rtl" autocomplete="off" value="'+esc(curAr)+'"/>'+
+  var html='<div class="ml">'+L('Nom','الاسم')+'</div><input class="inp" id="ei-name" type="text" dir="rtl" autocomplete="off" value="'+esc(it.name||'')+'"/>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">'+
-    '<div class="num-field" onclick="openNP(\'eiP\',\''+(ar?'الثمن':'Prix (DH)')+'\',true)"><span class="nf-label">'+(ar?'الثمن':'Prix')+'</span><span class="nf-val" id="ei-p">'+nf2(it.price)+'</span></div>'+
-    '<div class="num-field" onclick="openNP(\'eiQ\',\''+(ar?'الكمية':'Quantité')+'\',true)"><span class="nf-label">'+(ar?'الكمية':'Qté')+'</span><span class="nf-val" id="ei-q">'+(parseFloat(it.quantity)||0)+'</span></div>'+
+    '<div class="num-field" onclick="openNP(\'eiP\',\''+L('Prix','الثمن')+'\',true)"><span class="nf-label">'+L('Prix','الثمن')+'</span><span class="nf-val" id="ei-p">'+nf2(it.price)+'</span></div>'+
+    '<div class="num-field" onclick="openNP(\'eiQ\',\''+L('Quantité','الكمية')+'\',true)"><span class="nf-label">'+L('Qté','الكمية')+'</span><span class="nf-val" id="ei-q">'+(parseFloat(it.quantity)||0)+'</span></div>'+
     '</div>';
-  openModalHTML(ar?'تعديل المنتج':'Modifier le produit',html,function(){
-    var nm=(G('ei-name')&&G('ei-name').value||'').trim();var nmar=(G('ei-namear')&&G('ei-namear').value||'').trim();var pr=parseFloat(G('ei-p')&&G('ei-p').textContent)||0;var q=parseFloat(G('ei-q')&&G('ei-q').textContent)||0;
+  openModalHTML(L('Modifier le produit','تعديل المنتج'),html,function(){
+    var nm=(G('ei-name')&&G('ei-name').value||'').trim();var pr=parseFloat(G('ei-p')&&G('ei-p').textContent)||0;var q=parseFloat(G('ei-q')&&G('ei-q').textContent)||0;
     if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
     it.name=nm;it.price=pr;it.quantity=q;
     sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,pr);});
-    // save name + arabic name to the shared catalog (database)
     if(it.barcode){
       var prod=null;for(var j=0;j<(CACHE.products||[]).length;j++){if(CACHE.products[j].barcode===it.barcode){prod=CACHE.products[j];break;}}
-      if(prod){prod.name=nm;prod.name_ar=nmar;sb.from('products').update({name:nm,name_ar:nmar}).eq('id',prod.id).then(function(){});}
-      else{sb.from('products').insert({barcode:it.barcode,name:nm,name_ar:nmar,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.products.push(rr.data[0]);});}
-      // update translation cache so the list shows the new arabic name
-      if(nmar){_trCache=_trCache||{};_trCache[nm]=nmar;saveTrCache();}
+      if(prod){prod.name=nm;prod.name_ar=nm;sb.from('products').update({name:nm,name_ar:nm}).eq('id',prod.id).then(function(){});}
+      else{sb.from('products').insert({barcode:it.barcode,name:nm,name_ar:nm,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.products.push(rr.data[0]);});}
     }
     closeModal();refreshEdit();updateRT();showToast('✅ '+t('renamed'));
   });
@@ -1730,11 +1779,11 @@ function openUserPrices(kind,bc,name){
 }
 // ===== ADMIN CIGARETTES (mirror of products) =====
 function refreshCigDB(){dbGetCigProducts().then(function(c){CACHE.cigProducts=c;renderCigDBTable(c);});}
-function renderCigDBTable(prods){var tb=G('cigdb-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name||'—';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Modifier cigarette',confirmText:'Enregistrer',fields:[{key:'name',label:'Nom',value:p.name},{key:'name_ar',label:'الاسم بالعربية',value:p.name_ar||''},{key:'barcode',label:'Code-barres',value:p.barcode||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('cigarettes').update({name:v.name.trim(),name_ar:(v.name_ar||'').trim(),barcode:v.barcode.trim()}).eq('id',p.id).then(function(){closeModal();refreshCigDB();showToast('✅ Modifié');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Supprimer','Supprimer "'+p.name+'" ?',function(){sb.from('cigarettes').delete().eq('id',p.id).then(function(){refreshCigDB();showToast('✅ Supprimé');});},'Supprimer');};var ub=document.createElement('button');ub.className='btn-b';ub.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';ub.textContent='👥';ub.title='Prix par utilisateur';ub.onclick=function(){openUserPrices('cigarette',p.barcode,p.name);};c4.appendChild(ub);c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c4);tb.appendChild(tr);});}
+function renderCigDBTable(prods){var tb=G('cigdb-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name_ar||p.name||'—';c2.dir='rtl';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit cigarette',confirmText:'Save',fields:[{key:'name',label:'Arabic name',value:p.name_ar||p.name||''},{key:'barcode',label:'Barcode',value:p.barcode||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('cigarettes').update({name:v.name.trim(),name_ar:v.name.trim(),barcode:v.barcode.trim()}).eq('id',p.id).then(function(){closeModal();refreshCigDB();showToast('✅ Saved');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Supprimer','Supprimer "'+p.name+'" ?',function(){sb.from('cigarettes').delete().eq('id',p.id).then(function(){refreshCigDB();showToast('✅ Supprimé');});},'Supprimer');};var ub=document.createElement('button');ub.className='btn-b';ub.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';ub.textContent='👥';ub.title='Prix par utilisateur';ub.onclick=function(){openUserPrices('cigarette',p.barcode,p.name);};c4.appendChild(ub);c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c4);tb.appendChild(tr);});}
 function cigDbSearch(q){var res=G('cigdb-results');if(!res)return;res.innerHTML='';if(!q||!q.trim())return;var f=(CACHE.cigProducts||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.barcode||'').indexOf(q)>=0;}).slice(0,15);if(!f.length){res.innerHTML='<p style="font-size:13px;color:#888;padding:8px 0">Aucun résultat</p>';return;}f.forEach(function(p){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px';var info=document.createElement('div');info.style.flex='1';info.innerHTML='<p style="font-size:14px;font-weight:500;margin:0 0 1px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">'+(p.barcode||'')+'</p>';var pe=document.createElement('strong');pe.style.cssText='color:#1a7a4a;font-size:14px;white-space:nowrap';pe.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var eb=document.createElement('button');eb.className='btn-b';eb.style.marginLeft='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Modifier cigarette',confirmText:'Enregistrer',fields:[{key:'name',label:'Nom',value:p.name},{key:'barcode',label:'Code-barres',value:p.barcode||''},{key:'price',label:'Prix (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('cigarettes').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();refreshCigDB();showToast('✅ Modifié');});}});};var db=document.createElement('button');db.className='btn-r';db.style.marginLeft='4px';db.textContent='🗑';db.onclick=function(){confirmModal('Supprimer','Supprimer "'+p.name+'" ?',function(){sb.from('cigarettes').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);refreshCigDB();showToast('✅ Supprimé');});},'Supprimer');};var btns=document.createElement('div');btns.style.cssText='display:flex;align-items:center';btns.appendChild(pe);btns.appendChild(eb);btns.appendChild(db);row.appendChild(info);row.appendChild(btns);res.appendChild(row);});}
 function toggleCigAddForm(){var f=G('cigdb-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('cigdb-bc');if(b)b.focus();}}
 function cigDbAdd(){var bc=(G('cigdb-bc')?G('cigdb-bc').value||'':'').trim();var nm=(G('cigdb-nm')?G('cigdb-nm').value||'':'').trim();var pr=parseFloat(G('cigdb-pr')?G('cigdb-pr').value||'0':'0')||0;if(!nm){showToast('❌ Nom requis');return;}sb.from('cigarettes').insert({barcode:bc,name:nm,price:pr}).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(G('cigdb-bc'))G('cigdb-bc').value='';if(G('cigdb-nm'))G('cigdb-nm').value='';if(G('cigdb-pr'))G('cigdb-pr').value='';showToast('✅ Ajouté: '+nm);refreshCigDB();});}
-function renderDBTable(prods){var tb=G('db-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name||'—';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'name_ar',label:'الاسم بالعربية',value:p.name_ar||''},{key:'barcode',label:'Barcode',value:p.barcode||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),name_ar:(v.name_ar||'').trim(),barcode:v.barcode.trim()}).eq('id',p.id).then(function(){closeModal();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){refreshDB();showToast('✅ Deleted');});},'Delete');};var ub=document.createElement('button');ub.className='btn-b';ub.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';ub.textContent='👥';ub.title='Prix par utilisateur';ub.onclick=function(){openUserPrices('product',p.barcode,p.name);};c4.appendChild(ub);c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c4);tb.appendChild(tr);});}
+function renderDBTable(prods){var tb=G('db-all-tbody');if(!tb)return;tb.innerHTML='';prods.forEach(function(p){var tr=document.createElement('tr');var c1=document.createElement('td');c1.style.cssText='font-family:monospace;font-size:12px;color:#888';c1.textContent=p.barcode||'—';var c2=document.createElement('td');c2.textContent=p.name_ar||p.name||'—';c2.dir='rtl';var c4=document.createElement('td');c4.style.whiteSpace='nowrap';var eb=document.createElement('button');eb.className='btn-b';eb.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Arabic name',value:p.name_ar||p.name||''},{key:'barcode',label:'Barcode',value:p.barcode||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),name_ar:v.name.trim(),barcode:v.barcode.trim()}).eq('id',p.id).then(function(){closeModal();refreshDB();showToast('✅ Saved');});}});};var db=document.createElement('button');db.className='btn-r';db.style.cssText='padding:4px 7px;font-size:12px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){refreshDB();showToast('✅ Deleted');});},'Delete');};var ub=document.createElement('button');ub.className='btn-b';ub.style.cssText='padding:4px 7px;font-size:12px;margin-right:3px';ub.textContent='👥';ub.title='Prix par utilisateur';ub.onclick=function(){openUserPrices('product',p.barcode,p.name);};c4.appendChild(ub);c4.appendChild(eb);c4.appendChild(db);tr.appendChild(c1);tr.appendChild(c2);tr.appendChild(c4);tb.appendChild(tr);});}
 function dbSearch(q){var res=G('db-results');if(!res)return;res.innerHTML='';if(!q||!q.trim())return;var f=CACHE.products.filter(function(p){return (p.name||'').toLowerCase().indexOf(q.toLowerCase())>=0||(p.barcode||'').indexOf(q)>=0;}).slice(0,15);if(!f.length){res.innerHTML='<p style="font-size:13px;color:#888;padding:8px 0">No results</p>';return;}f.forEach(function(p){var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #e0e0e0;gap:8px';var info=document.createElement('div');info.style.flex='1';info.innerHTML='<p style="font-size:14px;font-weight:500;margin:0 0 1px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">'+(p.barcode||'')+'</p>';var pe=document.createElement('strong');pe.style.cssText='color:#1a7a4a;font-size:14px;white-space:nowrap';pe.textContent=(parseFloat(p.price)||0).toFixed(2)+' DH';var eb=document.createElement('button');eb.className='btn-b';eb.style.marginLeft='4px';eb.textContent='✏️';eb.onclick=function(){openModal({title:'Edit product',confirmText:'Save',fields:[{key:'name',label:'Name',value:p.name},{key:'barcode',label:'Barcode',value:p.barcode||''},{key:'price',label:'Price (DH)',value:p.price,type:'number'}],onConfirm:function(v){if(!v.name.trim())return;sb.from('products').update({name:v.name.trim(),barcode:v.barcode.trim(),price:parseFloat(v.price)||0}).eq('id',p.id).then(function(){closeModal();loadProducts();refreshDB();showToast('✅ Updated');});}});};var db=document.createElement('button');db.className='btn-r';db.style.marginLeft='4px';db.textContent='🗑';db.onclick=function(){confirmModal('Delete product','Delete "'+p.name+'" ?',function(){sb.from('products').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);loadProducts();refreshDB();showToast('✅ Deleted');});},'Delete');};var btns=document.createElement('div');btns.style.cssText='display:flex;align-items:center';btns.appendChild(pe);btns.appendChild(eb);btns.appendChild(db);row.appendChild(info);row.appendChild(btns);res.appendChild(row);});}
 function toggleAddForm(){var f=G('db-add-form');if(!f)return;f.classList.toggle('hidden');if(!f.classList.contains('hidden')){var b=G('db-bc');if(b)b.focus();}}
 function dbAddProd(){var bc=(G('db-bc')?G('db-bc').value||'':'').trim();var nm=(G('db-nm')?G('db-nm').value||'':'').trim();var pr=parseFloat(G('db-pr')?G('db-pr').value||'0':'0')||0;if(!nm){showToast('❌ Name required');return;}sb.from('products').insert({barcode:bc,name:nm,price:pr}).then(function(r){if(r.error){showToast('❌ '+r.error.message);return;}if(G('db-bc'))G('db-bc').value='';if(G('db-nm'))G('db-nm').value='';if(G('db-pr'))G('db-pr').value='';showToast('✅ Added: '+nm);refreshDB();});}
@@ -1982,9 +2031,8 @@ function cigScan(code){code=(code||'').trim();if(!code)return;
     showToast('✅ '+f.name+' — '+nf2(price)+' DH · '+(isAr()?'أدخل الكمية':'mettez la quantité'));
     return;
   }
-  // not a known cigarette: fill the name with the barcode so the user can name + price it
-  var nm2=G('cig-name');if(nm2)nm2.value=code;CZ._cigP=0;var ep2=G('cig-add-p');if(ep2){ep2.textContent='Appuyer';ep2.className='nf-ph';}CZ._cigBC=code;
-  showToast('➕ '+(isAr()?'سيجارة جديدة - أدخل الاسم والثمن':'Nouvelle - nom + prix')+' ('+code+')');
+  // not a known cigarette: ask for name + price (saved with the barcode)
+  askNewProductPopup(code,'cig');
 }
 function cigPick(bc,name,price){var cp=(CACHE.cigCustom&&(CACHE.cigCustom[bc]||CACHE.cigCustom[name]));if(cp!=null)price=cp;var found=null;CZ.cig.forEach(function(x){if(x.name===name)found=x;});if(found)found.qty=(found.qty||1)+1;else CZ.cig.push({barcode:bc,name:name,price:parseFloat(price)||0,qty:1});var s=G('cig-scan');if(s)s.value='';var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}refreshCig();}
 // save a new cigarette product to the dedicated cigarettes table (so it's known next time)
