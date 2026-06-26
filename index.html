@@ -588,15 +588,15 @@ html.dark .mode-txt b{color:#e8f0ec}
       <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
         <input class="inp" type="text" id="scan-inp" inputmode="none" readonly onclick="openBarcodeNP('prod')" placeholder="Scannez le code-barres…" data-ph-fr="Scannez le code-barres…" data-ph-ar="امسح الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
         <button type="button" onclick="openBarcodeNP('prod')" title="Saisir manuellement" style="padding:0 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:18px;flex-shrink:0">⌨️</button>
-        <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search">Rechercher</button>
+        <button onclick="doSearch()" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" id="t-search" data-fr="Rechercher" data-ar="بحث">Rechercher</button>
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
       <div id="scan-msg" class="smsg hidden"></div>
       <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="prodNameSuggest(this.value)"/>
       <div id="pname-suggest" class="suggest-box hidden"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
-        <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price">Prix (DH)</span><span id="nf-dp" class="nf-ph">Appuyer</span></div>
-        <div class="num-field" onclick="openNP('dQ','Quantite',true)"><span class="nf-label" id="t-qty">Quantité</span><span id="nf-dq" class="nf-ph">Appuyer</span></div>
+        <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price" data-fr="Prix (DH)" data-ar="الثمن (درهم)">Prix (DH)</span><span id="nf-dp" class="nf-ph" data-fr="Appuyer" data-ar="اضغط">Appuyer</span></div>
+        <div class="num-field" onclick="openNP('dQ','Quantite',true)"><span class="nf-label" id="t-qty" data-fr="Quantité" data-ar="الكمية">Quantité</span><span id="nf-dq" class="nf-ph" data-fr="Appuyer" data-ar="اضغط">Appuyer</span></div>
       </div>
       <button class="btn-p" onclick="addProd()" id="t-addbtn">+ Ajouter</button>
     </div>
@@ -620,14 +620,14 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div style="display:flex;gap:8px;margin-bottom:8px;position:relative">
       <input class="inp" type="text" id="cig-scan" inputmode="none" readonly onclick="openBarcodeNP('cig')" placeholder="Scannez le code-barres…" data-ph-fr="Scannez le code-barres…" data-ph-ar="امسح الباركود…" style="flex:1;margin-bottom:0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <button type="button" onclick="openBarcodeNP('cig')" title="Saisir manuellement" style="padding:0 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:18px;flex-shrink:0">⌨️</button>
-      <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0">Rechercher</button>
+      <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" data-fr="Rechercher" data-ar="بحث">Rechercher</button>
     </div>
     <div id="cig-suggest" class="suggest-box hidden"></div>
     <input class="inp" type="text" id="cig-name" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="cigNameSuggest(this.value)"/>
     <div id="cig-name-suggest" class="suggest-box hidden"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
-      <div class="num-field" onclick="openNP('cigAddP','Prix (DH)',true)"><span class="nf-label">Prix (DH)</span><span id="cig-add-p" class="nf-ph">Appuyer</span></div>
-      <div class="num-field" onclick="openNP('cigAddQ','Quantité',true)"><span class="nf-label">Quantité</span><span id="cig-add-q" class="nf-ph">Appuyer</span></div>
+      <div class="num-field" onclick="openNP('cigAddP','Prix (DH)',true)"><span class="nf-label" data-fr="Prix (DH)" data-ar="الثمن (درهم)">Prix (DH)</span><span id="cig-add-p" class="nf-ph" data-fr="Appuyer" data-ar="اضغط">Appuyer</span></div>
+      <div class="num-field" onclick="openNP('cigAddQ','Quantité',true)"><span class="nf-label" data-fr="Quantité" data-ar="الكمية">Quantité</span><span id="cig-add-q" class="nf-ph" data-fr="Appuyer" data-ar="اضغط">Appuyer</span></div>
     </div>
     <button class="btn-p" onclick="cigAddManual()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
   </div>
@@ -653,7 +653,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="📱 Recharge" data-ar="📱 التعبئة">📱 Recharge</div>
     <div class="denom-grid" id="rech-denoms"></div>
-    <div class="num-field" onclick="openNP('rechQty','Quantité',true)"><span class="nf-label">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
+    <div class="num-field" onclick="openNP('rechQty','Quantité',true)"><span class="nf-label" data-fr="Quantité" data-ar="الكمية">Quantité</span><span class="nf-val" id="rech-qty-val">0</span></div>
     <button class="btn-p" onclick="rechAddDenom()" data-fr="+ Ajouter recharge" data-ar="+ إضافة تعبئة">+ Ajouter recharge</button>
   </div>
   <div class="card">
@@ -695,7 +695,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" data-fr="🧾 Argent de caisse" data-ar="🧾 مال الصندوق">🧾 Argent de caisse</div>
-    <div class="big-field" onclick="openNP('change','Argent de caisse (DH)',true)"><span>Argent de caisse (DH)</span><b id="change-val">0.00 DH</b></div>
+    <div class="big-field" onclick="openNP('change','Argent de caisse (DH)',true)"><span data-fr="Argent de caisse (DH)" data-ar="مال الصندوق (درهم)">Argent de caisse (DH)</span><b id="change-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px" data-fr="Cliquez pour saisir le montant" data-ar="اضغط لإدخال المبلغ">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
@@ -709,7 +709,7 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" data-fr="💵 Cash" data-ar="💵 كاش">💵 Cash</div>
-    <div class="big-field" onclick="openNP('cash','Cash (DH)',true)"><span>Cash (DH)</span><b id="cash-val">0.00 DH</b></div>
+    <div class="big-field" onclick="openNP('cash','Cash (DH)',true)"><span data-fr="Cash (DH)" data-ar="الكاش (درهم)">Cash (DH)</span><b id="cash-val">0.00 DH</b></div>
     <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px" data-fr="Cliquez pour saisir le montant" data-ar="اضغط لإدخال المبلغ">Cliquez pour saisir le montant</p>
   </div>
   <div class="nav-row">
@@ -725,10 +725,10 @@ html.dark .mode-txt b{color:#e8f0ec}
     <div class="card-title" data-fr="➖ Dépenses" data-ar="➖ المصاريف">➖ Dépenses</div>
     <select class="inp" id="moins-type">
       <option value="credit_fourn" data-fr="Crédit de fournisseur" data-ar="كريدي المورد">Crédit de fournisseur</option>
-      <option value="impot">Les impôts</option>
-      <option value="eau_elec">Eau + Électricité</option>
-      <option value="loyer">Loyer</option>
-      <option value="__new__">+ Ajouter un autre choix…</option>
+      <option value="impot" data-fr="Les impôts" data-ar="الضرائب">Les impôts</option>
+      <option value="eau_elec" data-fr="Eau + Électricité" data-ar="الماء + الكهرباء">Eau + Électricité</option>
+      <option value="loyer" data-fr="Loyer" data-ar="الكراء">Loyer</option>
+      <option value="__new__" data-fr="+ Ajouter un autre choix…" data-ar="+ إضافة خيار آخر…">+ Ajouter un autre choix…</option>
     </select>
     <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense" data-ph-fr="Nom de la dépense" data-ph-ar="اسم المصروف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label" data-fr="Montant (DH)" data-ar="المبلغ (درهم)">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
@@ -758,7 +758,7 @@ html.dark .mode-txt b{color:#e8f0ec}
   <div class="card">
     <div class="card-title" data-fr="Liste" data-ar="اللائحة" data-fr="Liste" data-ar="اللائحة">Liste</div>
     <div id="pris-list"></div>
-    <div class="tbar"><span>Total argent pris</span><span id="pris-total">0.00 DH</span></div>
+    <div class="tbar"><span data-fr="Total argent pris" data-ar="مجموع المال المأخوذ">Total argent pris</span><span id="pris-total">0.00 DH</span></div>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('moins')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
@@ -771,8 +771,8 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card">
     <div class="card-title" data-fr="🏦 Capital" data-ar="🏦 رأس المال">🏦 Capital</div>
-    <div class="big-field" onclick="openNP('capital','Capital (DH)',true)"><span>Capital (DH)</span><b id="capital-val">0.00 DH</b></div>
-    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px">Se soustrait du bénéfice</p>
+    <div class="big-field" onclick="openNP('capital','Capital (DH)',true)"><span data-fr="Capital (DH)" data-ar="رأس المال (درهم)">Capital (DH)</span><b id="capital-val">0.00 DH</b></div>
+    <p style="text-align:center;color:#aaa;font-size:12px;margin-top:10px" data-fr="Se soustrait du bénéfice" data-ar="يُطرح من الربح">Se soustrait du bénéfice</p>
   </div>
   <div class="nav-row">
     <button class="btn-g" onclick="showSection('pris')" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>

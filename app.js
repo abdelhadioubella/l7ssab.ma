@@ -418,7 +418,7 @@ function buildHeader(opts){
   var roleLabel=s&&s.role==='admin'?'Administrator':'Utilisateur';
   var langBtn=opts.showLang?'<button class="hdr-btn" onclick="toggleLangApp()" id="lang-app-btn">🇫🇷</button>':'';
   var html=''+
-  '<div class="hdr" dir="ltr">'+
+  '<div class="hdr" dir="'+(isAr()?'rtl':'ltr')+'">'+
     (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
@@ -1500,11 +1500,14 @@ function npLabelAr(label){
     'Montant (DH)':'المبلغ (درهم)',
     'Prix (DH)':'الثمن (درهم)',
     'Quantité':'الكمية',
+    'Quantite':'الكمية',
     'Prix':'الثمن',
     'Qté':'الكمية',
     'Cash (DH)':'الكاش (درهم)',
+    'Argent de caisse (DH)':'مال الصندوق (درهم)',
     'Capital (DH)':'رأس المال (درهم)',
     'Total brut':'المجموع الإجمالي',
+    'Remise %':'التخفيض %',
     'Remise par défaut':'التخفيض الافتراضي'
   };
   if(m[label])return m[label];
@@ -1994,7 +1997,7 @@ function loadCaisseData(){var k=caisseKey();if(!k){czReset();return;}
 }
 function nf2(n){return (Math.round((parseFloat(n)||0)*100)/100).toFixed(2);}
 function L(fr,ar){return (LANG==='ar')?ar:fr;} // inline bilingual string (Arabic written directly)
-function moinsLbl(t){var m={credit_fourn:'Crédit de fournisseur',impot:'Les impôts',eau_elec:'Eau + Électricité',loyer:'Loyer'};return m[t]||t;}
+function moinsLbl(t){var m=isAr()?{credit_fourn:'كريدي المورد',impot:'الضرائب',eau_elec:'الماء + الكهرباء',loyer:'الكراء'}:{credit_fourn:'Crédit de fournisseur',impot:'Les impôts',eau_elec:'Eau + Électricité',loyer:'Loyer'};return m[t]||t;}
 // sums
 function czProd(){var t=0;(CACHE.items||[]).forEach(function(x){t+=(parseFloat(x.price)||0)*(parseFloat(x.quantity)||1);});return t;}
 function czCigBrut(){var t=0;CZ.cig.forEach(function(x){t+=(parseFloat(x.price)||0)*(parseFloat(x.qty)||1);});return t;}
@@ -2089,7 +2092,7 @@ function cigAddManual(){var nn=G('cig-name');var name=(nn&&nn.value||'').trim();
     CACHE.cigCustom=CACHE.cigCustom||{};if(price)CACHE.cigCustom[bc]=price;
   } else { dbAddCig('',name,price); }
   CZ._cigP=0;CZ._cigQ=0;CZ._cigBC='';if(nn)nn.value='';
-  var ep=G('cig-add-p');if(ep){ep.textContent='Appuyer';ep.className='nf-ph';}var eq=G('cig-add-q');if(eq){eq.textContent='Appuyer';eq.className='nf-ph';}
+  var ep=G('cig-add-p');if(ep){ep.textContent=t('tap');ep.className='nf-ph';}var eq=G('cig-add-q');if(eq){eq.textContent=t('tap');eq.className='nf-ph';}
   var cs=G('cig-scan');if(cs)cs.value='';
   refreshCig();showToast('✅ '+(isAr()?'أضيف':'Ajouté')+': '+name);
 }
@@ -2306,5 +2309,9 @@ function escJs2(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/
 (function(){
   var s=getSession();
   if(s){enterApp(s);}
-  else{show('login-page');hide('main-app');renderRemembered();applyDir();setLangBtn&&setLangBtn();var lb=G('lang-login-btn');if(lb)lb.textContent=langLabel();}
+  else{
+    // login page is ALWAYS French (no Arabic, no admin English)
+    LANG='fr';document.documentElement.dir='ltr';document.documentElement.lang='fr';
+    show('login-page');hide('main-app');renderRemembered();applyLangAttrs();setLangBtn&&setLangBtn();var lb=G('lang-login-btn');if(lb)lb.textContent=langLabel();
+  }
 })();
