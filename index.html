@@ -23,7 +23,7 @@ button{cursor:pointer;font-family:inherit}input,select{font-family:inherit}
 .hdr{background:#1a7a4a;color:#fff;height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;position:fixed;top:0;left:0;right:0;width:100%;z-index:98;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 #app-header{height:54px}
 .appsec.active .content{padding-top:14px;padding-bottom:84px}
-.hdr-title{font-size:16px;font-weight:700;flex:1;text-align:left;direction:ltr}
+.hdr-title{font-size:16px;font-weight:700;flex:1;text-align:left}
 .hdr-right{display:flex;gap:6px;align-items:center;position:relative}
 .hdr-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;min-width:38px;height:38px;padding:0 8px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
 .hdr-av{width:36px;height:36px;border-radius:50%;background:#fff;color:#1a7a4a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;cursor:pointer;border:2px solid rgba(255,255,255,.6)}
@@ -265,8 +265,8 @@ html.dark .upr-name{color:#e8f5ee}
 
 
 /* keep header title fixed on the left regardless of language */
-.hdr-title{text-align:left!important;direction:ltr!important;unicode-bidi:plaintext}
-[dir=rtl] .hdr-title{text-align:left!important;direction:ltr!important}
+.hdr-title{text-align:left;direction:ltr;unicode-bidi:plaintext}
+[dir=rtl] .hdr-title{text-align:right!important;direction:rtl!important}
 
 
 /* ===== WINDOWS-STYLE CALCULATOR (app theme) ===== */
