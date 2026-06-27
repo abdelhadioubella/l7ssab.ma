@@ -1579,13 +1579,53 @@ function addProd(){
   if(bc)saveCP(bc,dP);
   sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){
     if(r.error){showToast('❌ '+r.error.message);return;}
-    // save to shared catalog (arabic name). With barcode if scanned, without if manual.
-    var prod=null;for(var i=0;i<(CACHE.products||[]).length;i++){if((bc&&CACHE.products[i].barcode===bc)||(!bc&&CACHE.products[i].name===name)){prod=CACHE.products[i];break;}}
-    if(!prod){sb.from('products').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);}});}
+    // ALWAYS keep the catalog (local + online) up to date with the last name typed
+    saveCatalogName(bc,name);
     sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});
     _lastScanBC='';if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();
     loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅ '+t('added')+': '+name);});
   });
+}
+// persist the in-memory catalog to localStorage (offline DB)
+function persistCatalogCache(){
+  try{localStorage.setItem('l7cache_products',JSON.stringify(CACHE.products||[]));}catch(e){}
+  try{localStorage.setItem('l7cache_cigproducts',JSON.stringify(CACHE.cigProducts||[]));}catch(e){}
+}
+// Save/refresh a product's name in BOTH the local cache and the online DB.
+// Always keeps the LAST name written. Matches by barcode if present, else by old name.
+function saveCatalogName(bc,name){
+  if(!name)return;
+  var prod=null;
+  for(var i=0;i<(CACHE.products||[]).length;i++){
+    if(bc&&CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}
+  }
+  if(prod){
+    // update local cache immediately
+    prod.name=name;prod.name_ar=name;persistCatalogCache();
+    // update online DB
+    sb.from('products').update({name:name,name_ar:name}).eq('id',prod.id).then(function(){});
+  } else {
+    // new product -> insert in online DB then add to local cache
+    sb.from('products').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){
+      if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);persistCatalogCache();}
+    });
+  }
+}
+// Same for cigarettes
+function saveCatalogCigName(bc,name){
+  if(!name)return;
+  var prod=null;
+  for(var i=0;i<(CACHE.cigProducts||[]).length;i++){
+    if(bc&&CACHE.cigProducts[i].barcode===bc){prod=CACHE.cigProducts[i];break;}
+  }
+  if(prod){
+    prod.name=name;prod.name_ar=name;persistCatalogCache();
+    sb.from('cigarettes').update({name:name,name_ar:name}).eq('id',prod.id).then(function(){});
+  } else {
+    sb.from('cigarettes').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){
+      if(rr&&rr.data&&rr.data[0]){CACHE.cigProducts.push(rr.data[0]);persistCatalogCache();}
+    });
+  }
 }
 function refreshEdit(){
   var items=CACHE.items;var card=G('prod-list-card');if(!card)return;
@@ -1688,11 +1728,8 @@ function openEditItem(i){
     if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
     it.name=nm;it.price=pr;it.quantity=q;
     sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,pr);});
-    if(it.barcode){
-      var prod=null;for(var j=0;j<(CACHE.products||[]).length;j++){if(CACHE.products[j].barcode===it.barcode){prod=CACHE.products[j];break;}}
-      if(prod){prod.name=nm;prod.name_ar=nm;sb.from('products').update({name:nm,name_ar:nm}).eq('id',prod.id).then(function(){});}
-      else{sb.from('products').insert({barcode:it.barcode,name:nm,name_ar:nm,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.products.push(rr.data[0]);});}
-    }
+    // ALWAYS sync the catalog name (local + online), even if the product already exists
+    saveCatalogName(it.barcode||'',nm);
     closeModal();refreshEdit();updateRT();showToast('✅ '+t('renamed'));
   });
 }
@@ -2038,6 +2075,8 @@ function openEditCig(i){var x=CZ.cig[i];if(!x)return;_editCigIdx=i;var ar=isAr()
     var nm=(G('ec-name')&&G('ec-name').value||'').trim();if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
     x.name=nm;x.price=parseFloat(G('ec-p')&&G('ec-p').textContent)||0;x.qty=parseFloat(G('ec-q')&&G('ec-q').textContent)||1;
     saveCigCP(x.barcode||'',nm,x.price);CACHE.cigCustom=CACHE.cigCustom||{};CACHE.cigCustom[x.barcode||nm]=x.price;
+    // ALWAYS sync the cigarette catalog name (local + online)
+    saveCatalogCigName(x.barcode||'',nm);
     closeModal();refreshCig();showToast('✅ '+t('renamed'));
   });
 }
@@ -2084,13 +2123,12 @@ function cigDel(i){CZ.cig.splice(i,1);refreshCig();}
 function cigAddManual(){var nn=G('cig-name');var name=(nn&&nn.value||'').trim();var price=parseFloat(CZ._cigP)||0;var qty=parseFloat(CZ._cigQ)||1;if(!name){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
   var bc=CZ._cigBC||'';
   CZ.cig.push({barcode:bc,name:name,price:price,qty:qty});
-  // save price for next time: update cigarettes DB + user custom price
-  if(bc){var f=null;for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if(CACHE.cigProducts[i].barcode===bc){f=CACHE.cigProducts[i];break;}}
-    if(f){if(price){sb.from('cigarettes').update({price:price,name:name}).eq('id',f.id).then(function(){dbGetCigProducts().then(function(c){CACHE.cigProducts=c;});});}}
-    else{dbAddCig(bc,name,price);}
+  // ALWAYS keep the cigarette catalog name in sync (local + online)
+  saveCatalogCigName(bc,name);
+  if(bc){
     if(price)saveCigCP(bc,name,price);
     CACHE.cigCustom=CACHE.cigCustom||{};if(price)CACHE.cigCustom[bc]=price;
-  } else { dbAddCig('',name,price); }
+  }
   CZ._cigP=0;CZ._cigQ=0;CZ._cigBC='';if(nn)nn.value='';
   var ep=G('cig-add-p');if(ep){ep.textContent=t('tap');ep.className='nf-ph';}var eq=G('cig-add-q');if(eq){eq.textContent=t('tap');eq.className='nf-ph';}
   var cs=G('cig-scan');if(cs)cs.value='';
