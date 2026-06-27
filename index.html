@@ -592,7 +592,7 @@ html.dark .mode-txt b{color:#e8f0ec}
       </div>
       <div id="scan-suggest" class="suggest-box hidden"></div>
       <div id="scan-msg" class="smsg hidden"></div>
-      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="prodNameSuggest(this.value)"/>
+      <input class="inp" type="text" id="pname-inp" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="prodNameSuggest(this.value)" onblur="prodNameRecall()"/>
       <div id="pname-suggest" class="suggest-box hidden"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
         <div class="num-field" onclick="openNP('dP','Prix (DH)',true)"><span class="nf-label" id="t-price" data-fr="Prix (DH)" data-ar="الثمن (درهم)">Prix (DH)</span><span id="nf-dp" class="nf-ph" data-fr="Appuyer" data-ar="اضغط">Appuyer</span></div>
@@ -623,7 +623,7 @@ html.dark .mode-txt b{color:#e8f0ec}
       <button onclick="cigScan(G('cig-scan').value)" style="padding:11px 16px;background:#1a7a4a;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;flex-shrink:0" data-fr="Rechercher" data-ar="بحث">Rechercher</button>
     </div>
     <div id="cig-suggest" class="suggest-box hidden"></div>
-    <input class="inp" type="text" id="cig-name" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="cigNameSuggest(this.value)"/>
+    <input class="inp" type="text" id="cig-name" placeholder="Nom du produit" data-ph-fr="Nom du produit" data-ph-ar="اسم المنتج" autocomplete="off" oninput="cigNameSuggest(this.value)" onblur="cigNameRecall()"/>
     <div id="cig-name-suggest" class="suggest-box hidden"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
       <div class="num-field" onclick="openNP('cigAddP','Prix (DH)',true)"><span class="nf-label" data-fr="Prix (DH)" data-ar="الثمن (درهم)">Prix (DH)</span><span id="cig-add-p" class="nf-ph" data-fr="Appuyer" data-ar="اضغط">Appuyer</span></div>

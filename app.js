@@ -828,7 +828,7 @@ function logout(){clearSession();LS.set('fs',0);CU=null;CP=null;isAdmin=false;lo
 function enterApp(user){
   CU=user;isAdmin=(user.role==='admin');
   hide('login-page');show('main-app');
-  loadCPCache();
+  loadCPCache();loadCPNameCache();
   if(isAdmin){LANG='fr';document.documentElement.dir='ltr';document.documentElement.lang='en';}
   else{LANG='ar';LS.set('lang','ar');document.documentElement.dir='rtl';document.documentElement.lang='ar';applyLangAttrs();} // users are 100% Arabic
   loadProducts().then(function(){
@@ -1434,7 +1434,7 @@ function askNewProductPopup(code,kind){
       var cn=G('cig-name');if(cn)cn.value=nm;CZ._cigP=pr;CZ._cigBC=code;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(pr)+' DH';ep.className='nf-val';}
     } else {
       sb.from('products').insert({barcode:code,name:nm,name_ar:nm,price:0}).select().then(function(rr){if(rr&&rr.data&&rr.data[0])CACHE.products.push(rr.data[0]);});
-      saveCP(code,pr);
+      saveCP(code,pr,nm);
       var ni=G('pname-inp');if(ni)ni.value=nm;dP=pr;_lastScanBC=code;updateNFs();
     }
     closeModal();showToast('✅ '+L('Ajouté','أضيف')+': '+nm);
@@ -1457,9 +1457,12 @@ function translateToArabic(txt){
   });
 }
 function setScanMsg(msg,st){var el=G('scan-msg');if(!el)return;el.textContent=msg;el.classList.remove('hidden');if(st===2)el.style.cssText='background:#f5f5f5;border:1px solid #ccc;color:#666;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else if(st===1)el.style.cssText='background:#e8f5ee;border:1px solid #1a7a4a;color:#0f5132;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';else el.style.cssText='background:#fff3cd;border:1px solid #f0a500;color:#664d03;padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px';}
-function saveCP(bc,price){
-  if(!bc||!CU)return;
+function saveCP(bc,price,name){
+  if(!CU)return;
   var pr=parseFloat(price)||0;
+  // local cache by NAME too (for recall when typing the name, even without a barcode)
+  if(name){CACHE.cpName=CACHE.cpName||{};CACHE.cpName[String(name).trim()]=pr;saveCPNameCache();}
+  if(!bc)return;
   // 1) save to local cache immediately (offline-friendly, instant recall)
   CACHE.cp=CACHE.cp||{};CACHE.cp[bc]=pr;saveCPCache();
   // 2) save to database (manual upsert, works without UNIQUE constraint)
@@ -1470,6 +1473,11 @@ function saveCP(bc,price){
     else{sb.from('custom_prices').insert({user_id:CU.id,barcode:bc,price:pr}).then(function(){});}
   }).catch(function(){try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:bc,price:pr});}catch(e){}});
 }
+// last price by NAME (local cache, per user)
+function cpNameKey(){return CU?('l7cpn_'+CU.id):null;}
+function loadCPNameCache(){var k=cpNameKey();if(!k){CACHE.cpName={};return;}try{var v=localStorage.getItem(k);CACHE.cpName=v?JSON.parse(v):{};}catch(e){CACHE.cpName={};}}
+function saveCPNameCache(){var k=cpNameKey();if(!k)return;try{localStorage.setItem(k,JSON.stringify(CACHE.cpName||{}));}catch(e){}}
+function getCPName(name){if(!name)return null;CACHE.cpName=CACHE.cpName||{};var v=CACHE.cpName[String(name).trim()];return (v!=null)?v:null;}
 function saveCigCP(bc,name,price){
   if(!CU)return;var pr=parseFloat(price)||0,b=bc||'';
   sb.from('custom_cig_prices').select('id').eq('user_id',CU.id).eq('barcode',b).limit(1).then(function(r){
@@ -1548,7 +1556,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='prisMont'){CZ._pMont=v;refreshPris();return;}
   if(tgt&&tgt.indexOf('cigQ_')===0){var ci=parseInt(tgt.slice(5));if(CZ.cig[ci]){CZ.cig[ci].qty=v||1;refreshCig();}return;}
   if(tgt&&tgt.indexOf('cigP_')===0){var ci2=parseInt(tgt.slice(5));if(CZ.cig[ci2]){CZ.cig[ci2].price=v;refreshCig();}return;}
-  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();if(_lastScanBC)saveCP(_lastScanBC,v);}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
+  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();var _pn=(G('pname-inp')&&G('pname-inp').value||'').trim();saveCP(_lastScanBC||'',v,_pn);}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
 // items
 // Add a scanned product straight to the project list (increment qty if barcode already present)
 function scanAddToList(bc,name,price){
@@ -1576,7 +1584,7 @@ function addProd(){
   if(!name){showToast('❌ '+L('Entrez le nom','أدخل الاسم'));return;}
   if(!(parseFloat(dP)>0)||!(parseFloat(dQ)>0)){showToast('⚠️ '+L('Mettez le prix et la quantité','أدخل الثمن والكمية'));return;}
   var si=G('scan-inp');var bc=(si?si.value||'':'').trim();if(!bc&&_lastScanBC)bc=_lastScanBC;
-  if(bc)saveCP(bc,dP);
+  saveCP(bc,dP,name);
   sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){
     if(r.error){showToast('❌ '+r.error.message);return;}
     // ALWAYS keep the catalog (local + online) up to date with the last name typed
@@ -1727,7 +1735,7 @@ function openEditItem(i){
     var nm=(G('ei-name')&&G('ei-name').value||'').trim();var pr=parseFloat(G('ei-p')&&G('ei-p').textContent)||0;var q=parseFloat(G('ei-q')&&G('ei-q').textContent)||0;
     if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
     it.name=nm;it.price=pr;it.quantity=q;
-    sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,pr);});
+    sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(){saveCP(it.barcode||'',pr,nm);});
     // ALWAYS sync the catalog name (local + online), even if the product already exists
     saveCatalogName(it.barcode||'',nm);
     closeModal();refreshEdit();updateRT();showToast('✅ '+t('renamed'));
@@ -2084,9 +2092,27 @@ function cigSuggest(q){var box=G('cig-suggest');if(!box)return;q=(q||'').trim().
 function cigSearch(q){cigSuggest(q);}
 // suggestions when typing a name in the product name field
 function prodNameSuggest(q){var box=G('pname-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.products||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="prodNamePick(\''+escJs2(p.barcode||'')+'\',\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
-function prodNamePick(bc,name,price){var ni=G('pname-inp');if(ni)ni.value=name;var si=G('scan-inp');if(si&&bc)si.value=bc;dP=parseFloat(price)||0;dQ=0;updateNFs();var box=G('pname-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
+function prodNamePick(bc,name,price){var ni=G('pname-inp');if(ni)ni.value=name;var si=G('scan-inp');if(si&&bc)si.value=bc;
+  // recall the LAST price this user used: by barcode, else by name, else catalog price
+  var last=(bc?getCP(bc):null);if(last==null)last=getCPName(name);if(last==null)last=parseFloat(price)||0;
+  dP=parseFloat(last)||0;dQ=0;if(bc)_lastScanBC=bc;updateNFs();var box=G('pname-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
+// when the typed name exactly matches a known product, auto-fill its last price
+function prodNameRecall(){var ni=G('pname-inp');if(!ni)return;var nm=(ni.value||'').trim();if(!nm)return;
+  var last=getCPName(nm);
+  if(last==null){for(var i=0;i<(CACHE.products||[]).length;i++){if((CACHE.products[i].name||'').trim()===nm){var bc=CACHE.products[i].barcode;last=(bc?getCP(bc):null);if(last!=null)_lastScanBC=bc;break;}}}
+  if(last!=null){dP=parseFloat(last)||0;updateNFs();}
+}
 function cigNameSuggest(q){var box=G('cig-name-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.cigProducts||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="cigNamePick(\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
-function cigNamePick(name,price){var ni=G('cig-name');if(ni)ni.value=name;CZ._cigP=parseFloat(price)||0;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(CZ._cigP)+' DH';ep.className='nf-val';}var box=G('cig-name-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
+function cigNamePick(name,price){var ni=G('cig-name');if(ni)ni.value=name;
+  var bc='';for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if((CACHE.cigProducts[i].name||'').trim()===String(name).trim()){bc=CACHE.cigProducts[i].barcode||'';break;}}
+  var last=(bc&&CACHE.cigCustom&&CACHE.cigCustom[bc]!=null)?CACHE.cigCustom[bc]:getCPName(name);if(last==null)last=parseFloat(price)||0;
+  CZ._cigP=parseFloat(last)||0;CZ._cigBC=bc;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(CZ._cigP)+' DH';ep.className='nf-val';}var box=G('cig-name-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
+// recall last cig price when the typed name exactly matches
+function cigNameRecall(){var ni=G('cig-name');if(!ni)return;var nm=(ni.value||'').trim();if(!nm)return;
+  var last=getCPName(nm);var bc='';
+  if(last==null){for(var i=0;i<(CACHE.cigProducts||[]).length;i++){if((CACHE.cigProducts[i].name||'').trim()===nm){bc=CACHE.cigProducts[i].barcode||'';last=(bc&&CACHE.cigCustom&&CACHE.cigCustom[bc]!=null)?CACHE.cigCustom[bc]:null;break;}}}
+  if(last!=null){CZ._cigP=parseFloat(last)||0;if(bc)CZ._cigBC=bc;var ep=G('cig-add-p');if(ep){ep.textContent=nf2(CZ._cigP)+' DH';ep.className='nf-val';}}
+}
 function cigScan(code){code=(code||'').trim();if(!code)return;
   var b=G('cig-suggest');if(b){b.classList.add('hidden');b.innerHTML='';}
   // search ONLY the cigarettes database (NOT products, NOT the food API)
