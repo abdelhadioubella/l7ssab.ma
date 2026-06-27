@@ -422,11 +422,6 @@ function buildHeader(opts){
     (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
-      '<button class="hdr-btn hidden" id="sync-badge" onclick="syncQueue()" title="Synchroniser" style="background:#f59e0b;color:#fff"></button>'+
-      '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
-      '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
-      '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
-      langBtn+
       (opts.role==='admin'?'':'<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
       '<div class="av-menu" id="av-menu">'+
         '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
@@ -438,6 +433,11 @@ function buildHeader(opts){
         '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
         '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
       '</div>')+
+      '<button class="hdr-btn hidden" id="sync-badge" onclick="syncQueue()" title="Synchroniser" style="background:#f59e0b;color:#fff"></button>'+
+      '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
+      '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
+      '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
+      langBtn+
     '</div>'+
   '</div>';
   var holder=G('app-header');if(holder)holder.innerHTML=html;
@@ -768,7 +768,7 @@ function toggleLangApp(){
   LS.set('lang',LANG);
   document.documentElement.lang=LANG;document.documentElement.dir=(LANG==='ar')?'rtl':'ltr';
   if(CU&&!isAdmin){
-    buildHeader({title:G('hdr-title')?G('hdr-title').textContent:'📦 L7ssab.ma',role:'user',activeTab:CURSEC,showLang:true});
+    buildHeader({title:G('hdr-title')?G('hdr-title').textContent:'L7ssab.ma',role:'user',activeTab:CURSEC,showLang:true});
     applyTR();applyLangAttrs();
     if(CURSEC)showSection(CURSEC); // re-render so product/cigarette names translate
   }
@@ -841,7 +841,7 @@ function enterApp(user){
   });
 }
 function buildHeaderFor(){
-  buildHeader({title:isAdmin?'Statistics':'📦 L7ssab.ma',role:isAdmin?'admin':'user',activeTab:CURSEC,showLang:false});
+  buildHeader({title:isAdmin?'Statistics':'L7ssab.ma',role:isAdmin?'admin':'user',activeTab:CURSEC,showLang:false});
 }
 
 // ---- UNIFIED ROUTER (user + admin sections) ----
@@ -850,7 +850,7 @@ function showSection(name){
   CURSEC=name;
   var all=['inventory','products','recap','cigarettes','recharge','credit','change','cash','moins','pris','capital','bilan','partage','adjustment','recap2','profile','statistics','database','cigdb','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
-  var titles={inventory:'📦 L7ssab.ma',products:'📦 '+(isAr()?'منتج':'Produit'),adjustments:t('adj'),recap:t('recap'),cigarettes:'🚬 '+(isAr()?'السجائر':'Cigarettes'),recharge:'📱 '+(isAr()?'التعبئة':'Recharge'),credit:'📖 '+(isAr()?'الكريدي':'Crédit'),change:'🧾 '+(isAr()?'مال الصندوق':'Argent de caisse'),cash:'💵 '+(isAr()?'كاش':'Cash'),moins:'➖ '+(isAr()?'المصاريف':'Dépenses'),pris:'🤝 '+(isAr()?'المال المأخوذ':'Argent pris'),capital:'🏦 '+(isAr()?'رأس المال':'Capital'),bilan:'📊 '+(isAr()?'الحصيلة':'Bilan'),partage:'🤝 '+(isAr()?'تقسيم الأرباح':'Division des bénéfices'),adjustment:'⚖️ '+(isAr()?'التسوية':'Ajustement'),recap2:'📄 '+(isAr()?'الملخص':'Récapitulatif'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',cigdb:'Cigarettes',users:'Users',projects:'Projects',backup:'Backup'};
+  var titles={inventory:'L7ssab.ma',products:'📦 '+(isAr()?'منتج':'Produit'),adjustments:t('adj'),recap:t('recap'),cigarettes:'🚬 '+(isAr()?'السجائر':'Cigarettes'),recharge:'📱 '+(isAr()?'التعبئة':'Recharge'),credit:'📖 '+(isAr()?'الكريدي':'Crédit'),change:'🧾 '+(isAr()?'مال الصندوق':'Argent de caisse'),cash:'💵 '+(isAr()?'كاش':'Cash'),moins:'➖ '+(isAr()?'المصاريف':'Dépenses'),pris:'🤝 '+(isAr()?'المال المأخوذ':'Argent pris'),capital:'🏦 '+(isAr()?'رأس المال':'Capital'),bilan:'📊 '+(isAr()?'الحصيلة':'Bilan'),partage:'🤝 '+(isAr()?'تقسيم الأرباح':'Division des bénéfices'),adjustment:'⚖️ '+(isAr()?'التسوية':'Ajustement'),recap2:'📄 '+(isAr()?'الملخص':'Récapitulatif'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',cigdb:'Cigarettes',users:'Users',projects:'Projects',backup:'Backup'};
   // rebuild header so the active admin tab highlights
   buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:false});
   applyTR();applyLangAttrs();
