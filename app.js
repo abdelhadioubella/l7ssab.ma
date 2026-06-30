@@ -449,7 +449,7 @@ function buildHeader(opts){
 // ---- ADMIN SIDEBAR MENU (hamburger) ----
 function buildAdminMenu(active){
   var holder=G('admin-menu-holder');if(!holder)return;
-  var items=[['statistics','📊','Statistics'],['database','🗄️','Products'],['cigdb','🚬','Cigarettes'],['users','👥','Users'],['projects','📁','Projects'],['backup','💾','Backup']];
+  var items=[['statistics','📊','Statistiques'],['database','🗄️','Produits'],['cigdb','🚬','Cigarettes'],['users','👥','Utilisateurs'],['projects','📁','Projets'],['backup','💾','Sauvegarde']];
   var nav='';
   items.forEach(function(it){nav+='<button class="am-item'+(active===it[0]?' active':'')+'" onclick="closeAdminMenu();showSection(\''+it[0]+'\')">'+it[1]+' <span>'+it[2]+'</span></button>';});
   holder.innerHTML=''+
@@ -841,7 +841,7 @@ function enterApp(user){
   });
 }
 function buildHeaderFor(){
-  buildHeader({title:isAdmin?'Statistics':'L7ssab.ma',role:isAdmin?'admin':'user',activeTab:CURSEC,showLang:false});
+  buildHeader({title:isAdmin?'Statistiques':'L7ssab.ma',role:isAdmin?'admin':'user',activeTab:CURSEC,showLang:false});
 }
 
 // ---- UNIFIED ROUTER (user + admin sections) ----
@@ -850,7 +850,7 @@ function showSection(name){
   CURSEC=name;
   var all=['inventory','products','recap','cigarettes','recharge','credit','change','cash','moins','pris','capital','bilan','partage','adjustment','recap2','profile','statistics','database','cigdb','users','projects','backup'];
   all.forEach(function(s){var el=G('sec-'+s);if(el){if(s===name)el.classList.add('active');else el.classList.remove('active');}});
-  var titles={inventory:'L7ssab.ma',products:'📦 '+(isAr()?'منتج':'Produit'),adjustments:t('adj'),recap:t('recap'),cigarettes:'🚬 '+(isAr()?'السجائر':'Cigarettes'),recharge:'📱 '+(isAr()?'التعبئة':'Recharge'),credit:'📖 '+(isAr()?'الكريدي':'Crédit'),change:'🧾 '+(isAr()?'مال الصندوق':'Argent de caisse'),cash:'💵 '+(isAr()?'كاش':'Cash'),moins:'➖ '+(isAr()?'المصاريف':'Dépenses'),pris:'🤝 '+(isAr()?'المال المأخوذ':'Argent pris'),capital:'🏦 '+(isAr()?'رأس المال':'Capital'),bilan:'📊 '+(isAr()?'الحصيلة':'Bilan'),partage:'🤝 '+(isAr()?'تقسيم الأرباح':'Division des bénéfices'),adjustment:'⚖️ '+(isAr()?'التسوية':'Ajustement'),recap2:'📄 '+(isAr()?'الملخص':'Récapitulatif'),profile:isAdmin?'My profile':t('prof'),statistics:'Statistics',database:'Products',cigdb:'Cigarettes',users:'Users',projects:'Projects',backup:'Backup'};
+  var titles={inventory:'L7ssab.ma',products:'📦 '+(isAr()?'منتج':'Produit'),adjustments:t('adj'),recap:t('recap'),cigarettes:'🚬 '+(isAr()?'السجائر':'Cigarettes'),recharge:'📱 '+(isAr()?'التعبئة':'Recharge'),credit:'📖 '+(isAr()?'الكريدي':'Crédit'),change:'🧾 '+(isAr()?'مال الصندوق':'Argent de caisse'),cash:'💵 '+(isAr()?'كاش':'Cash'),moins:'➖ '+(isAr()?'المصاريف':'Dépenses'),pris:'🤝 '+(isAr()?'المال المأخوذ':'Argent pris'),capital:'🏦 '+(isAr()?'رأس المال':'Capital'),bilan:'📊 '+(isAr()?'الحصيلة':'Bilan'),partage:'🤝 '+(isAr()?'تقسيم الأرباح':'Division des bénéfices'),adjustment:'⚖️ '+(isAr()?'التسوية':'Ajustement'),recap2:'📄 '+(isAr()?'الملخص':'Récapitulatif'),profile:isAdmin?'Mon profil':t('prof'),statistics:'Statistiques',database:'Produits',cigdb:'Cigarettes',users:'Utilisateurs',projects:'Projets',backup:'Sauvegarde'};
   // rebuild header so the active admin tab highlights
   buildHeader({title:titles[name]||name,role:isAdmin?'admin':'user',activeTab:name,showLang:false});
   applyTR();applyLangAttrs();
@@ -1883,7 +1883,7 @@ function renderAdminProjects(list){
     var info=document.createElement('div');info.style.flex='1';
     info.innerHTML='<p style="font-size:14px;font-weight:600;margin:0 0 2px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">👤 '+esc(owner)+' · '+new Date(p.updated_at).toLocaleDateString()+'</p>';
     var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 PDF';pb.style.flexShrink='0';
-    pb.onclick=function(){openModal({title:'Download PDF',confirmText:'Download',cancelText:'Cancel',fields:[{key:'lang',label:'Language',type:'select',value:'fr',options:[{value:'fr',label:'Français'},{value:'ar',label:'العربية (Arabic)'}]}],onConfirm:function(v){closeModal();pdfForProjectId(p.id,p.name,owner,v.lang);}});};
+    pb.onclick=function(){pdfForProjectId(p.id,p.name,owner,'ar');};
     row.appendChild(info);row.appendChild(pb);c.appendChild(row);
   });
 }
@@ -2422,6 +2422,17 @@ function genCaissePDF(){
   if(CZ.partners.length){var part=czBenefice()/CZ.partners.length;titleBar(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح')+' ('+CZ.partners.length+')');if(hasAT){doc.autoTable({startY:y+1,head:[[shape(P('Associé','الشريك')),shape(P('Part (DH)','الحصة'))]],body:CZ.partners.map(function(p){return [shape(p.name),nf2(part)];}),theme:'striped',styles:{font:TFONT,halign:ar?'right':'left'},headStyles:{fillColor:GREEN,font:(amiriOK&&ar)?'Amiri':'helvetica',halign:ar?'right':'left'},columnStyles:{0:{halign:ar?'right':'left'},1:{halign:'right',cellWidth:45}},margin:{left:M,right:M},didParseCell:function(d){var t=String(d.cell.text.join(''));if(isArStr(t))d.cell.styles.font='Amiri';}});y=doc.lastAutoTable.finalY+4;}else{CZ.partners.forEach(function(p){totalRow(p.name,part);});}}
   CZ.adjustments=CZ.adjustments||[];
   if(CZ.adjustments.length){titleBar(P('⚖️ Ajustement','⚖️ التسوية'));if(hasAT){doc.autoTable({startY:y+1,head:[[P('Associé','الشريك'),P('Part','الحصة'),P('− Pris','− المأخوذ'),P('Net','الصافي')]],body:CZ.adjustments.map(function(a){return [shape(a.partner),nf2(a.part),a.prisAmt?('− '+nf2(a.prisAmt)):'—',nf2(a.net)];}),theme:'striped',styles:{font:TFONT},headStyles:{fillColor:GREEN,font:(amiriOK&&ar)?'Amiri':'helvetica'},columnStyles:{1:{halign:'right'},3:{halign:'right'}},margin:{left:M,right:M},didParseCell:function(d){var t=String(d.cell.text.join(''));if(isArStr(t))d.cell.styles.font='Amiri';}});y=doc.lastAutoTable.finalY+4;}else{CZ.adjustments.forEach(function(a){totalRow(a.partner,a.net);});}}
+  // signatures (2) + footer on the last page
+  if(y>250){doc.addPage();y=20;}
+  y+=14;
+  doc.setTextColor(100,100,100);doc.setFontSize(9);try{doc.setFont('helvetica','normal');}catch(e){}
+  var sw=(W-2*M)/2-5;
+  doc.line(M,y,M+sw,y);doc.line(M+sw+10,y,W-M,y);
+  function sigLabel(txt,cx){if(isArStr(txt)&&amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}doc.text(shape(txt),cx,y+6,{align:'center'});}else{try{doc.setFont('helvetica','normal');}catch(e){}doc.text(txt,cx,y+6,{align:'center'});}}
+  sigLabel(P('Signature responsable','توقيع المسؤول'),M+sw/2);
+  sigLabel(P('Signature contrôleur','توقيع المراقب'),M+sw+10+sw/2);
+  doc.setFontSize(8);doc.setTextColor(180,180,180);try{doc.setFont('helvetica','normal');}catch(e){}
+  doc.text('L7ssab.ma © '+new Date().getFullYear(),W/2,290,{align:'center'});
   doc.save('recap-'+(CP?CP.name.replace(/[^a-z0-9]/gi,'_'):'caisse')+'-'+new Date().toISOString().substring(0,10)+'.pdf');showToast('✅ '+L('PDF téléchargé','تم تحميل PDF'));
 }
 function escJs2(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
