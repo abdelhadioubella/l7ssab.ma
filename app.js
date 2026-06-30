@@ -2359,7 +2359,7 @@ function genCaissePDF(){
   function shape(s){if(!isArStr(s))return s;try{var r=(typeof ArabicReshaper!=='undefined'&&ArabicReshaper.convertArabic)?ArabicReshaper.convertArabic(String(s)):String(s);return r.split('').reverse().join('');}catch(e){return s;}}
   // font for autotable cells: Amiri if Arabic content present
   var TFONT=(ar&&amiriOK)?'Amiri':'helvetica';
-  function header(){doc.setFillColor(26,122,74);doc.rect(0,0,W,26,'F');doc.setTextColor(255,255,255);doc.setFontSize(17);try{doc.setFont('helvetica','bold');}catch(e){}doc.text('L7ssab.ma',M,13);doc.setFontSize(9);try{doc.setFont('helvetica','normal');}catch(e){}doc.text((CP?CP.name+' · ':'')+(ar?'':'Généré le ')+new Date().toLocaleDateString('fr-MA'),M,20);}
+  function header(){doc.setFillColor(26,122,74);doc.rect(0,0,W,18,'F');doc.setTextColor(255,255,255);doc.setFontSize(15);try{doc.setFont('helvetica','bold');}catch(e){}doc.text('L7ssab.ma',M,12);doc.setFontSize(9);try{doc.setFont('helvetica','normal');}catch(e){}var dstr=new Date().toLocaleDateString('fr-MA');doc.text(dstr,W-M,12,{align:'right'});}
   header();
   var y=32;
   var GREEN=[26,122,74],LIGHT=[232,245,238];
@@ -2367,9 +2367,19 @@ function genCaissePDF(){
   // a detail table with columns Nom | Qté | Prix | Total
   function itemsTable(title,rows,totalLabel,totalVal,extraTotals){
     titleBar(title);
-    var body=rows.map(function(r){return [shape(r.name),r.qty!=null?String(r.qty):'',r.price!=null?nf2(r.price):'',nf2(r.total)];});
+    var head,body,colStyles;
+    if(ar){
+      // RTL: columns right->left = Name | Qté | Prix | Total  => reverse array so name sits on the right
+      head=[[shape(P('Total (DH)','المجموع')),shape(P('Prix (DH)','الثمن')),shape(P('Qté','الكمية')),shape(P('Nom','الاسم'))]];
+      body=rows.map(function(r){return [nf2(r.total),r.price!=null?nf2(r.price):'',r.qty!=null?String(r.qty):'',shape(r.name)];});
+      colStyles={0:{halign:'left',cellWidth:28},1:{halign:'left',cellWidth:26},2:{halign:'center',cellWidth:18},3:{cellWidth:'auto',halign:'right'}};
+    } else {
+      head=[['Nom','Qté','Prix (DH)','Total (DH)']];
+      body=rows.map(function(r){return [r.name,r.qty!=null?String(r.qty):'',r.price!=null?nf2(r.price):'',nf2(r.total)];});
+      colStyles={0:{cellWidth:'auto'},1:{halign:'right',cellWidth:18},2:{halign:'right',cellWidth:26},3:{halign:'right',cellWidth:28}};
+    }
     if(hasAT){
-      doc.autoTable({startY:y+1,head:[[shape(P('Nom','الاسم')),shape(P('Qté','الكمية')),shape(P('Prix (DH)','الثمن')),shape(P('Total (DH)','المجموع'))]],body:body,theme:'striped',styles:{font:TFONT,fontSize:9,halign:ar?'right':'left'},headStyles:{fillColor:GREEN,fontSize:9,font:(amiriOK&&ar)?'Amiri':'helvetica',halign:ar?'right':'left'},bodyStyles:{fontSize:9},columnStyles:{0:{cellWidth:'auto',halign:ar?'right':'left'},1:{halign:'right',cellWidth:18},2:{halign:'right',cellWidth:26},3:{halign:'right',cellWidth:28}},margin:{left:M,right:M},
+      doc.autoTable({startY:y+1,head:head,body:body,theme:'striped',styles:{font:TFONT,fontSize:9},headStyles:{fillColor:GREEN,fontSize:9,font:(amiriOK&&ar)?'Amiri':'helvetica',halign:ar?'right':'left'},bodyStyles:{fontSize:9},columnStyles:colStyles,margin:{left:M,right:M},
         didParseCell:function(d){var t=String(d.cell.text.join(''));if(isArStr(t)){d.cell.styles.font='Amiri';}}});
       y=doc.lastAutoTable.finalY+2;
     } else {
@@ -2400,7 +2410,11 @@ function genCaissePDF(){
     [P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)],[P('BÉNÉFICE','الربح'),czBenefice(),2]
   ];
   if(hasAT){
-    doc.autoTable({startY:y+1,head:[[shape(P('Élément','البند')),shape(P('Montant (DH)','المبلغ'))]],body:recapRows.map(function(r){return [shape(r[0]),nf2(r[1])];}),theme:'grid',styles:{font:TFONT,halign:ar?'right':'left'},headStyles:{fillColor:GREEN,font:(amiriOK&&ar)?'Amiri':'helvetica',halign:ar?'right':'left'},columnStyles:{0:{halign:ar?'right':'left'},1:{halign:'right',cellWidth:45}},margin:{left:M,right:M},
+    var recHead=ar?[[shape(P('Montant (DH)','المبلغ')),shape(P('Élément','البند'))]]:[[shape(P('Élément','البند')),shape(P('Montant (DH)','المبلغ'))]];
+    var recBody=recapRows.map(function(r){return ar?[nf2(r[1]),shape(r[0])]:[shape(r[0]),nf2(r[1])];});
+    var recCols=ar?{0:{halign:'left',cellWidth:45},1:{halign:'right'}}:{0:{halign:'left'},1:{halign:'right',cellWidth:45}};
+    var recNameCol=ar?1:0;
+    doc.autoTable({startY:y+1,head:recHead,body:recBody,theme:'grid',styles:{font:TFONT},headStyles:{fillColor:GREEN,font:(amiriOK&&ar)?'Amiri':'helvetica',halign:ar?'right':'left'},columnStyles:recCols,margin:{left:M,right:M},
       didParseCell:function(d){var t=String(d.cell.text.join(''));if(isArStr(t))d.cell.styles.font='Amiri';if(d.section==='body'){var lvl=recapRows[d.row.index][2];if(lvl){d.cell.styles.fontStyle='bold';d.cell.styles.fillColor=lvl===2?[26,122,74]:[232,245,238];if(lvl===2)d.cell.styles.textColor=[255,255,255];}}}});
     y=doc.lastAutoTable.finalY+4;
   } else {recapRows.forEach(function(r){totalRow(r[0],r[1],!!r[2]);});}
