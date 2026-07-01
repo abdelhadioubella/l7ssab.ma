@@ -2359,54 +2359,63 @@ function genCaissePDF(){
   function shape(s){if(!isArStr(s))return s;try{return (typeof reshapeAr==='function')?reshapeAr(String(s)):String(s);}catch(e){return s;}}
   // font for autotable cells: Amiri if Arabic content present
   var TFONT=(ar&&amiriOK)?'Amiri':'helvetica';
-  function header(){doc.setFillColor(26,122,74);doc.rect(0,0,W,18,'F');doc.setTextColor(255,255,255);doc.setFontSize(15);try{doc.setFont('helvetica','bold');}catch(e){}doc.text('L7ssab.ma',M,12);doc.setFontSize(9);try{doc.setFont('helvetica','normal');}catch(e){}var dstr=new Date().toLocaleDateString('fr-MA');doc.text(dstr,W-M,12,{align:'right'});}
-  header();
-  var y=32;
+  function header(){}
+  var y=20;
   var GREEN=[26,122,74],LIGHT=[232,245,238];
   function titleBar(txt){if(y>270){doc.addPage();y=18;}var f=(isArStr(txt)&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(f,f==='Amiri'?'normal':'bold');}catch(e){}doc.setTextColor(26,122,74);doc.setFontSize(12);doc.text(shape(txt),M,y);y+=2;}
   // a detail table with columns Nom | Qté | Prix | Total — drawn MANUALLY (clean Arabic, RTL)
   function itemsTable(title,rows,totalLabel,totalVal,extraTotals){
     titleBar(title);
+    if(y>262){doc.addPage();y=18;}
+    var x0=M,x1=W-M,tw=x1-x0;
+    // column x-positions (RTL: name area on right)
+    var startY=y;
     // header row (green bar)
-    if(y>265){doc.addPage();y=18;}
-    doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(M,y,W-2*M,7,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(8.5);
+    doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,8,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(9);
     var hf=(ar&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(hf,hf==='Amiri'?'normal':'bold');}catch(e){}
     if(ar){
-      // RTL: Name on the RIGHT, then Qté, Prix, Total to the left
-      doc.text(shape('الاسم'),W-M-2,y+5,{align:'right'});
-      doc.text(shape('الكمية'),M+70,y+5,{align:'right'});
-      doc.text(shape('الثمن'),M+45,y+5,{align:'right'});
-      doc.text(shape('المجموع'),M+2,y+5);
+      doc.text(shape('الاسم'),x1-2,y+5.5,{align:'right'});
+      doc.text(shape('الكمية'),x0+72,y+5.5,{align:'right'});
+      doc.text(shape('الثمن'),x0+42,y+5.5,{align:'right'});
+      doc.text(shape('المجموع'),x0+2,y+5.5);
     } else {
-      doc.text('Nom',M+2,y+5);doc.text('Qté',M+110,y+5,{align:'right'});doc.text('Prix',M+140,y+5,{align:'right'});doc.text('Total',W-M-2,y+5,{align:'right'});
+      doc.text('Nom',x0+2,y+5.5);doc.text('Qté',x0+110,y+5.5,{align:'right'});doc.text('Prix',x0+140,y+5.5,{align:'right'});doc.text('Total',x1-2,y+5.5,{align:'right'});
     }
-    y+=7;
-    doc.setFontSize(8);
+    y+=8;
+    doc.setFontSize(8.5);
     rows.forEach(function(r,i){
-      if(y>278){doc.addPage();y=18;}
-      if(i%2===1){doc.setFillColor(240,250,244);doc.rect(M,y,W-2*M,6,'F');}
+      if(y>276){doc.addPage();y=18;}
+      var rowY=y;
+      if(i%2===1){doc.setFillColor(244,250,246);doc.rect(x0,y,tw,6.5,'F');}
       doc.setTextColor(30,30,30);
       var nm=String(r.name||'-').substring(0,42);
       var nf=(isArStr(nm)&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(nf,'normal');}catch(e){}
       if(ar){
-        doc.text(shape(nm),W-M-2,y+4.3,{align:'right'});
+        doc.text(shape(nm),x1-2,y+4.6,{align:'right'});
         try{doc.setFont('helvetica','normal');}catch(e){}
-        if(r.qty!=null)doc.text(String(r.qty),M+70,y+4.3,{align:'right'});
-        if(r.price!=null)doc.text(nf2(r.price),M+45,y+4.3,{align:'right'});
-        doc.text(nf2(r.total),M+2,y+4.3);
+        if(r.qty!=null)doc.text(String(r.qty),x0+72,y+4.6,{align:'right'});
+        if(r.price!=null)doc.text(nf2(r.price),x0+42,y+4.6,{align:'right'});
+        doc.text(nf2(r.total),x0+2,y+4.6);
       } else {
-        doc.text(nm,M+2,y+4.3);
+        doc.text(nm,x0+2,y+4.6);
         try{doc.setFont('helvetica','normal');}catch(e){}
-        if(r.qty!=null)doc.text(String(r.qty),M+110,y+4.3,{align:'right'});
-        if(r.price!=null)doc.text(nf2(r.price),M+140,y+4.3,{align:'right'});
-        doc.text(nf2(r.total),W-M-2,y+4.3,{align:'right'});
+        if(r.qty!=null)doc.text(String(r.qty),x0+110,y+4.6,{align:'right'});
+        if(r.price!=null)doc.text(nf2(r.price),x0+140,y+4.6,{align:'right'});
+        doc.text(nf2(r.total),x1-2,y+4.6,{align:'right'});
       }
-      y+=6;
+      // horizontal line under each row
+      doc.setDrawColor(220,220,220);doc.setLineWidth(0.1);doc.line(x0,y+6.5,x1,y+6.5);
+      y+=6.5;
     });
+    // outer border around the table
+    doc.setDrawColor(GREEN[0],GREEN[1],GREEN[2]);doc.setLineWidth(0.3);doc.rect(x0,startY,tw,y-startY);
+    // vertical column separators
+    doc.setDrawColor(220,220,220);doc.setLineWidth(0.1);
+    if(ar){doc.line(x0+52,startY+8,x0+52,y);doc.line(x0+80,startY+8,x0+80,y);}
     if(extraTotals){extraTotals.forEach(function(t){totalRow(t[0],t[1],false);});}
     if(totalLabel)totalRow(totalLabel,totalVal,true);
-    y+=2;
+    y+=3;
   }
   function totalRow(label,val,strong){if(y>278){doc.addPage();y=18;}var f=isArStr(label)&&amiriOK?'Amiri':'helvetica';if(strong){doc.setFillColor(232,245,238);doc.rect(M,y-4,W-2*M,7,'F');try{doc.setFont(f,f==='Amiri'?'normal':'bold');}catch(e){}doc.setTextColor(15,81,50);}else{try{doc.setFont(f,'normal');}catch(e){}doc.setTextColor(60,60,60);}doc.setFontSize(strong?10:9);doc.text(shape(label),M+2,y);doc.text(nf2(val)+' DH',W-M-2,y,{align:'right'});y+=strong?8:6;}
   // PRODUITS
@@ -2428,33 +2437,36 @@ function genCaissePDF(){
     [P('Dépenses','المصاريف'),czMoins()],[P('Argent pris','المال المأخوذ'),czPris()],[P('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),1],
     [P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)],[P('BÉNÉFICE','الربح'),czBenefice(),2]
   ];
-  // recap table drawn manually (2 columns: Élément | Montant), RTL in Arabic
+  // recap table drawn manually (2 columns: Élément | Montant), RTL in Arabic, with borders
   (function(){
+    if(y>262){doc.addPage();y=18;}
+    var x0=M,x1=W-M,tw=x1-x0,startY=y;
     // header
-    if(y>265){doc.addPage();y=18;}
-    doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(M,y,W-2*M,8,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(9.5);
+    doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,9,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(10);
     var hf=(ar&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(hf,hf==='Amiri'?'normal':'bold');}catch(e){}
-    if(ar){doc.text(shape('البند'),W-M-2,y+5.5,{align:'right'});doc.text(shape('المبلغ'),M+2,y+5.5);}
-    else{doc.text('Élément',M+2,y+5.5);doc.text('Montant (DH)',W-M-2,y+5.5,{align:'right'});}
-    y+=8;
+    if(ar){doc.text(shape('البند'),x1-3,y+6,{align:'right'});doc.text(shape('المبلغ'),x0+3,y+6);}
+    else{doc.text('Élément',x0+3,y+6);doc.text('Montant (DH)',x1-3,y+6,{align:'right'});}
+    y+=9;
     recapRows.forEach(function(r){
-      if(y>276){doc.addPage();y=18;}
+      if(y>274){doc.addPage();y=18;}
       var lvl=r[2]||0;
-      if(lvl===2){doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(M,y,W-2*M,8,'F');doc.setTextColor(255,255,255);}
-      else if(lvl===1){doc.setFillColor(232,245,238);doc.rect(M,y,W-2*M,8,'F');doc.setTextColor(15,81,50);}
+      if(lvl===2){doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,9,'F');doc.setTextColor(255,255,255);}
+      else if(lvl===1){doc.setFillColor(232,245,238);doc.rect(x0,y,tw,9,'F');doc.setTextColor(15,81,50);}
       else{doc.setTextColor(50,50,50);}
       var lbl=String(r[0]);
       var lf=(isArStr(lbl)&&amiriOK)?'Amiri':'helvetica';
       try{doc.setFont(lf,(lvl&&lf!=='Amiri')?'bold':'normal');}catch(e){}
       doc.setFontSize(lvl?10:9);
-      if(ar){doc.text(shape(lbl),W-M-2,y+5.5,{align:'right'});try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',M+2,y+5.5);}
-      else{doc.text(lbl,M+2,y+5.5);try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',W-M-2,y+5.5,{align:'right'});}
-      // separator line
-      doc.setDrawColor(225,225,225);doc.line(M,y+8,W-M,y+8);
-      y+=8;
+      if(ar){doc.text(shape(lbl),x1-3,y+6,{align:'right'});try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',x0+3,y+6);}
+      else{doc.text(lbl,x0+3,y+6);try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',x1-3,y+6,{align:'right'});}
+      doc.setDrawColor(210,210,210);doc.setLineWidth(0.1);doc.line(x0,y+9,x1,y+9);
+      y+=9;
     });
-    y+=4;
+    // outer frame + middle vertical divider
+    doc.setDrawColor(GREEN[0],GREEN[1],GREEN[2]);doc.setLineWidth(0.3);doc.rect(x0,startY,tw,y-startY);
+    doc.setDrawColor(210,210,210);doc.setLineWidth(0.1);var midX=ar?(x0+50):(x1-50);doc.line(midX,startY+9,midX,y);
+    y+=5;
   })();
   // DIVISION + ADJUSTMENT (manual, clean Arabic)
   if(CZ.partners.length){var part=czBenefice()/CZ.partners.length;titleBar(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح')+' ('+CZ.partners.length+')');CZ.partners.forEach(function(p){totalRow(p.name,part,false);});y+=2;}
