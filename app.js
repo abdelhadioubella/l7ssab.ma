@@ -1850,8 +1850,8 @@ function refreshStats(){
 function refreshDB(){loadProducts().then(function(p){renderDBTable(p);});}
 // ADMIN: show each user's price for a product/cigarette (0 if not set yet), editable.
 function openUserPrices(kind,bc,name){
-  // products without a barcode: use the name as the key so it still works
-  var key=bc||('name:'+name);
+  // products without a barcode: use the name as the key (same convention as saveCP)
+  var key=bc||String(name||'').trim();
   var table=(kind==='cigarette')?'custom_cig_prices':'custom_prices';
   showToast('⏳ '+(isAr()?'تحميل…':'Chargement…'),1000);
   Promise.all([
@@ -2405,62 +2405,126 @@ function genCaissePDF(){
   function header(){}
   var y=20;
   var GREEN=[26,122,74],LIGHT=[232,245,238];
-  function titleBar(txt){if(y>270){doc.addPage();y=18;}var f=(isArStr(txt)&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(f,f==='Amiri'?'normal':'bold');}catch(e){}doc.setTextColor(26,122,74);doc.setFontSize(12);doc.text(shape(txt),M,y);y+=2;}
-  // a detail table with columns Nom | Qté | Prix | Total — drawn MANUALLY (clean Arabic, RTL)
+  function chapterTitle(txt){
+    if(y>266){doc.addPage();y=18;}
+    y+=3;
+    var f=(isArStr(txt)&&amiriOK)?'Amiri':'helvetica';
+    doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);
+    if(ar){doc.rect(W-M-3,y-4.2,3,6,'F');}else{doc.rect(M,y-4.2,3,6,'F');}
+    try{doc.setFont(f,f==='Amiri'?'normal':'bold');}catch(e){}
+    doc.setTextColor(26,122,74);doc.setFontSize(12.5);
+    if(ar)doc.text(shape(txt),W-M-6,y,{align:'right'});else doc.text(txt,M+6,y);
+    y+=3.5;
+    doc.setDrawColor(222,222,222);doc.setLineWidth(0.15);doc.line(M,y,W-M,y);
+    y+=5;
+  }
+  // a detail table with columns Nom | Qté | Prix | Total — full grid, drawn MANUALLY (clean Arabic, RTL)
   function itemsTable(title,rows,totalLabel,totalVal,extraTotals){
-    titleBar(title);
-    if(y>262){doc.addPage();y=18;}
+    chapterTitle(title);
     var x0=M,x1=W-M,tw=x1-x0;
-    // column x-positions (RTL: name area on right)
-    var startY=y;
-    // header row (green bar)
-    doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,8,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(9);
-    var hf=(ar&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(hf,hf==='Amiri'?'normal':'bold');}catch(e){}
-    if(ar){
-      doc.text(shape('الاسم'),x1-2,y+5.5,{align:'right'});
-      doc.text(shape('الكمية'),x0+72,y+5.5,{align:'right'});
-      doc.text(shape('الثمن'),x0+42,y+5.5,{align:'right'});
-      doc.text(shape('المجموع'),x0+2,y+5.5);
-    } else {
-      doc.text('Nom',x0+2,y+5.5);doc.text('Qté',x0+110,y+5.5,{align:'right'});doc.text('Prix',x0+140,y+5.5,{align:'right'});doc.text('Total',x1-2,y+5.5,{align:'right'});
+    var wName=tw*0.46,wQty=tw*0.16,wPrice=tw*0.18,wTotal=tw-wName-wQty-wPrice;
+    var colX,order;
+    if(ar){colX=[x0,x0+wTotal,x0+wTotal+wPrice,x0+wTotal+wPrice+wQty,x1];order=['total','price','qty','name'];}
+    else{colX=[x0,x0+wName,x0+wName+wQty,x0+wName+wQty+wPrice,x1];order=['name','qty','price','total'];}
+    var rowH=7,bodyRowH=6.3;
+    var headLabels={name:P('Nom','الاسم'),qty:P('Qté','الكمية'),price:P('Prix (DH)','الثمن'),total:P('Total (DH)','المجموع')};
+    var hf=(ar&&amiriOK)?'Amiri':'helvetica';
+    var boxStartY=null,gridLinesY=[],boxHasCols=false,itemPhase=true,curBoxItemEndY=null;
+    function drawHeader(){
+      doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,rowH,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(9);
+      try{doc.setFont(hf,hf==='Amiri'?'normal':'bold');}catch(e){}
+      order.forEach(function(key,ci){
+        var cx0=colX[ci],cx1=colX[ci+1];
+        if(key==='name'){if(ar)doc.text(shape(headLabels[key]),cx1-2,y+rowH*0.68,{align:'right'});else doc.text(headLabels[key],cx0+2,y+rowH*0.68);}
+        else{doc.text(ar?shape(headLabels[key]):headLabels[key],cx0+(cx1-cx0)/2,y+rowH*0.68,{align:'center'});}
+      });
+      y+=rowH;gridLinesY.push(y);
     }
-    y+=8;
+    function closeBox(){
+      if(boxStartY==null)return;
+      var vertBottom=boxHasCols?(curBoxItemEndY||y):null;
+      doc.setDrawColor(GREEN[0],GREEN[1],GREEN[2]);doc.setLineWidth(0.35);doc.rect(x0,boxStartY,tw,y-boxStartY);
+      doc.setDrawColor(218,218,218);doc.setLineWidth(0.12);
+      gridLinesY.forEach(function(gy){doc.line(x0,gy,x1,gy);});
+      if(vertBottom)for(var ci=1;ci<order.length;ci++){doc.line(colX[ci],boxStartY,colX[ci],vertBottom);}
+      boxStartY=null;gridLinesY=[];curBoxItemEndY=null;
+    }
+    function startBox(){boxStartY=y;boxHasCols=itemPhase;curBoxItemEndY=null;drawHeader();}
+    if(y>260){doc.addPage();y=18;}
+    startBox();
     doc.setFontSize(8.5);
     rows.forEach(function(r,i){
-      if(y>276){doc.addPage();y=18;}
-      var rowY=y;
-      if(i%2===1){doc.setFillColor(244,250,246);doc.rect(x0,y,tw,6.5,'F');}
+      if(y+bodyRowH>276){closeBox();doc.addPage();y=18;startBox();doc.setFontSize(8.5);}
+      if(i%2===1){doc.setFillColor(244,250,246);doc.rect(x0,y,tw,bodyRowH,'F');}
       doc.setTextColor(30,30,30);
-      var nm=String(r.name||'-').substring(0,42);
-      var nf=(isArStr(nm)&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(nf,'normal');}catch(e){}
-      if(ar){
-        doc.text(shape(nm),x1-2,y+4.6,{align:'right'});
-        try{doc.setFont('helvetica','normal');}catch(e){}
-        if(r.qty!=null)doc.text(String(r.qty),x0+72,y+4.6,{align:'right'});
-        if(r.price!=null)doc.text(nf2(r.price),x0+42,y+4.6,{align:'right'});
-        doc.text(nf2(r.total),x0+2,y+4.6);
-      } else {
-        doc.text(nm,x0+2,y+4.6);
-        try{doc.setFont('helvetica','normal');}catch(e){}
-        if(r.qty!=null)doc.text(String(r.qty),x0+110,y+4.6,{align:'right'});
-        if(r.price!=null)doc.text(nf2(r.price),x0+140,y+4.6,{align:'right'});
-        doc.text(nf2(r.total),x1-2,y+4.6,{align:'right'});
-      }
-      // horizontal line under each row
-      doc.setDrawColor(220,220,220);doc.setLineWidth(0.1);doc.line(x0,y+6.5,x1,y+6.5);
-      y+=6.5;
+      var nm=String(r.name||'-').substring(0,44);
+      var vals={name:nm,qty:r.qty!=null?String(r.qty):'—',price:r.price!=null?nf2(r.price):'—',total:nf2(r.total)};
+      order.forEach(function(key,ci){
+        var cx0=colX[ci],cx1=colX[ci+1];
+        if(key==='name'){
+          var nf_=(isArStr(nm)&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(nf_,'normal');}catch(e){}
+          if(ar)doc.text(shape(vals[key]),cx1-2,y+bodyRowH*0.68,{align:'right'});else doc.text(vals[key],cx0+2,y+bodyRowH*0.68);
+        } else {
+          try{doc.setFont('helvetica','normal');}catch(e){}
+          doc.text(vals[key],cx0+(cx1-cx0)/2,y+bodyRowH*0.68,{align:'center'});
+        }
+      });
+      y+=bodyRowH;gridLinesY.push(y);curBoxItemEndY=y;
     });
-    // outer border around the table
-    doc.setDrawColor(GREEN[0],GREEN[1],GREEN[2]);doc.setLineWidth(0.3);doc.rect(x0,startY,tw,y-startY);
-    // vertical column separators
-    doc.setDrawColor(220,220,220);doc.setLineWidth(0.1);
-    if(ar){doc.line(x0+52,startY+8,x0+52,y);doc.line(x0+80,startY+8,x0+80,y);}
-    if(extraTotals){extraTotals.forEach(function(t){totalRow(t[0],t[1],false);});}
-    if(totalLabel)totalRow(totalLabel,totalVal,true);
-    y+=3;
+    itemPhase=false;
+    function spanRow(label,val,strong){
+      var rh2=strong?8:6.5;
+      if(y+rh2>278){closeBox();doc.addPage();y=18;startBox();doc.setFontSize(8.5);}
+      if(strong){doc.setFillColor(232,245,238);doc.rect(x0,y,tw,rh2,'F');doc.setTextColor(15,81,50);}else{doc.setTextColor(70,70,70);}
+      var lf=isArStr(label)&&amiriOK?'Amiri':'helvetica';
+      try{doc.setFont(lf,(strong&&lf!=='Amiri')?'bold':'normal');}catch(e){}
+      doc.setFontSize(strong?9.5:8.5);
+      if(ar){doc.text(shape(label),x1-3,y+rh2*0.65,{align:'right'});try{doc.setFont('helvetica',strong?'bold':'normal');}catch(e){}doc.text(nf2(val)+' DH',x0+3,y+rh2*0.65);}
+      else{doc.text(label,x0+3,y+rh2*0.65);try{doc.setFont('helvetica',strong?'bold':'normal');}catch(e){}doc.text(nf2(val)+' DH',x1-3,y+rh2*0.65,{align:'right'});}
+      y+=rh2;gridLinesY.push(y);
+    }
+    if(extraTotals)extraTotals.forEach(function(t){spanRow(t[0],t[1],false);});
+    if(totalLabel)spanRow(totalLabel,totalVal,true);
+    closeBox();
+    y+=5;
   }
-  function totalRow(label,val,strong){if(y>278){doc.addPage();y=18;}var f=isArStr(label)&&amiriOK?'Amiri':'helvetica';if(strong){doc.setFillColor(232,245,238);doc.rect(M,y-4,W-2*M,7,'F');try{doc.setFont(f,f==='Amiri'?'normal':'bold');}catch(e){}doc.setTextColor(15,81,50);}else{try{doc.setFont(f,'normal');}catch(e){}doc.setTextColor(60,60,60);}doc.setFontSize(strong?10:9);doc.text(shape(label),M+2,y);doc.text(nf2(val)+' DH',W-M-2,y,{align:'right'});y+=strong?8:6;}
+  // reusable 2-column boxed table (label | amount), used for the recap, partners, adjustments
+  function twoColBox(headL,headR,rows){
+    if(y>258){doc.addPage();y=18;}
+    var x0=M,x1=W-M,tw=x1-x0,startY=y,rh=9;
+    var hf=(ar&&amiriOK)?'Amiri':'helvetica';
+    function drawHead(){
+      doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,rh,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(10);try{doc.setFont(hf,hf==='Amiri'?'normal':'bold');}catch(e){}
+      if(ar){doc.text(shape(headR),x1-3,y+6,{align:'right'});doc.text(shape(headL),x0+3,y+6);}
+      else{doc.text(headL,x0+3,y+6);doc.text(headR,x1-3,y+6,{align:'right'});}
+      y+=rh;
+    }
+    drawHead();var lines=[y];
+    rows.forEach(function(r){
+      if(y+rh>276){
+        doc.setDrawColor(GREEN[0],GREEN[1],GREEN[2]);doc.setLineWidth(0.35);doc.rect(x0,startY,tw,y-startY);
+        doc.setDrawColor(210,210,210);doc.setLineWidth(0.1);lines.forEach(function(ly){doc.line(x0,ly,x1,ly);});
+        var mx=ar?(x0+50):(x1-50);doc.line(mx,startY+rh,mx,y);
+        doc.addPage();y=18;startY=y;drawHead();lines=[y];
+      }
+      var lvl=r[2]||0;
+      if(lvl===2){doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,rh,'F');doc.setTextColor(255,255,255);}
+      else if(lvl===1){doc.setFillColor(232,245,238);doc.rect(x0,y,tw,rh,'F');doc.setTextColor(15,81,50);}
+      else{doc.setTextColor(50,50,50);}
+      var lbl=String(r[0]);var lf=(isArStr(lbl)&&amiriOK)?'Amiri':'helvetica';
+      try{doc.setFont(lf,(lvl&&lf!=='Amiri')?'bold':'normal');}catch(e){}
+      doc.setFontSize(lvl?10:9);
+      if(ar){doc.text(shape(lbl),x1-3,y+6,{align:'right'});try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',x0+3,y+6);}
+      else{doc.text(lbl,x0+3,y+6);try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',x1-3,y+6,{align:'right'});}
+      y+=rh;lines.push(y);
+    });
+    doc.setDrawColor(GREEN[0],GREEN[1],GREEN[2]);doc.setLineWidth(0.35);doc.rect(x0,startY,tw,y-startY);
+    doc.setDrawColor(210,210,210);doc.setLineWidth(0.1);lines.forEach(function(ly){doc.line(x0,ly,x1,ly);});
+    var mx2=ar?(x0+50):(x1-50);doc.line(mx2,startY+rh,mx2,y);
+    y+=6;
+  }
   // PRODUITS
   var prodRows=(CACHE.items||[]).map(function(it){var pr=parseFloat(it.price)||0,q=parseFloat(it.quantity)||0;return {name:it.name||'—',qty:q,price:pr,total:pr*q};});
   if(czProd()!==0&&prodRows.length)itemsTable(P('📦 Produits','📦 المنتجات'),prodRows,P('Total Produits','مجموع المنتجات'),czProd());
@@ -2473,48 +2537,25 @@ function genCaissePDF(){
   // ARGENT PRIS
   if(CZ.pris.length){var pRows=CZ.pris.map(function(p){return {name:p.name,qty:null,price:null,total:parseFloat(p.montant)||0};});itemsTable(P('🤝 Argent pris','🤝 المال المأخوذ'),pRows,P('Total argent pris','مجموع المال المأخوذ'),czPris());}
   // FINAL RECAP TABLE on a new page
-  doc.addPage();y=18;titleBar(P('📄 Récapitulatif','📄 الملخص'));
+  doc.addPage();y=18;chapterTitle(P('📄 Récapitulatif','📄 الملخص'));
   var recapRows=[
     [P('Produits','المنتجات'),czProd()],[P('Cigarettes','السجائر')+' ('+P('net','صافي')+' − '+nf2(CZ.cigRem)+'%)',czCigNet()],[P('Recharge','التعبئة')+' ('+P('net','صافي')+' − '+nf2(CZ.rechRem)+'%)',czRechNet()],[P('Crédit','الكريدي'),parseFloat(CZ.credit)||0],[P('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0],
     [P('PREMIER TOTAL','المجموع الأول'),czVentes(),1],[P('Cash','الكاش'),parseFloat(CZ.cash)||0],[P('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),1],
     [P('Dépenses','المصاريف'),czMoins()],[P('Argent pris','المال المأخوذ'),czPris()],[P('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),1],
     [P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)],[P('BÉNÉFICE','الربح'),czBenefice(),2]
   ];
-  // recap table drawn manually (2 columns: Élément | Montant), RTL in Arabic, with borders
-  (function(){
-    if(y>262){doc.addPage();y=18;}
-    var x0=M,x1=W-M,tw=x1-x0,startY=y;
-    // header
-    doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,9,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(10);
-    var hf=(ar&&amiriOK)?'Amiri':'helvetica';try{doc.setFont(hf,hf==='Amiri'?'normal':'bold');}catch(e){}
-    if(ar){doc.text(shape('البند'),x1-3,y+6,{align:'right'});doc.text(shape('المبلغ'),x0+3,y+6);}
-    else{doc.text('Élément',x0+3,y+6);doc.text('Montant (DH)',x1-3,y+6,{align:'right'});}
-    y+=9;
-    recapRows.forEach(function(r){
-      if(y>274){doc.addPage();y=18;}
-      var lvl=r[2]||0;
-      if(lvl===2){doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(x0,y,tw,9,'F');doc.setTextColor(255,255,255);}
-      else if(lvl===1){doc.setFillColor(232,245,238);doc.rect(x0,y,tw,9,'F');doc.setTextColor(15,81,50);}
-      else{doc.setTextColor(50,50,50);}
-      var lbl=String(r[0]);
-      var lf=(isArStr(lbl)&&amiriOK)?'Amiri':'helvetica';
-      try{doc.setFont(lf,(lvl&&lf!=='Amiri')?'bold':'normal');}catch(e){}
-      doc.setFontSize(lvl?10:9);
-      if(ar){doc.text(shape(lbl),x1-3,y+6,{align:'right'});try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',x0+3,y+6);}
-      else{doc.text(lbl,x0+3,y+6);try{doc.setFont('helvetica',lvl?'bold':'normal');}catch(e){}doc.text(nf2(r[1])+' DH',x1-3,y+6,{align:'right'});}
-      doc.setDrawColor(210,210,210);doc.setLineWidth(0.1);doc.line(x0,y+9,x1,y+9);
-      y+=9;
-    });
-    // outer frame + middle vertical divider
-    doc.setDrawColor(GREEN[0],GREEN[1],GREEN[2]);doc.setLineWidth(0.3);doc.rect(x0,startY,tw,y-startY);
-    doc.setDrawColor(210,210,210);doc.setLineWidth(0.1);var midX=ar?(x0+50):(x1-50);doc.line(midX,startY+9,midX,y);
-    y+=5;
-  })();
-  // DIVISION + ADJUSTMENT (manual, clean Arabic)
-  if(CZ.partners.length){var part=czBenefice()/CZ.partners.length;titleBar(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح')+' ('+CZ.partners.length+')');CZ.partners.forEach(function(p){totalRow(p.name,part,false);});y+=2;}
+  twoColBox(P('Élément','البند'),P('Montant (DH)','المبلغ'),recapRows);
+  // DIVISION + ADJUSTMENT (boxed grid, clean Arabic)
+  if(CZ.partners.length){
+    var part=czBenefice()/CZ.partners.length;
+    chapterTitle(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح')+' ('+CZ.partners.length+')');
+    twoColBox(P('Associé','الشريك'),P('Part (DH)','الحصة'),CZ.partners.map(function(p){return [p.name,part,0];}));
+  }
   CZ.adjustments=CZ.adjustments||[];
-  if(CZ.adjustments.length){titleBar(P('⚖️ Ajustement','⚖️ التسوية'));CZ.adjustments.forEach(function(a){totalRow(a.partner+(a.prisAmt?(' (− '+nf2(a.prisAmt)+')'):''),a.net,false);});y+=2;}
+  if(CZ.adjustments.length){
+    chapterTitle(P('⚖️ Ajustement','⚖️ التسوية'));
+    twoColBox(P('Associé','الشريك'),P('Net (DH)','الصافي'),CZ.adjustments.map(function(a){return [a.partner+(a.prisAmt?(' (− '+nf2(a.prisAmt)+')'):''),a.net,0];}));
+  }
   // signatures (2) + footer on the last page
   if(y>250){doc.addPage();y=20;}
   y+=14;
@@ -2526,6 +2567,13 @@ function genCaissePDF(){
   sigLabel(P('Signature contrôleur','توقيع المراقب'),M+sw+10+sw/2);
   doc.setFontSize(8);doc.setTextColor(180,180,180);try{doc.setFont('helvetica','normal');}catch(e){}
   doc.text('L7ssab.ma © '+new Date().getFullYear(),W/2,290,{align:'center'});
+  // page numbers on every content page (cover page = 1 is skipped, it has its own footer)
+  var totalPages=doc.internal.getNumberOfPages();
+  for(var pi=2;pi<=totalPages;pi++){
+    doc.setPage(pi);
+    doc.setFontSize(8);doc.setTextColor(165,165,165);try{doc.setFont('helvetica','normal');}catch(e){}
+    doc.text((ar?'صفحة':'Page')+' '+(pi-1)+' / '+(totalPages-1),W/2,293,{align:'center'});
+  }
   doc.save('recap-'+(CP?CP.name.replace(/[^a-z0-9]/gi,'_'):'caisse')+'-'+new Date().toISOString().substring(0,10)+'.pdf');showToast('✅ '+L('PDF téléchargé','تم تحميل PDF'));
 }
 function escJs2(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
