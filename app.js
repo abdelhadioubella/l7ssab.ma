@@ -272,18 +272,17 @@ function syncQueue(){
   if(_syncing)return Promise.resolve();
   var q=getQueue();if(!q.length)return Promise.resolve();
   _syncing=true;
-  showToast('🔄 '+(isAr&&isAr()?'مزامنة…':'Synchronisation…'),1500);
+  // silent background sync — no visible counter or toast, the user should never see this happening
   var chain=Promise.resolve();var ok=0;
   q.forEach(function(item){chain=chain.then(function(){return runQueuedOp(item).then(function(r){if(!(r&&r.error))ok++;});});});
   return chain.then(function(){
     setQueue([]); // clear after replay
-    _syncing=false;updateSyncBadge();
-    if(ok>0){showToast('✅ '+ok+' '+(isAr&&isAr()?'تغييرات تمت مزامنتها':'modifications synchronisées'));}
-    // refresh current view with fresh server data
-    if(typeof refreshCurrent==='function')try{refreshCurrent();}catch(e){}
+    _syncing=false;
+    // refresh current view with fresh server data (silently)
+    if(ok>0&&typeof refreshCurrent==='function')try{refreshCurrent();}catch(e){}
   }).catch(function(){_syncing=false;});
 }
-function updateSyncBadge(){var n=getQueue().length;var b=G('sync-badge');if(b){if(n>0){b.textContent='⏳ '+n;b.classList.remove('hidden');}else b.classList.add('hidden');}}
+function updateSyncBadge(){/* no visible UI — sync happens silently in the background */}
 // Wrapped write helpers: try online first; if it fails (offline), queue it.
 function sbInsert(table,payload){return sb.from(table).insert(payload).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'insert',payload);return {queued:true};});}
 function sbUpsert(table,payload,opts){return sb.from(table).upsert(payload,opts||{}).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'upsert',payload,opts);return {queued:true};});}
@@ -291,9 +290,11 @@ function sbUpdate(table,values,col,val){return sb.from(table).update(values).eq(
 function sbDelete(table,col,val){return sb.from(table).delete().eq(col,val).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'delete',{col:col,val:val});return {queued:true};});}
 // Auto-sync when the browser regains connectivity
 if(typeof window!=='undefined'){
-  window.addEventListener('online',function(){showToast('🌐 '+(isAr&&isAr()?'عاد الاتصال':'Connexion rétablie'),1500);syncQueue();});
+  window.addEventListener('online',function(){syncQueue();});
   // also try on load if we're online and have a pending queue
-  setTimeout(function(){if(navigator.onLine&&getQueue().length)syncQueue();updateSyncBadge();},2500);
+  setTimeout(function(){if(navigator.onLine&&getQueue().length)syncQueue();},2500);
+  // periodic silent retry (catches flaky connections the 'online' event misses)
+  setInterval(function(){if(navigator.onLine&&getQueue().length)syncQueue();},30000);
 }
 
 
@@ -422,7 +423,6 @@ function buildHeader(opts){
     (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
-      '<button class="hdr-btn hidden" id="sync-badge" onclick="syncQueue()" title="Synchroniser" style="background:#f59e0b;color:#fff"></button>'+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
@@ -1033,6 +1033,8 @@ function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p
   sb.from('custom_prices').select('*').eq('user_id',CU.id).then(function(r){CACHE.cp=CACHE.cp||{};((r&&r.data)||[]).forEach(function(x){if(x.barcode)CACHE.cp[x.barcode]=parseFloat(x.price)||0;});saveCPCache();}).catch(function(){});
   }return p;});}
 function loadItems(){return CP?dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;}):Promise.resolve([]);}
+// persist CACHE.items to the same offline cache key dbGetItems()/offlineGet() reads from
+function persistItemsCache(){if(!CP||!CP.id)return;try{localStorage.setItem('l7cache_items_'+CP.id,JSON.stringify(CACHE.items||[]));}catch(e){}}
 function loadAdjs(){return CP?dbGetAdjs(CP.id).then(function(a){CACHE.adjs=a;return a;}):Promise.resolve([]);}
 // ================= USER SECTION FUNCTIONS =================
 // ===== INVENTORY =====
@@ -1115,7 +1117,7 @@ function openNewProjectModal(){
 // and (3) read the field value when the scan ends (Enter).
 function focusScan(){var s=G('scan-inp');if(s){try{s.focus();}catch(e){}}}
 // open the app numpad to type a barcode manually (no device keyboard)
-function openBarcodeNP(which){openNPcb(isAr()?'الباركود':'Code-barres',(which==='cig'?(G('cig-scan')&&G('cig-scan').value):(G('scan-inp')&&G('scan-inp').value))||'',function(v){var code=String(v||'').replace(/\..*$/,'');if(!code)return;if(which==='cig'){var ci=G('cig-scan');if(ci)ci.value=code;cigScan(code);}else{var si=G('scan-inp');if(si)si.value=code;handleScan(code);}});}
+function openBarcodeNP(which){openNPcb(isAr()?'الباركود':'Code-barres',(which==='cig'?(G('cig-scan')&&G('cig-scan').value):(G('scan-inp')&&G('scan-inp').value))||'',function(v){var code=arDigitsToLatin(String(v||'').replace(/\..*$/,''));if(!code)return;if(which==='cig'){var ci=G('cig-scan');if(ci)ci.value=code;cigScan(code);}else{var si=G('scan-inp');if(si)si.value=code;handleScan(code);}});}
 function startScanGuard(){
   // No longer auto-focuses the scan field. The global scanner capture works
   // regardless of focus, and the barcode field is readonly (tap = numpad).
@@ -1155,6 +1157,13 @@ window.addEventListener('focus',function(){setTimeout(focusScan,60);});
 // A USB barcode scanner types fast then sends Enter. We buffer keystrokes globally
 // and, on Enter, route the code to the active scan page (products or cigarettes).
 var _scanBuf='',_scanLast=0,_lastScanBC='';
+// Convert Arabic-Indic (٠١٢٣٤٥٦٧٨٩) and Extended Arabic-Indic (۰۱۲۳۴۵۶۷۸۹) digits to Latin 0-9
+function arDigitsToLatin(s){
+  if(!s)return s;
+  var map={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+            '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+  return String(s).replace(/[٠-٩۰-۹]/g,function(ch){return map[ch]||ch;});
+}
 function activeScanTarget(){
   if(CURSEC==='cigarettes')return 'cig';
   if(CURSEC==='products')return 'prod';
@@ -1187,6 +1196,7 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Enter'||kc===13||e.key==='Tab'||kc===9){
     e.preventDefault();e.stopPropagation();
     var code=_scanBuf||(box&&box.value)||'';code=String(code).trim();
+    code=arDigitsToLatin(code); // some scanners/keyboards send Arabic-Indic digits -> convert to 0-9
     _scanBuf='';_altCode='';
     if(code.length>=2){markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);setTimeout(function(){if(box)box.value='';},300);}
     else{if(box)box.value='';}
@@ -1462,16 +1472,18 @@ function saveCP(bc,price,name){
   var pr=parseFloat(price)||0;
   // local cache by NAME too (for recall when typing the name, even without a barcode)
   if(name){CACHE.cpName=CACHE.cpName||{};CACHE.cpName[String(name).trim()]=pr;saveCPNameCache();}
-  if(!bc)return;
+  // key used to persist to Supabase: real barcode if we have one, else the product name itself
+  var key=bc||(name?String(name).trim():'');
+  if(!key)return;
   // 1) save to local cache immediately (offline-friendly, instant recall)
-  CACHE.cp=CACHE.cp||{};CACHE.cp[bc]=pr;saveCPCache();
-  // 2) save to database (manual upsert, works without UNIQUE constraint)
-  sb.from('custom_prices').select('id').eq('user_id',CU.id).eq('barcode',bc).limit(1).then(function(r){
-    if(r&&r.error){try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:bc,price:pr});}catch(e){}return;}
+  CACHE.cp=CACHE.cp||{};CACHE.cp[key]=pr;saveCPCache();
+  // 2) save to database (manual upsert, works without UNIQUE constraint) — works with or without a barcode
+  sb.from('custom_prices').select('id').eq('user_id',CU.id).eq('barcode',key).limit(1).then(function(r){
+    if(r&&r.error){try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:key,price:pr});}catch(e){}return;}
     var existing=(r&&r.data&&r.data[0])?r.data[0]:null;
     if(existing){sb.from('custom_prices').update({price:pr}).eq('id',existing.id).then(function(){});}
-    else{sb.from('custom_prices').insert({user_id:CU.id,barcode:bc,price:pr}).then(function(){});}
-  }).catch(function(){try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:bc,price:pr});}catch(e){}});
+    else{sb.from('custom_prices').insert({user_id:CU.id,barcode:key,price:pr}).then(function(){});}
+  }).catch(function(){try{queueWrite('custom_prices','insert',{user_id:CU.id,barcode:key,price:pr});}catch(e){}});
 }
 // last price by NAME (local cache, per user)
 function cpNameKey(){return CU?('l7cpn_'+CU.id):null;}
@@ -1479,13 +1491,18 @@ function loadCPNameCache(){var k=cpNameKey();if(!k){CACHE.cpName={};return;}try{
 function saveCPNameCache(){var k=cpNameKey();if(!k)return;try{localStorage.setItem(k,JSON.stringify(CACHE.cpName||{}));}catch(e){}}
 function getCPName(name){if(!name)return null;CACHE.cpName=CACHE.cpName||{};var v=CACHE.cpName[String(name).trim()];return (v!=null)?v:null;}
 function saveCigCP(bc,name,price){
-  if(!CU)return;var pr=parseFloat(price)||0,b=bc||'';
-  sb.from('custom_cig_prices').select('id').eq('user_id',CU.id).eq('barcode',b).limit(1).then(function(r){
-    if(r&&r.error)return;
+  if(!CU)return;var pr=parseFloat(price)||0;
+  var key=bc||(name?String(name).trim():'');
+  if(!key)return;
+  // local cache (offline-friendly)
+  CACHE.cigCustom=CACHE.cigCustom||{};CACHE.cigCustom[key]=pr;
+  try{localStorage.setItem('l7cigcp_'+CU.id,JSON.stringify(CACHE.cigCustom));}catch(e){}
+  sb.from('custom_cig_prices').select('id').eq('user_id',CU.id).eq('barcode',key).limit(1).then(function(r){
+    if(r&&r.error){try{queueWrite('custom_cig_prices','insert',{user_id:CU.id,barcode:key,name:name||'',price:pr});}catch(e){}return;}
     var existing=(r&&r.data&&r.data[0])?r.data[0]:null;
     if(existing){sb.from('custom_cig_prices').update({price:pr,name:name||''}).eq('id',existing.id).then(function(){});}
-    else{sb.from('custom_cig_prices').insert({user_id:CU.id,barcode:b,name:name||'',price:pr}).then(function(){});}
-  }).catch(function(){});
+    else{sb.from('custom_cig_prices').insert({user_id:CU.id,barcode:key,name:name||'',price:pr}).then(function(){});}
+  }).catch(function(){try{queueWrite('custom_cig_prices','insert',{user_id:CU.id,barcode:key,name:name||'',price:pr});}catch(e){}});
 }
 function updateNFs(){var p=G('nf-dp'),q=G('nf-dq');if(p){p.className=dP>0?'nf-val':'nf-ph';p.textContent=dP>0?dP.toFixed(2)+' DH':t('tap');}if(q){q.className=dQ>0?'nf-val':'nf-ph';q.textContent=dQ>0?String(dQ):t('tap');}}
 // numpad
@@ -1556,7 +1573,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='prisMont'){CZ._pMont=v;refreshPris();return;}
   if(tgt&&tgt.indexOf('cigQ_')===0){var ci=parseInt(tgt.slice(5));if(CZ.cig[ci]){CZ.cig[ci].qty=v||1;refreshCig();}return;}
   if(tgt&&tgt.indexOf('cigP_')===0){var ci2=parseInt(tgt.slice(5));if(CZ.cig[ci2]){CZ.cig[ci2].price=v;refreshCig();}return;}
-  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();var _pn=(G('pname-inp')&&G('pname-inp').value||'').trim();saveCP(_lastScanBC||'',v,_pn);}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;sb.from('project_items').update({price:v}).eq('id',it.id).then(function(){if(it.barcode)saveCP(it.barcode,v);refreshEdit();});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(){refreshEdit();});}}}
+  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();var _pn=(G('pname-inp')&&G('pname-inp').value||'').trim();saveCP(_lastScanBC||'',v,_pn);}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;persistItemsCache();refreshEdit();sb.from('project_items').update({price:v}).eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;if(it.barcode)saveCP(it.barcode,v);}).catch(function(){try{queueWrite('project_items','update',{values:{price:v},col:'id',val:it.id});}catch(e){}if(it.barcode)saveCP(it.barcode,v);});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;persistItemsCache();refreshEdit();sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','update',{values:{quantity:v},col:'id',val:it2.id});}catch(e){}});}}}
 // items
 // Add a scanned product straight to the project list (increment qty if barcode already present)
 function scanAddToList(bc,name,price){
@@ -1585,13 +1602,22 @@ function addProd(){
   if(!(parseFloat(dP)>0)||!(parseFloat(dQ)>0)){showToast('⚠️ '+L('Mettez le prix et la quantité','أدخل الثمن والكمية'));return;}
   var si=G('scan-inp');var bc=(si?si.value||'':'').trim();if(!bc&&_lastScanBC)bc=_lastScanBC;
   saveCP(bc,dP,name);
+  // OPTIMISTIC: show it immediately (works offline), sync to Supabase in the background
+  var tempId='local_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+  var localItem={id:tempId,project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ,_local:true};
+  CACHE.items.push(localItem);persistItemsCache();
+  saveCatalogName(bc,name);
+  _lastScanBC='';if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();
+  eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅ '+t('added')+': '+name);
   sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){
-    if(r.error){showToast('❌ '+r.error.message);return;}
-    // ALWAYS keep the catalog (local + online) up to date with the last name typed
-    saveCatalogName(bc,name);
+    if(r.error)throw r.error;
+    // replace the temp local item with the real DB row
+    var idx=CACHE.items.findIndex(function(x){return x.id===tempId;});
+    if(idx>=0&&r.data&&r.data[0]){CACHE.items[idx]=r.data[0];persistItemsCache();}
     sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});
-    _lastScanBC='';if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();
-    loadItems().then(function(){eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅ '+t('added')+': '+name);});
+  }).catch(function(){
+    // offline / network error: queue the insert for later, keep the local item visible
+    try{queueWrite('project_items','insert',{project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ});}catch(e){}
   });
 }
 // persist the in-memory catalog to localStorage (offline DB)
@@ -1610,13 +1636,17 @@ function saveCatalogName(bc,name){
   if(prod){
     // update local cache immediately
     prod.name=name;prod.name_ar=name;persistCatalogCache();
-    // update online DB
-    sb.from('products').update({name:name,name_ar:name}).eq('id',prod.id).then(function(){});
+    // update online DB (queue it if offline)
+    sb.from('products').update({name:name,name_ar:name}).eq('id',prod.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('products','update',{values:{name:name,name_ar:name},col:'id',val:prod.id});}catch(e){}});
   } else {
-    // new product -> insert in online DB then add to local cache
+    // new product -> add to local cache immediately (temp id), then insert online
+    var tempId='local_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+    var localP={id:tempId,barcode:bc||'',name:name,name_ar:name,price:0,_local:true};
+    CACHE.products.push(localP);persistCatalogCache();
     sb.from('products').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){
-      if(rr&&rr.data&&rr.data[0]){CACHE.products.push(rr.data[0]);persistCatalogCache();}
-    });
+      if(rr&&rr.error)throw rr.error;
+      if(rr&&rr.data&&rr.data[0]){var idx=CACHE.products.indexOf(localP);if(idx>=0)CACHE.products[idx]=rr.data[0];persistCatalogCache();}
+    }).catch(function(){try{queueWrite('products','insert',{barcode:bc||'',name:name,name_ar:name,price:0});}catch(e){}});
   }
 }
 // Same for cigarettes
@@ -1628,11 +1658,15 @@ function saveCatalogCigName(bc,name){
   }
   if(prod){
     prod.name=name;prod.name_ar=name;persistCatalogCache();
-    sb.from('cigarettes').update({name:name,name_ar:name}).eq('id',prod.id).then(function(){});
+    sb.from('cigarettes').update({name:name,name_ar:name}).eq('id',prod.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('cigarettes','update',{values:{name:name,name_ar:name},col:'id',val:prod.id});}catch(e){}});
   } else {
+    var tempId2='local_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+    var localC={id:tempId2,barcode:bc||'',name:name,name_ar:name,price:0,_local:true};
+    CACHE.cigProducts.push(localC);persistCatalogCache();
     sb.from('cigarettes').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){
-      if(rr&&rr.data&&rr.data[0]){CACHE.cigProducts.push(rr.data[0]);persistCatalogCache();}
-    });
+      if(rr&&rr.error)throw rr.error;
+      if(rr&&rr.data&&rr.data[0]){var idx=CACHE.cigProducts.indexOf(localC);if(idx>=0)CACHE.cigProducts[idx]=rr.data[0];persistCatalogCache();}
+    }).catch(function(){try{queueWrite('cigarettes','insert',{barcode:bc||'',name:name,name_ar:name,price:0});}catch(e){}});
   }
 }
 function refreshEdit(){
@@ -1721,7 +1755,7 @@ function translateVisibleNames(){
     });
   });
 }
-function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),'"'+(it.name||'')+'" ?',function(){sb.from('project_items').delete().eq('id',it.id).then(function(){CACHE.items.splice(i,1);refreshEdit();updateRT();});},t('del'));}
+function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),'"'+(it.name||'')+'" ?',function(){CACHE.items.splice(i,1);persistItemsCache();refreshEdit();updateRT();sb.from('project_items').delete().eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','delete',{col:'id',val:it.id});}catch(e){}});},t('del'));}
 // edit popup (form) for a project item
 var _editItemIdx=-1,_editCigIdx=-1;
 function openEditItem(i){
@@ -1734,8 +1768,9 @@ function openEditItem(i){
   openModalHTML(L('Modifier le produit','تعديل المنتج'),html,function(){
     var nm=(G('ei-name')&&G('ei-name').value||'').trim();var pr=parseFloat(G('ei-p')&&G('ei-p').textContent)||0;var q=parseFloat(G('ei-q')&&G('ei-q').textContent)||0;
     if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
-    it.name=nm;it.price=pr;it.quantity=q;
-    sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(){saveCP(it.barcode||'',pr,nm);});
+    it.name=nm;it.price=pr;it.quantity=q;persistItemsCache();
+    saveCP(it.barcode||'',pr,nm);
+    sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','update',{values:{name:nm,price:pr,quantity:q},col:'id',val:it.id});}catch(e){}});
     // ALWAYS sync the catalog name (local + online), even if the product already exists
     saveCatalogName(it.barcode||'',nm);
     closeModal();refreshEdit();updateRT();showToast('✅ '+t('renamed'));
@@ -1743,7 +1778,7 @@ function openEditItem(i){
 }
 function prevP(){}
 function nextP(){}
-function delP(){var it=CACHE.items[eI];if(!it)return;sb.from('project_items').delete().eq('id',it.id).then(function(){loadItems().then(function(){if(eI>0&&eI>=CACHE.items.length)eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅');});});}
+function delP(){var it=CACHE.items[eI];if(!it)return;CACHE.items.splice(eI,1);persistItemsCache();if(eI>0&&eI>=CACHE.items.length)eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅');sb.from('project_items').delete().eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','delete',{col:'id',val:it.id});}catch(e){}});}
 function filterP(q){filterProdList(q);}
 function updateRT(){var items=CACHE.items;var tot=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);var bar=G('run-total'),val=G('rtval');if(items.length>0){if(bar)bar.classList.remove('hidden');if(val)val.textContent=fmt(tot);}else if(bar)bar.classList.add('hidden');}
 // init
@@ -2278,16 +2313,24 @@ function refreshAdjustmentPage(){
   var ben=czBenefice(),n=CZ.partners.length,part=n?ben/n:0;
   if(!n){c.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:14px">'+L('Ajoutez des associés à la page Division.','أضف الشركاء في صفحة التقسيم.')+'</p>';return;}
   CZ.adjPick=CZ.adjPick||{}; // {partnerIndex: prisIndex}
-  var ar=isAr();
-  var h='<table class="itbl"><thead><tr><th>'+L('Associé','الشريك')+'</th><th class="num">'+L('Part','الحصة')+'</th><th>'+L('Déduire','خصم')+'</th><th class="num">'+L('Net','الصافي')+'</th></tr></thead><tbody>';
+  var h='';
   CZ.partners.forEach(function(p,pi){
     var ri=(CZ.adjPick[pi]!=null&&CZ.adjPick[pi]!=='')?parseInt(CZ.adjPick[pi]):-1;
     var prisAmt=(ri>=0&&CZ.pris[ri])?(parseFloat(CZ.pris[ri].montant)||0):0;
     var net=part-prisAmt;
-    var opts='<option value="">'+L('— Personne —','— لا أحد —')+'</option>'+CZ.pris.map(function(pp,j){return '<option value="'+j+'"'+(j===ri?' selected':'')+'>'+esc(pp.name)+' ('+nf2(pp.montant)+')</option>';}).join('');
-    h+='<tr><td class="it-name">'+esc(p.name)+'</td><td class="num">'+nf2(part)+'</td><td><select class="inp" style="margin:0;padding:6px;font-size:12px" onchange="adjSetPick('+pi+',this.value)">'+opts+'</select></td><td class="num" style="font-weight:700;color:#1a7a4a">'+nf2(net)+'</td></tr>';
+    var opts='<option value="">'+L('— Personne —','— لا أحد —')+'</option>'+CZ.pris.map(function(pp,j){return '<option value="'+j+'"'+(j===ri?' selected':'')+'>'+esc(pp.name)+' ('+nf2(pp.montant)+' DH)</option>';}).join('');
+    h+='<div class="adj-card">'+
+        '<div class="adj-card-head"><span class="adj-name">👤 '+esc(p.name)+'</span><span class="adj-part">'+nf2(part)+' DH</span></div>'+
+        '<div class="adj-card-body">'+
+          '<label class="adj-lbl">'+L('Argent pris déduit de sa part','مال مأخوذ يُخصم من حصته')+'</label>'+
+          '<select class="inp" style="margin:0" onchange="adjSetPick('+pi+',this.value)">'+opts+'</select>'+
+        '</div>'+
+        '<div class="adj-card-foot'+(prisAmt?' has-ded':'')+'">'+
+          (prisAmt?('<span>− '+nf2(prisAmt)+' DH</span>'):'<span></span>')+
+          '<span class="adj-net">'+L('Net','الصافي')+': <b>'+nf2(net)+' DH</b></span>'+
+        '</div>'+
+      '</div>';
   });
-  h+='</tbody></table>';
   c.innerHTML=h;
   // rebuild CZ.adjustments from picks for the recap/pdf
   rebuildAdjustments();
