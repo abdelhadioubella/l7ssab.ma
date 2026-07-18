@@ -1032,7 +1032,17 @@ function loadProducts(){return dbGetProducts().then(function(p){CACHE.products=p
   // load all of this user's product prices into cache (merge with offline cache)
   sb.from('custom_prices').select('*').eq('user_id',CU.id).then(function(r){CACHE.cp=CACHE.cp||{};((r&&r.data)||[]).forEach(function(x){if(x.barcode)CACHE.cp[x.barcode]=parseFloat(x.price)||0;});saveCPCache();}).catch(function(){});
   }return p;});}
-function loadItems(){return CP?dbGetItems(CP.id).then(function(it){CACHE.items=it;return it;}):Promise.resolve([]);}
+function loadItems(){
+  if(!CP)return Promise.resolve([]);
+  return dbGetItems(CP.id).then(function(it){
+    // keep any local-only items (not yet synced to server) that aren't in the server result
+    var serverIds={};it.forEach(function(x){serverIds[x.id]=true;});
+    var localOnly=(CACHE.items||[]).filter(function(x){return x._local&&!serverIds[x.id];});
+    CACHE.items=it.concat(localOnly);
+    persistItemsCache();
+    return CACHE.items;
+  });
+}
 // persist CACHE.items to the same offline cache key dbGetItems()/offlineGet() reads from
 function persistItemsCache(){if(!CP||!CP.id)return;try{localStorage.setItem('l7cache_items_'+CP.id,JSON.stringify(CACHE.items||[]));}catch(e){}}
 function loadAdjs(){return CP?dbGetAdjs(CP.id).then(function(a){CACHE.adjs=a;return a;}):Promise.resolve([]);}
@@ -1390,15 +1400,19 @@ function doSearch(){
 }
 function handleScan(code){
   hideSuggest&&hideSuggest();
-  _lastScanBC=code; // remember the barcode so Add can save the price even if the field is cleared
+  _lastScanBC=code;
   var si=G('scan-inp');if(si)si.value=code;
-  var found=null;for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}
-  var cachedPrice=getCP(code); // instant offline price for this user
+  var found=null;
+  for(var i=0;i<CACHE.products.length;i++){if(CACHE.products[i].barcode===code){found=CACHE.products[i];break;}}
+  var cachedPrice=getCP(code);
   if(found){
-    var ni=G('pname-inp');if(ni)ni.value=found.name;
-    var price=(cachedPrice!=null)?cachedPrice:(parseFloat(found.price)||0);
+    var arName=found.name_ar||found.name||'';
+    var ni=G('pname-inp');if(ni)ni.value=arName;
+    // price: user's last price (by barcode), else by name, else catalog price (always 0 in this app)
+    var pByName=getCPName(arName);
+    var price=(cachedPrice!=null)?cachedPrice:(pByName!=null?pByName:(parseFloat(found.price)||0));
     dP=parseFloat(price)||0;dQ=0;updateNFs();
-    setScanMsg('✅ '+found.name+(price?(' — '+nf2(price)+' DH'):'')+' · '+(isAr()?'أدخل الكمية واضغط إضافة':'quantité puis Ajouter'),1);
+    setScanMsg('✅ '+arName+(price?(' — '+nf2(price)+' DH'):'')+' · '+(isAr()?'أدخل الكمية واضغط إضافة':'quantité puis Ajouter'),1);
     return;
   }
   if(cachedPrice!=null){dP=parseFloat(cachedPrice)||0;dQ=0;updateNFs();}
@@ -1573,7 +1587,7 @@ function confirmNPCore(v,tgt){if(tgt==='__cb__'){var cb=_npCb;_npCb=null;if(cb)c
   if(tgt==='prisMont'){CZ._pMont=v;refreshPris();return;}
   if(tgt&&tgt.indexOf('cigQ_')===0){var ci=parseInt(tgt.slice(5));if(CZ.cig[ci]){CZ.cig[ci].qty=v||1;refreshCig();}return;}
   if(tgt&&tgt.indexOf('cigP_')===0){var ci2=parseInt(tgt.slice(5));if(CZ.cig[ci2]){CZ.cig[ci2].price=v;refreshCig();}return;}
-  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();var _pn=(G('pname-inp')&&G('pname-inp').value||'').trim();saveCP(_lastScanBC||'',v,_pn);}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;persistItemsCache();refreshEdit();sb.from('project_items').update({price:v}).eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;if(it.barcode)saveCP(it.barcode,v);}).catch(function(){try{queueWrite('project_items','update',{values:{price:v},col:'id',val:it.id});}catch(e){}if(it.barcode)saveCP(it.barcode,v);});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;persistItemsCache();refreshEdit();sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','update',{values:{quantity:v},col:'id',val:it2.id});}catch(e){}});}}}
+  if(tgt&&tgt.indexOf('adj_')===0){var aid=tgt.slice(4);sb.from('adjustments').update({amount:v}).eq('id',aid).then(function(){loadAdjs().then(refreshAdjs);});}else if(tgt==='dP'){dP=v;updateNFs();var _pn=(G('pname-inp')&&G('pname-inp').value||'').trim();saveCP(_lastScanBC||'',v,_pn);}else if(tgt==='dQ'){dQ=v;updateNFs();}else if(tgt==='eP'){var it=CACHE.items[eI];if(it){it.price=v;persistItemsCache();refreshEdit();var _itkey=it.barcode||'';var _itnm=it.name||'';saveCP(_itkey,v,_itnm);sb.from('project_items').update({price:v}).eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','update',{values:{price:v},col:'id',val:it.id});}catch(e){}});}}else if(tgt==='eQ'){var it2=CACHE.items[eI];if(it2){it2.quantity=v;persistItemsCache();refreshEdit();sb.from('project_items').update({quantity:v}).eq('id',it2.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','update',{values:{quantity:v},col:'id',val:it2.id});}catch(e){}});}}}
 // items
 // Add a scanned product straight to the project list (increment qty if barcode already present)
 function scanAddToList(bc,name,price){
@@ -1601,23 +1615,25 @@ function addProd(){
   if(!name){showToast('❌ '+L('Entrez le nom','أدخل الاسم'));return;}
   if(!(parseFloat(dP)>0)||!(parseFloat(dQ)>0)){showToast('⚠️ '+L('Mettez le prix et la quantité','أدخل الثمن والكمية'));return;}
   var si=G('scan-inp');var bc=(si?si.value||'':'').trim();if(!bc&&_lastScanBC)bc=_lastScanBC;
-  saveCP(bc,dP,name);
-  // OPTIMISTIC: show it immediately (works offline), sync to Supabase in the background
-  var tempId='local_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
-  var localItem={id:tempId,project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ,_local:true};
-  CACHE.items.push(localItem);persistItemsCache();
-  saveCatalogName(bc,name);
-  _lastScanBC='';if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();
-  eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅ '+t('added')+': '+name);
-  sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ}).select().then(function(r){
-    if(r.error)throw r.error;
-    // replace the temp local item with the real DB row
-    var idx=CACHE.items.findIndex(function(x){return x.id===tempId;});
-    if(idx>=0&&r.data&&r.data[0]){CACHE.items[idx]=r.data[0];persistItemsCache();}
-    sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});
-  }).catch(function(){
-    // offline / network error: queue the insert for later, keep the local item visible
-    try{queueWrite('project_items','insert',{project_id:CP.id,barcode:bc,name:name,price:dP,quantity:dQ});}catch(e){}
+  var savePrice=parseFloat(dP)||0,saveQty=parseFloat(dQ)||0;
+  saveCP(bc,savePrice,name);
+  var isAlreadyAr=/[\u0600-\u06FF]/.test(name);
+  var namePromise=isAlreadyAr?Promise.resolve(name):translateToArabic(name).then(function(a){return a||name;});
+  namePromise.then(function(finalName){
+    var tempId='local_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+    var localItem={id:tempId,project_id:CP.id,barcode:bc,name:finalName,price:savePrice,quantity:saveQty,_local:true};
+    CACHE.items.push(localItem);persistItemsCache();
+    saveCatalogName(bc,finalName);
+    _lastScanBC='';if(ni)ni.value='';if(si)si.value='';dP=0;dQ=0;updateNFs();hide('scan-msg');hideSuggest();
+    eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('\u2705 '+t('added')+': '+finalName);
+    sb.from('project_items').insert({project_id:CP.id,barcode:bc,name:finalName,price:savePrice,quantity:saveQty}).select().then(function(r){
+      if(r.error)throw r.error;
+      var idx=CACHE.items.findIndex(function(x){return x.id===tempId;});
+      if(idx>=0&&r.data&&r.data[0]){CACHE.items[idx]=r.data[0];persistItemsCache();refreshEdit();}
+      sb.from('projects').update({updated_at:new Date().toISOString()}).eq('id',CP.id).then(function(){});
+    }).catch(function(){
+      try{queueWrite('project_items','insert',{project_id:CP.id,barcode:bc,name:finalName,price:savePrice,quantity:saveQty});}catch(e){}
+    });
   });
 }
 // persist the in-memory catalog to localStorage (offline DB)
@@ -1629,24 +1645,27 @@ function persistCatalogCache(){
 // Always keeps the LAST name written. Matches by barcode if present, else by old name.
 function saveCatalogName(bc,name){
   if(!name)return;
+  // find by barcode first, then by exact name (prevents duplicates)
   var prod=null;
   for(var i=0;i<(CACHE.products||[]).length;i++){
-    if(bc&&CACHE.products[i].barcode===bc){prod=CACHE.products[i];break;}
+    var p=CACHE.products[i];
+    if(bc&&p.barcode&&p.barcode===bc){prod=p;break;}
+    if(!prod&&(p.name===name||p.name_ar===name)){prod=p;}
   }
   if(prod){
-    // update local cache immediately
     prod.name=name;prod.name_ar=name;persistCatalogCache();
-    // update online DB (queue it if offline)
-    sb.from('products').update({name:name,name_ar:name}).eq('id',prod.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('products','update',{values:{name:name,name_ar:name},col:'id',val:prod.id});}catch(e){}});
+    sb.from('products').update({name:name,name_ar:name}).eq('id',prod.id)
+      .then(function(r){if(r&&r.error)throw r.error;})
+      .catch(function(){try{queueWrite('products','update',{values:{name:name,name_ar:name},col:'id',val:prod.id});}catch(e){}});
   } else {
-    // new product -> add to local cache immediately (temp id), then insert online
     var tempId='local_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
     var localP={id:tempId,barcode:bc||'',name:name,name_ar:name,price:0,_local:true};
     CACHE.products.push(localP);persistCatalogCache();
-    sb.from('products').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){
-      if(rr&&rr.error)throw rr.error;
-      if(rr&&rr.data&&rr.data[0]){var idx=CACHE.products.indexOf(localP);if(idx>=0)CACHE.products[idx]=rr.data[0];persistCatalogCache();}
-    }).catch(function(){try{queueWrite('products','insert',{barcode:bc||'',name:name,name_ar:name,price:0});}catch(e){}});
+    sb.from('products').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select()
+      .then(function(rr){
+        if(rr&&rr.error)throw rr.error;
+        if(rr&&rr.data&&rr.data[0]){var idx=CACHE.products.indexOf(localP);if(idx>=0)CACHE.products[idx]=rr.data[0];persistCatalogCache();}
+      }).catch(function(){try{queueWrite('products','insert',{barcode:bc||'',name:name,name_ar:name,price:0});}catch(e){}});
   }
 }
 // Same for cigarettes
@@ -1654,19 +1673,24 @@ function saveCatalogCigName(bc,name){
   if(!name)return;
   var prod=null;
   for(var i=0;i<(CACHE.cigProducts||[]).length;i++){
-    if(bc&&CACHE.cigProducts[i].barcode===bc){prod=CACHE.cigProducts[i];break;}
+    var p=CACHE.cigProducts[i];
+    if(bc&&p.barcode&&p.barcode===bc){prod=p;break;}
+    if(!prod&&(p.name===name||p.name_ar===name)){prod=p;}
   }
   if(prod){
     prod.name=name;prod.name_ar=name;persistCatalogCache();
-    sb.from('cigarettes').update({name:name,name_ar:name}).eq('id',prod.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('cigarettes','update',{values:{name:name,name_ar:name},col:'id',val:prod.id});}catch(e){}});
+    sb.from('cigarettes').update({name:name,name_ar:name}).eq('id',prod.id)
+      .then(function(r){if(r&&r.error)throw r.error;})
+      .catch(function(){try{queueWrite('cigarettes','update',{values:{name:name,name_ar:name},col:'id',val:prod.id});}catch(e){}});
   } else {
     var tempId2='local_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
     var localC={id:tempId2,barcode:bc||'',name:name,name_ar:name,price:0,_local:true};
     CACHE.cigProducts.push(localC);persistCatalogCache();
-    sb.from('cigarettes').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select().then(function(rr){
-      if(rr&&rr.error)throw rr.error;
-      if(rr&&rr.data&&rr.data[0]){var idx=CACHE.cigProducts.indexOf(localC);if(idx>=0)CACHE.cigProducts[idx]=rr.data[0];persistCatalogCache();}
-    }).catch(function(){try{queueWrite('cigarettes','insert',{barcode:bc||'',name:name,name_ar:name,price:0});}catch(e){}});
+    sb.from('cigarettes').insert({barcode:bc||'',name:name,name_ar:name,price:0}).select()
+      .then(function(rr){
+        if(rr&&rr.error)throw rr.error;
+        if(rr&&rr.data&&rr.data[0]){var idx=CACHE.cigProducts.indexOf(localC);if(idx>=0)CACHE.cigProducts[idx]=rr.data[0];persistCatalogCache();}
+      }).catch(function(){try{queueWrite('cigarettes','insert',{barcode:bc||'',name:name,name_ar:name,price:0});}catch(e){}});
   }
 }
 function refreshEdit(){
@@ -1770,13 +1794,13 @@ function openEditItem(i){
     if(!nm){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
     it.name=nm;it.price=pr;it.quantity=q;persistItemsCache();
     saveCP(it.barcode||'',pr,nm);
-    sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','update',{values:{name:nm,price:pr,quantity:q},col:'id',val:it.id});}catch(e){}});
-    // ALWAYS sync the catalog name (local + online), even if the product already exists
+    sb.from('project_items').update({name:nm,price:pr,quantity:q}).eq('id',it.id)
+      .then(function(r){if(r&&r.error)throw r.error;})
+      .catch(function(){try{queueWrite('project_items','update',{values:{name:nm,price:pr,quantity:q},col:'id',val:it.id});}catch(e){}});
     saveCatalogName(it.barcode||'',nm);
     closeModal();refreshEdit();updateRT();showToast('✅ '+t('renamed'));
   });
 }
-function prevP(){}
 function nextP(){}
 function delP(){var it=CACHE.items[eI];if(!it)return;CACHE.items.splice(eI,1);persistItemsCache();if(eI>0&&eI>=CACHE.items.length)eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅');sb.from('project_items').delete().eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','delete',{col:'id',val:it.id});}catch(e){}});}
 function filterP(q){filterProdList(q);}
@@ -2129,9 +2153,8 @@ function cigSearch(q){cigSuggest(q);}
 // suggestions when typing a name in the product name field
 function prodNameSuggest(q){var box=G('pname-suggest');if(!box)return;q=(q||'').trim().toLowerCase();if(!q){box.classList.add('hidden');box.innerHTML='';return;}var m=(CACHE.products||[]).filter(function(p){return (p.name||'').toLowerCase().indexOf(q)>=0;}).slice(0,8);if(!m.length){box.classList.add('hidden');return;}box.classList.remove('hidden');box.innerHTML=m.map(function(p){return '<div class="suggest-item" onclick="prodNamePick(\''+escJs2(p.barcode||'')+'\',\''+escJs2(p.name)+'\','+(p.price||0)+')">'+esc(p.name)+' · '+nf2(p.price)+' DH</div>';}).join('');}
 function prodNamePick(bc,name,price){var ni=G('pname-inp');if(ni)ni.value=name;var si=G('scan-inp');if(si&&bc)si.value=bc;
-  // recall the LAST price this user used: by barcode, else by name, else catalog price
   var last=(bc?getCP(bc):null);if(last==null)last=getCPName(name);if(last==null)last=parseFloat(price)||0;
-  dP=parseFloat(last)||0;dQ=0;if(bc)_lastScanBC=bc;updateNFs();var box=G('pname-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
+  dP=parseFloat(last)||0;dQ=0;if(bc)_lastScanBC=bc;else _lastScanBC='';updateNFs();var box=G('pname-suggest');if(box){box.classList.add('hidden');box.innerHTML='';}}
 // when the typed name exactly matches a known product, auto-fill its last price
 function prodNameRecall(){var ni=G('pname-inp');if(!ni)return;var nm=(ni.value||'').trim();if(!nm)return;
   var last=getCPName(nm);
