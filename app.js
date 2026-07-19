@@ -1181,7 +1181,6 @@ function activeScanTarget(){
 }
 var _altCode='',_altActive=false;
 document.addEventListener('keydown',function(e){
-  // DEBUG: show RAW key + keyCode for each event
   if(window._scanDebug){var _kc0=e.keyCode||e.which||0;window._dbgLog=(window._dbgLog||'')+' ['+e.key+'/'+_kc0+']';var dbg=G('scan-debug');if(dbg)dbg.textContent='buf="'+_scanBuf+'" '+(window._dbgLog).slice(-70);}
   if(G('np-ov')&&!G('np-ov').classList.contains('hidden'))return;
   if(G('app-modal'))return;
@@ -1192,34 +1191,41 @@ document.addEventListener('keydown',function(e){
   var box=G(tgt==='cig'?'cig-scan':'scan-inp');
   var kc=e.keyCode||e.which||0;
   var now=Date.now();
-  if(now-_scanLast>500){_scanBuf='';_altCode='';if(box)box.value='';}
+  if(now-_scanLast>500){_scanBuf='';_altCode='';_altActive=false;if(box)box.value='';}
   _scanLast=now;
-  // ALT-CODE MODE: this scanner holds Alt and types the ASCII decimal code as digits.
-  // e.g. for "6" (ASCII 54) it sends Alt + 5 + 4, then releases Alt.
+  // ---- ALT-CODE MODE (scanner holds Alt + types ASCII decimal digits) ----
   if(e.key==='Alt'||kc===18){_altActive=true;_altCode='';e.preventDefault();e.stopPropagation();return false;}
   if(e.altKey||_altActive){
-    // collect the ASCII-code digits while Alt is held
     var d=digitFromKeyCode(kc,e.key);
-    if(d!==''){_altCode+=d;}
-    // ALWAYS block every key while in alt-code mode — prevents symbols from leaking into _scanBuf
-    e.preventDefault();e.stopPropagation();return false;
+    if(d!=='')_altCode+=d;
+    e.preventDefault();e.stopPropagation();return false; // block EVERYTHING while Alt held
   }
-  // END of scan: Enter (13) or Tab (9)
+  // ---- END OF SCAN: Enter or Tab ----
   if(e.key==='Enter'||kc===13||e.key==='Tab'||kc===9){
     e.preventDefault();e.stopPropagation();
-    var code=_scanBuf||(box&&box.value)||'';code=String(code).trim();
-    code=arDigitsToLatin(code); // some scanners/keyboards send Arabic-Indic digits -> convert to 0-9
+    var code=_scanBuf||(box&&box.value)||'';code=arDigitsToLatin(String(code).trim());
     _scanBuf='';_altCode='';
     if(code.length>=2){markUSBconnected();if(box)box.value=code;if(tgt==='cig')cigScan(code);else handleScan(code);setTimeout(function(){if(box)box.value='';},300);}
     else{if(box)box.value='';}
     return false;
   }
-  // Normal mode: resolve the character from e.key or keyCode
+  // ---- NORMAL CHARACTER MODE ----
+  // ALWAYS extract the digit from the keyCode directly, IGNORING Shift/AltGr modifiers.
+  // This fixes scanners that send Shift+3 (=#) instead of 3, Shift+4 (=$) instead of 4, etc.
   var ch='';
-  if(e.key&&e.key.length===1&&e.key!=='Unidentified'){ch=e.key;}
-  else if(kc){ch=keyCodeToChar(kc,e.shiftKey);}
+  var dkc=digitFromKeyCode(kc,null); // try keyCode digit first (ignores Shift)
+  if(dkc!==''){
+    ch=dkc; // barcode digits: always use the raw number, never the shifted symbol
+  } else if(e.key&&e.key.length===1&&e.key!=='Unidentified'&&!e.altKey){
+    // non-digit printable character (e.g. '-'): only accept if NOT shifted or if e.key looks safe
+    // accept letters and barcode-safe chars, reject shifted symbols (#$%&*...)
+    if(!e.shiftKey||/^[a-zA-Z0-9\-_.]$/.test(e.key)){ch=e.key;}
+    else{ch=keyCodeToChar(kc,false);} // strip the shift → get the base char
+  } else if(kc){
+    ch=keyCodeToChar(kc,false); // always use un-shifted version
+  }
   if(ch){_scanBuf+=ch;if(box)box.value=_scanBuf;e.preventDefault();e.stopPropagation();return false;}
-  // swallow navigation noise so the page never goes back
+  // swallow navigation noise
   var nav={ArrowLeft:1,ArrowRight:1,ArrowUp:1,ArrowDown:1,Home:1,End:1,PageUp:1,PageDown:1,Backspace:1};
   if(nav[e.key]||kc===8||kc===37||kc===38||kc===39||kc===40){e.preventDefault();e.stopPropagation();return false;}
 },true);
