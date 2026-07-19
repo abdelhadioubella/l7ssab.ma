@@ -1199,8 +1199,10 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Alt'||kc===18){_altActive=true;_altCode='';e.preventDefault();e.stopPropagation();return false;}
   if(e.altKey||_altActive){
     // collect the ASCII-code digits while Alt is held
-    var d=digitFromKeyCode(kc);
-    if(d!==''){_altCode+=d;e.preventDefault();e.stopPropagation();return false;}
+    var d=digitFromKeyCode(kc,e.key);
+    if(d!==''){_altCode+=d;}
+    // ALWAYS block every key while in alt-code mode — prevents symbols from leaking into _scanBuf
+    e.preventDefault();e.stopPropagation();return false;
   }
   // END of scan: Enter (13) or Tab (9)
   if(e.key==='Enter'||kc===13||e.key==='Tab'||kc===9){
@@ -1233,10 +1235,14 @@ document.addEventListener('keyup',function(e){
     e.preventDefault();e.stopPropagation();return false;
   }
 },true);
-// digit from a keyCode (top row 48-57 or numpad 96-105), '' if not a digit
-function digitFromKeyCode(kc){
+// digit from a keyCode (top row 48-57 or numpad 96-105 or any e.key that is a digit)
+function digitFromKeyCode(kc,key){
   if(kc>=48&&kc<=57)return String(kc-48);
   if(kc>=96&&kc<=105)return String(kc-96);
+  // some keyboards/scanners send the digit via e.key directly
+  if(key&&key.length===1&&key>='0'&&key<='9')return key;
+  // Arabic-Indic digits via key
+  if(key&&key.length===1){var m={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};if(m[key])return m[key];}
   return '';
 }
 // Map a keyCode to its character (for normal-mode scanners)
