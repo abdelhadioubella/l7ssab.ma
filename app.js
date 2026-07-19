@@ -2573,42 +2573,60 @@ function genCaissePDF(){
   if(CZ.pris.length){var pRows=CZ.pris.map(function(p){return {name:p.name,qty:null,price:null,total:parseFloat(p.montant)||0};});itemsTable(P('🤝 Argent pris','🤝 المال المأخوذ'),pRows,P('Total argent pris','مجموع المال المأخوذ'),czPris());}
   // FINAL RECAP TABLE on a new page
   doc.addPage();y=18;chapterTitle(P('📄 Récapitulatif','📄 الملخص'));
+  // Cigarettes : each cig line with its net price (after -cigRem%)
+  var cigRows=CZ.cig.map(function(c){var gross=(parseFloat(c.price)||0)*(parseFloat(c.qty)||1);var net=gross*(1-CZ.cigRem/100);return [shape(String(c.name||'')),null,null,net];});
+  var rechRows=CZ.rech.map(function(r){var gross=r.dealer?(parseFloat(r.montant)||0):((parseFloat(r.denom)||0)*(parseFloat(r.qty)||0));var net=gross*(1-CZ.rechRem/100);var nm=r.dealer?P('Dealer','ديلر'):(nf2(r.denom)+' DH × '+(r.qty||0));return [nm,null,null,net];});
+  // Cigarettes section with net price per line
+  if(cigRows.length){
+    chapterTitle(P('🚬 Cigarettes','🚬 السجائر')+' ('+P('net','صافي')+' −'+nf2(CZ.cigRem)+'%)');
+    twoColBox(P('Nom','الاسم'),P('Net (DH)','الصافي'),cigRows.map(function(r){return [r[0],r[3],0];}));
+  }
+  // Recharge section with net price per line
+  if(rechRows.length){
+    chapterTitle(P('📱 Recharge','📱 التعبئة')+' ('+P('net','صافي')+' −'+nf2(CZ.rechRem)+'%)');
+    twoColBox(P('Coupure','الفئة'),P('Net (DH)','الصافي'),rechRows.map(function(r){return [r[0],r[3],0];}));
+  }
   var recapRows=[
-    [P('Produits','المنتجات'),czProd()],[P('Cigarettes','السجائر')+' ('+P('net','صافي')+' − '+nf2(CZ.cigRem)+'%)',czCigNet()],[P('Recharge','التعبئة')+' ('+P('net','صافي')+' − '+nf2(CZ.rechRem)+'%)',czRechNet()],[P('Crédit','الكريدي'),parseFloat(CZ.credit)||0],[P('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0],
-    [P('PREMIER TOTAL','المجموع الأول'),czVentes(),1],[P('Cash','الكاش'),parseFloat(CZ.cash)||0],[P('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),1],
-    [P('Dépenses','المصاريف'),czMoins()],[P('Argent pris','المال المأخوذ'),czPris()],[P('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),1],
-    [P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)],[P('BÉNÉFICE','الربح'),czBenefice(),2]
+    [P('Produits','المنتجات'),czProd()],
+    [P('Cigarettes','السجائر')+' ('+P('net','صافي')+' −'+nf2(CZ.cigRem)+'%)',czCigNet()],
+    [P('Recharge','التعبئة')+' ('+P('net','صافي')+' −'+nf2(CZ.rechRem)+'%)',czRechNet()],
+    [P('Crédit','الكريدي'),parseFloat(CZ.credit)||0],
+    [P('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0],
+    [P('PREMIER TOTAL','المجموع الأول'),czVentes(),1],
+    [P('Cash','الكاش'),parseFloat(CZ.cash)||0],
+    [P('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),1],
+    [P('Dépenses','المصاريف'),czMoins()],
+    [P('Argent pris','المال المأخوذ'),czPris()],
+    [P('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),1],
+    [P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)],
+    [P('BÉNÉFICE','الربح'),czBenefice(),2]
   ];
   twoColBox(P('Élément','البند'),P('Montant (DH)','المبلغ'),recapRows);
-  // DIVISION + ADJUSTMENT (boxed grid, clean Arabic)
+  // DIVISION (no partner count in title)
   if(CZ.partners.length){
     var part=czBenefice()/CZ.partners.length;
-    chapterTitle(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح')+' ('+CZ.partners.length+')');
+    chapterTitle(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح'));
     twoColBox(P('Associé','الشريك'),P('Part (DH)','الحصة'),CZ.partners.map(function(p){return [p.name,part,0];}));
   }
+  // ADJUSTMENT: name + net only (no deduction detail)
   CZ.adjustments=CZ.adjustments||[];
   if(CZ.adjustments.length){
     chapterTitle(P('⚖️ Ajustement','⚖️ التسوية'));
-    twoColBox(P('Associé','الشريك'),P('Net (DH)','الصافي'),CZ.adjustments.map(function(a){return [a.partner+(a.prisAmt?(' (− '+nf2(a.prisAmt)+')'):''),a.net,0];}));
+    twoColBox(P('Associé','الشريك'),P('Net (DH)','الصافي'),CZ.adjustments.map(function(a){return [a.partner,a.net,0];}));
   }
-  // signatures (2) + footer on the last page
-  if(y>250){doc.addPage();y=20;}
-  y+=14;
-  doc.setTextColor(100,100,100);doc.setFontSize(9);try{doc.setFont('helvetica','normal');}catch(e){}
+  // SIGNATURES + FOOTER pinned to very bottom of the last page
+  var lastPage=doc.internal.getNumberOfPages();
+  doc.setPage(lastPage);
+  var sigY=272; // fixed position at bottom of last page
+  doc.setDrawColor(180,180,180);doc.setLineWidth(0.3);
   var sw=(W-2*M)/2-5;
-  doc.line(M,y,M+sw,y);doc.line(M+sw+10,y,W-M,y);
-  function sigLabel(txt,cx){if(isArStr(txt)&&amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}doc.text(shape(txt),cx,y+6,{align:'center'});}else{try{doc.setFont('helvetica','normal');}catch(e){}doc.text(txt,cx,y+6,{align:'center'});}}
+  doc.line(M,sigY,M+sw,sigY);doc.line(M+sw+10,sigY,W-M,sigY);
+  doc.setTextColor(100,100,100);doc.setFontSize(9);
+  function sigLabel(txt,cx){if(isArStr(txt)&&amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}doc.text(shape(txt),cx,sigY+6,{align:'center'});}else{try{doc.setFont('helvetica','normal');}catch(e){}doc.text(txt,cx,sigY+6,{align:'center'});}}
   sigLabel(P('Signature responsable','توقيع المسؤول'),M+sw/2);
   sigLabel(P('Signature contrôleur','توقيع المراقب'),M+sw+10+sw/2);
   doc.setFontSize(8);doc.setTextColor(180,180,180);try{doc.setFont('helvetica','normal');}catch(e){}
-  doc.text('L7ssab.ma © '+new Date().getFullYear(),W/2,290,{align:'center'});
-  // page numbers on every content page (cover page = 1 is skipped, it has its own footer)
-  var totalPages=doc.internal.getNumberOfPages();
-  for(var pi=2;pi<=totalPages;pi++){
-    doc.setPage(pi);
-    doc.setFontSize(8);doc.setTextColor(165,165,165);try{doc.setFont('helvetica','normal');}catch(e){}
-    doc.text((ar?'صفحة':'Page')+' '+(pi-1)+' / '+(totalPages-1),W/2,293,{align:'center'});
-  }
+  doc.text('L7ssab.ma © '+new Date().getFullYear(),W/2,292,{align:'center'});
   doc.save('recap-'+(CP?CP.name.replace(/[^a-z0-9]/gi,'_'):'caisse')+'-'+new Date().toISOString().substring(0,10)+'.pdf');showToast('✅ '+L('PDF téléchargé','تم تحميل PDF'));
 }
 function escJs2(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
