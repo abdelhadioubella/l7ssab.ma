@@ -2114,7 +2114,7 @@ function loadCaisseData(){var k=caisseKey();if(!k){czReset();return;}
 }
 function nf2(n){return (Math.round((parseFloat(n)||0)*100)/100).toFixed(2);}
 function L(fr,ar){return (LANG==='ar')?ar:fr;} // inline bilingual string (Arabic written directly)
-function moinsLbl(t){if(t&&t.indexOf('custom:')===0)return t.slice(7);var m=isAr()?{credit_fourn:'كريدي المورد',impot:'الضرائب',eau_elec:'الماء + الكهرباء',loyer:'الكراء'}:{credit_fourn:'Crédit de fournisseur',impot:'Les impôts',eau_elec:'Eau + Électricité',loyer:'Loyer'};return m[t]||t;}
+function moinsLbl(t){if(t&&t.indexOf('custom:')===0)return t.slice(7);return t||'';}
 // sums
 function czProd(){var t=0;(CACHE.items||[]).forEach(function(x){t+=(parseFloat(x.price)||0)*(parseFloat(x.quantity)||1);});return t;}
 function czCigBrut(){var t=0;CZ.cig.forEach(function(x){t+=(parseFloat(x.price)||0)*(parseFloat(x.qty)||1);});return t;}
@@ -2277,14 +2277,33 @@ function moinsToggleSign(){CZ._mSign=(CZ._mSign==='+'?'-':'+');var b=G('moins-si
 function refreshMoins(){try{saveCaisseData();}catch(e){}
   rebuildExpenseOptions();
   setText('moins-mont-val',nf2(CZ._mMont||0));var b=G('moins-sign');if(b)b.textContent=CZ._mSign;
-  var sel=G('moins-type');if(sel&&!sel._wired){sel._wired=true;sel.addEventListener('change',function(){var nn=G('moins-new');if(nn){if(this.value==='__new__')nn.classList.remove('hidden');else nn.classList.add('hidden');}});}
+  var sel=G('moins-type');
+  if(sel&&!sel._wired){sel._wired=true;sel.addEventListener('change',function(){var nn=G('moins-new');if(nn){if(this.value==='__new__')nn.classList.remove('hidden');else nn.classList.add('hidden');}});}
+  // auto-show the input when __new__ is selected or no custom types exist yet
+  var nn=G('moins-new');if(nn){var showIt=!sel||sel.value==='__new__'||(CACHE.customExp||[]).length===0;if(showIt)nn.classList.remove('hidden');else nn.classList.add('hidden');}
   setText('moins-total',nf2(czMoins())+' DH');
   var list=G('moins-list');if(list){if(!CZ.moins.length)list.innerHTML='<p style="text-align:center;color:#aaa;font-size:13px;padding:12px">'+(isAr()?'لا مصاريف':'Aucune dépense')+'</p>';else{list.innerHTML='';CZ.moins.forEach(function(m,i){var d=document.createElement('div');d.className='cl-row';d.innerHTML='<div class="cl-info"><b>'+(m.sign==='+'?'+':'−')+nf2(m.montant)+' DH</b><span>'+esc(m.label)+'</span></div><button class="cl-edit" onclick="editMoins('+i+')" style="background:none;border:none;font-size:16px;cursor:pointer;margin-right:4px">✏️</button><button class="cl-del" onclick="moinsDel('+i+')">🗑</button>';list.appendChild(d);});}}
 }
-function moinsAdd(){var sel=G('moins-type');var type=sel?sel.value:'';var label=moinsLbl(type);if(type==='__new__'){var nn=G('moins-new');label=(nn&&nn.value||'').trim();if(!label){showToast('❌ '+L('Nom vide','الاسم فارغ'));return;}
-    // remember this new expense type for next time
+function moinsAdd(){
+  var sel=G('moins-type');var type=sel?sel.value:'__new__';
+  var label='';
+  if(type==='__new__'){
+    var nn=G('moins-new');label=(nn&&nn.value||'').trim();
+    if(!label){showToast('❌ '+L('Entrez le nom de la dépense','أدخل اسم المصروف'));return;}
+    // save this new type to the user's personal list
     addCustomExpense(label);
-  }var m=parseFloat(CZ._mMont)||0;if(!m){showToast('❌ '+L('Montant vide','المبلغ فارغ'));return;}CZ.moins.push({type:type==='__new__'?('custom:'+label):type,label:label,montant:m,sign:CZ._mSign||'-'});CZ._mMont=0;CZ._mSign='-';var nn2=G('moins-new');if(nn2){nn2.value='';nn2.classList.add('hidden');}if(sel)sel.value='credit_fourn';refreshMoins();}
+    type='custom:'+label;
+  } else {
+    label=moinsLbl(type);
+  }
+  var m=parseFloat(CZ._mMont)||0;
+  if(!m){showToast('❌ '+L('Montant vide','المبلغ فارغ'));return;}
+  CZ.moins.push({type:type,label:label,montant:m,sign:CZ._mSign||'-'});
+  CZ._mMont=0;CZ._mSign='-';
+  var nn2=G('moins-new');if(nn2){nn2.value='';nn2.classList.add('hidden');}
+  if(sel)sel.value=(CACHE.customExp&&CACHE.customExp.length)?('custom:'+CACHE.customExp[0]):'__new__';
+  refreshMoins();
+}
 // ---- custom expense types (saved per user: localStorage + Supabase user_config) ----
 function ceKey(){return CU?('l7exp_'+CU.id):null;}
 function loadCustomExpenses(){var k=ceKey();if(!k){CACHE.customExp=[];return;}try{var v=localStorage.getItem(k);CACHE.customExp=v?JSON.parse(v):[];}catch(e){CACHE.customExp=[];}}
@@ -2312,15 +2331,25 @@ function openManageExpenses(){
 }
 // rebuild the <select> options to include custom ones (built-in first, then custom, then +new)
 function rebuildExpenseOptions(){
-  var sel=G('moins-type');if(!sel)return;var cur=sel.value;
+  var sel=G('moins-type');if(!sel)return;
+  var cur=sel.value;
   var ar=isAr();
-  var builtin=[['credit_fourn',ar?'كريدي المورد':'Crédit de fournisseur'],['impot',ar?'الضرائب':'Les impôts'],['eau_elec',ar?'الماء + الكهرباء':'Eau + Électricité'],['loyer',ar?'الكراء':'Loyer']];
   var html='';
-  builtin.forEach(function(b){html+='<option value="'+b[0]+'">'+esc(b[1])+'</option>';});
-  (CACHE.customExp||[]).forEach(function(c){html+='<option value="custom:'+esc(c)+'">'+esc(c)+'</option>';});
-  html+='<option value="__new__">'+(ar?'+ إضافة خيار آخر…':'+ Ajouter un autre choix…')+'</option>';
+  // user's own saved types (per user, not shared)
+  (CACHE.customExp||[]).forEach(function(c){
+    html+='<option value="custom:'+esc(c)+'">'+esc(c)+'</option>';
+  });
+  // always show "add new" at the bottom
+  html+='<option value="__new__">'+(ar?'+ إضافة نوع جديد…':'+ Ajouter un type…')+'</option>';
   sel.innerHTML=html;
-  if(cur)sel.value=cur;
+  // restore selection if still valid
+  if(cur){try{sel.value=cur;}catch(e){}}
+  // always show __new__ if that's selected or nothing else exists
+  var nn=G('moins-new');
+  if(nn){
+    var showInput=(sel.value==='__new__')||(CACHE.customExp||[]).length===0;
+    if(showInput)nn.classList.remove('hidden');
+  }
 }
 function moinsDel(i){CZ.moins.splice(i,1);refreshMoins();}
 
@@ -2573,19 +2602,6 @@ function genCaissePDF(){
   if(CZ.pris.length){var pRows=CZ.pris.map(function(p){return {name:p.name,qty:null,price:null,total:parseFloat(p.montant)||0};});itemsTable(P('🤝 Argent pris','🤝 المال المأخوذ'),pRows,P('Total argent pris','مجموع المال المأخوذ'),czPris());}
   // FINAL RECAP TABLE on a new page
   doc.addPage();y=18;chapterTitle(P('📄 Récapitulatif','📄 الملخص'));
-  // Cigarettes : each cig line with its net price (after -cigRem%)
-  var cigRows=CZ.cig.map(function(c){var gross=(parseFloat(c.price)||0)*(parseFloat(c.qty)||1);var net=gross*(1-CZ.cigRem/100);return [shape(String(c.name||'')),null,null,net];});
-  var rechRows=CZ.rech.map(function(r){var gross=r.dealer?(parseFloat(r.montant)||0):((parseFloat(r.denom)||0)*(parseFloat(r.qty)||0));var net=gross*(1-CZ.rechRem/100);var nm=r.dealer?P('Dealer','ديلر'):(nf2(r.denom)+' DH × '+(r.qty||0));return [nm,null,null,net];});
-  // Cigarettes section with net price per line
-  if(cigRows.length){
-    chapterTitle(P('🚬 Cigarettes','🚬 السجائر')+' ('+P('net','صافي')+' −'+nf2(CZ.cigRem)+'%)');
-    twoColBox(P('Nom','الاسم'),P('Net (DH)','الصافي'),cigRows.map(function(r){return [r[0],r[3],0];}));
-  }
-  // Recharge section with net price per line
-  if(rechRows.length){
-    chapterTitle(P('📱 Recharge','📱 التعبئة')+' ('+P('net','صافي')+' −'+nf2(CZ.rechRem)+'%)');
-    twoColBox(P('Coupure','الفئة'),P('Net (DH)','الصافي'),rechRows.map(function(r){return [r[0],r[3],0];}));
-  }
   var recapRows=[
     [P('Produits','المنتجات'),czProd()],
     [P('Cigarettes','السجائر')+' ('+P('net','صافي')+' −'+nf2(CZ.cigRem)+'%)',czCigNet()],
@@ -2602,19 +2618,17 @@ function genCaissePDF(){
     [P('BÉNÉFICE','الربح'),czBenefice(),2]
   ];
   twoColBox(P('Élément','البند'),P('Montant (DH)','المبلغ'),recapRows);
-  // DIVISION (no partner count in title)
   if(CZ.partners.length){
     var part=czBenefice()/CZ.partners.length;
     chapterTitle(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح'));
     twoColBox(P('Associé','الشريك'),P('Part (DH)','الحصة'),CZ.partners.map(function(p){return [p.name,part,0];}));
   }
-  // ADJUSTMENT: name + net only (no deduction detail)
   CZ.adjustments=CZ.adjustments||[];
   if(CZ.adjustments.length){
     chapterTitle(P('⚖️ Ajustement','⚖️ التسوية'));
     twoColBox(P('Associé','الشريك'),P('Net (DH)','الصافي'),CZ.adjustments.map(function(a){return [a.partner,a.net,0];}));
   }
-  // SIGNATURES + FOOTER pinned to very bottom of the last page
+    // SIGNATURES + FOOTER pinned to very bottom of the last page
   var lastPage=doc.internal.getNumberOfPages();
   doc.setPage(lastPage);
   var sigY=272; // fixed position at bottom of last page
