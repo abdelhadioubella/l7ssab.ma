@@ -290,7 +290,7 @@ function sbUpdate(table,values,col,val){return sb.from(table).update(values).eq(
 function sbDelete(table,col,val){return sb.from(table).delete().eq(col,val).then(function(r){if(r&&r.error)throw r.error;return r;}).catch(function(){queueWrite(table,'delete',{col:col,val:val});return {queued:true};});}
 // Auto-sync when the browser regains connectivity
 if(typeof window!=='undefined'){
-  window.addEventListener('online',function(){syncQueue();});
+  window.addEventListener('online',function(){syncQueue();if(CU)loadCustomExpenses();});
   // also try on load if we're online and have a pending queue
   setTimeout(function(){if(navigator.onLine&&getQueue().length)syncQueue();},2500);
   // periodic silent retry (catches flaky connections the 'online' event misses)
@@ -2306,16 +2306,37 @@ function moinsAdd(){
 }
 // ---- custom expense types (saved per user: localStorage + Supabase user_config) ----
 function ceKey(){return CU?('l7exp_'+CU.id):null;}
-function loadCustomExpenses(){var k=ceKey();if(!k){CACHE.customExp=[];return;}try{var v=localStorage.getItem(k);CACHE.customExp=v?JSON.parse(v):[];}catch(e){CACHE.customExp=[];}}
-function saveCustomExpenses(){var k=ceKey();if(!k)return;try{localStorage.setItem(k,JSON.stringify(CACHE.customExp||[]));}catch(e){}
-  // also persist to Supabase user_config (best-effort)
-  try{sb.from('user_config').select('config').eq('user_id',CU.id).limit(1).then(function(r){
-    var cfg=(r&&r.data&&r.data[0]&&r.data[0].config)||{};cfg.customExpenses=CACHE.customExp||[];
-    sb.from('user_config').select('user_id').eq('user_id',CU.id).limit(1).then(function(r2){
-      if(r2&&r2.data&&r2.data[0]){sb.from('user_config').update({config:cfg,updated_at:new Date().toISOString()}).eq('user_id',CU.id).then(function(){});}
-      else{sb.from('user_config').insert({user_id:CU.id,config:cfg}).then(function(){});}
-    });
-  });}catch(e){}
+function loadCustomExpenses(){
+  var k=ceKey();if(!k){CACHE.customExp=[];return;}
+  // 1) localStorage immediately (works offline)
+  try{var v=localStorage.getItem(k);CACHE.customExp=v?JSON.parse(v):[];}catch(e){CACHE.customExp=[];}
+  rebuildExpenseOptions();
+  // 2) Supabase (source of truth, syncs across devices)
+  sb.from('user_config').select('config').eq('user_id',CU.id).limit(1).then(function(r){
+    if(r&&r.error)return;
+    var cfg=(r&&r.data&&r.data[0]&&r.data[0].config)||null;
+    if(cfg&&cfg.customExpenses&&cfg.customExpenses.length){
+      CACHE.customExp=cfg.customExpenses;
+      try{localStorage.setItem(k,JSON.stringify(CACHE.customExp));}catch(e){}
+      rebuildExpenseOptions();
+    }
+  }).catch(function(){});
+}
+function saveCustomExpenses(){
+  var k=ceKey();if(!k)return;
+  // 1) localStorage immediately
+  try{localStorage.setItem(k,JSON.stringify(CACHE.customExp||[]));}catch(e){}
+  // 2) Supabase upsert
+  var cfg={customExpenses:CACHE.customExp||[]};
+  sb.from('user_config').select('user_id').eq('user_id',CU.id).limit(1).then(function(r){
+    if(r&&r.data&&r.data[0]){
+      sb.from('user_config').update({config:cfg,updated_at:new Date().toISOString()}).eq('user_id',CU.id).then(function(){});
+    } else {
+      sb.from('user_config').insert({user_id:CU.id,config:cfg,updated_at:new Date().toISOString()}).then(function(){});
+    }
+  }).catch(function(){
+    try{queueWrite('user_config','upsert',{user_id:CU.id,config:cfg});}catch(e){}
+  });
 }
 function addCustomExpense(label){if(!label)return;CACHE.customExp=CACHE.customExp||[];if(CACHE.customExp.indexOf(label)<0){CACHE.customExp.push(label);saveCustomExpenses();rebuildExpenseOptions();}}
 function delCustomExpense(label){CACHE.customExp=(CACHE.customExp||[]).filter(function(x){return x!==label;});saveCustomExpenses();rebuildExpenseOptions();}
