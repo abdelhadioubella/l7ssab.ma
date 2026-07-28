@@ -2484,7 +2484,9 @@ function genCaissePDF(){
   // P(): pick label by language. TABLES need reshaping (reverse) for RTL; the COVER uses raw text.
   function P(fr,arr){var s=ar?arr:fr;return s;}
   // For autoTable cells: connect Arabic glyphs then reverse CHARACTERS (not words) for RTL.
-  function shape(s){if(!isArStr(s))return s;try{return (typeof reshapeAr==='function')?reshapeAr(String(s)):String(s);}catch(e){return s;}}
+  // Send RAW Arabic — the PDF viewer handles RTL itself (confirmed by cover page working perfectly)
+  // reshapeAr was reversing word order which broke all Arabic names
+  function shape(s){return String(s==null?'':s);}
   // font for autotable cells: Amiri if Arabic content present
   var TFONT=(ar&&amiriOK)?'Amiri':'helvetica';
   function header(){}
@@ -2638,7 +2640,7 @@ function genCaissePDF(){
     [P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)],
     [P('BÉNÉFICE','الربح'),czBenefice(),2]
   ];
-  twoColBox(P('Élément','البند'),P('Montant (DH)','المبلغ'),recapRows);
+  twoColBox(P('Montant (DH)','المبلغ'),P('Élément','البند'),recapRows);
   if(CZ.partners.length){
     var part=czBenefice()/CZ.partners.length;
     chapterTitle(P('🤝 Division des bénéfices','🤝 تقسيم الأرباح'));
