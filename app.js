@@ -588,10 +588,8 @@ function generatePDF(project,items,adjs,authorName,lang){
   var grand=tP+tA,now=new Date().toLocaleDateString('fr-MA');
   var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});var W=210,M=15,y=36;
   function R(x){
-    x=String(x==null?'':x);
-    // tables need reshaping (reverse) for RTL display
-    if(/[\u0600-\u06FF]/.test(x)&&typeof reshapeAr==='function')return reshapeAr(x);
-    return x;
+    // send RAW Arabic text - viewer handles RTL (reshapeAr reversed word order)
+    return String(x==null?'':x);
   }
   function hasAr(x){return /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(x==null?'':x));}
   var FONT=(lang==='ar')?'Amiri':'helvetica';
