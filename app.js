@@ -588,8 +588,13 @@ function generatePDF(project,items,adjs,authorName,lang){
   var grand=tP+tA,now=new Date().toLocaleDateString('fr-MA');
   var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});var W=210,M=15,y=36;
   function R(x){
-    // send RAW Arabic text - viewer handles RTL (reshapeAr reversed word order)
-    return String(x==null?'':x);
+    x=String(x==null?'':x);
+    if(!/[؀-ۿ]/.test(x))return x;
+    // jsPDF renders LTR - reverse Arabic word order so text reads correctly right-to-left
+    // Keep mixed tokens (numbers, latin) in place, only reverse the word sequence
+    var tokens=x.split(/(\s+)/);
+    tokens.reverse();
+    return tokens.join('');
   }
   function hasAr(x){return /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(x==null?'':x));}
   var FONT=(lang==='ar')?'Amiri':'helvetica';
@@ -2482,9 +2487,14 @@ function genCaissePDF(){
   // P(): pick label by language. TABLES need reshaping (reverse) for RTL; the COVER uses raw text.
   function P(fr,arr){var s=ar?arr:fr;return s;}
   // For autoTable cells: connect Arabic glyphs then reverse CHARACTERS (not words) for RTL.
-  // Send RAW Arabic — the PDF viewer handles RTL itself (confirmed by cover page working perfectly)
-  // reshapeAr was reversing word order which broke all Arabic names
-  function shape(s){return String(s==null?'':s);}
+  function shape(s){
+    s=String(s==null?'':s);
+    if(!/[؀-ۿ]/.test(s))return s;
+    // jsPDF renders LTR - reverse Arabic word order for correct RTL display in tables
+    var tokens=s.split(/(\s+)/);
+    tokens.reverse();
+    return tokens.join('');
+  }
   // font for autotable cells: Amiri if Arabic content present
   var TFONT=(ar&&amiriOK)?'Amiri':'helvetica';
   function header(){}
