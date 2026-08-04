@@ -575,16 +575,54 @@ function calcEquals(chain){
 function toggleAvMenu(){var m=G('av-menu');if(!m){showToast('❌ Menu introuvable');return;}m.classList.toggle('show');if(m.classList.contains('show')){m.style.display='block';m.style.zIndex='9999';}}
 function openSettingsPopup(){
   var ar=isAr();
-  var html=
-    '<div style="display:flex;flex-direction:column;gap:12px">'+
-    '<button class="btn-p" onclick="closeModal();openScanPopup()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
+  function settingsMenu(){
+    var html=
+      '<div style="display:flex;flex-direction:column;gap:12px">'+
+      '<button class="btn-p" onclick="settingsScan()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
+        '<span style="font-size:20px">📡</span><span>'+(ar?'الماسح الضوئي':'Scanner')+'</span>'+
+      '</button>'+
+      '<button class="btn-p" onclick="settingsMode()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
+        '<span style="font-size:20px">⌨️</span><span>'+(ar?'وضع الإدخال':'Mode de saisie')+'</span>'+
+      '</button>'+
+      '<button class="btn-p" onclick="settingsProfile()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
+        '<span style="font-size:20px">👤</span><span>'+(ar?'الملف الشخصي':'Profil')+'</span>'+
+      '</button>'+
+      '</div>';
+    // update modal body without closing
+    var body=G('modal-body-inner');if(body)body.innerHTML=html;
+    var title=document.querySelector('#app-modal .modal-head');if(title)title.textContent=ar?'الإعدادات':'Paramètres';
+  }
+  function backBtn(){return '<button onclick="settingsBack()" style="background:none;border:none;color:#1a7a4a;font-size:13px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span>←</span><span>'+(ar?'رجوع':'Retour')+'</span></button>';}
+  window.settingsBack=function(){settingsMenu();};
+  window.settingsScan=function(){
+    var sc=openScanPopup&&openScanPopup();
+    if(!sc){
+      var body=G('modal-body-inner');if(body)body.innerHTML=backBtn()+'<div id="scan-result-area"></div>';
+      var title=document.querySelector('#app-modal .modal-head');if(title)title.textContent=ar?'الماسح':'Scanner';
+      openScanPopup();
+    }
+  };
+  window.settingsMode=function(){
+    var body=G('modal-body-inner');if(body)body.innerHTML=backBtn();
+    var title=document.querySelector('#app-modal .modal-head');if(title)title.textContent=ar?'وضع الإدخال':'Mode de saisie';
+    openModePopup();
+  };
+  window.settingsProfile=function(){
+    closeModal();showSection('profile');
+  };
+  var initHtml=
+    '<div id="modal-body-inner" style="display:flex;flex-direction:column;gap:12px">'+
+    '<button class="btn-p" onclick="window.settingsScan()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
       '<span style="font-size:20px">📡</span><span>'+(ar?'الماسح الضوئي':'Scanner')+'</span>'+
     '</button>'+
-    '<button class="btn-p" onclick="closeModal();openModePopup()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
+    '<button class="btn-p" onclick="window.settingsMode()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
       '<span style="font-size:20px">⌨️</span><span>'+(ar?'وضع الإدخال':'Mode de saisie')+'</span>'+
     '</button>'+
+    '<button class="btn-p" onclick="window.settingsProfile()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
+      '<span style="font-size:20px">👤</span><span>'+(ar?'الملف الشخصي':'Profil')+'</span>'+
+    '</button>'+
     '</div>';
-  openModalHTML(ar?'الإعدادات':'Paramètres',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+  openModalHTML(ar?'الإعدادات':'Paramètres',initHtml,function(){closeModal();},(ar?'إغلاق':'Fermer'));
 }
 document.addEventListener('click',function(e){var m=G('av-menu');if(m&&m.classList.contains('show')){if(!e.target.closest('#av-menu')&&!e.target.closest('#hdr-av'))m.classList.remove('show');}});
 
@@ -662,7 +700,7 @@ function generatePDF(project,items,adjs,authorName,lang){
   if(y>240){doc.addPage();y=15;}doc.setFillColor(26,122,74);doc.rect(M,y,W-2*M,14,'F');doc.setTextColor(255,255,255);doc.setFontSize(13);F('bold');if(rtl){if(amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}}doc.text(R(L.grand),W-M-4,y+9,{align:'right'});F('bold');doc.text(grand.toFixed(2)+' DH',M+4,y+9);}else{doc.text(R(L.grand),M+4,y+9);doc.text(grand.toFixed(2)+' DH',W-M-4,y+9,{align:'right'});}y+=20;
   if(y>250){doc.addPage();y=15;}doc.setTextColor(100,100,100);doc.setFontSize(9);F('normal');var sw=(W-2*M)/2-5;doc.line(M,y+12,M+sw,y+12);doc.line(M+sw+10,y+12,W-M,y+12);doc.text(R(L.signR),M+sw/2,y+17,{align:'center'});doc.text(R(L.signC),M+sw+10+sw/2,y+17,{align:'center'});
   doc.setFontSize(8);doc.setTextColor(180,180,180);doc.text('L7ssab.ma (c) '+new Date().getFullYear(),W/2,290,{align:'center'});
-  doc.save('rapport-'+(project?project.name:'inv').replace(/\s+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.pdf');
+  var _pname=(project&&project.name?project.name:'rapport').replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g,'_');doc.save(_pname+'-'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 function pdfForProjectId(pid,projName,authorName,lang){Promise.all([dbGetItems(pid),dbGetAdjs(pid)]).then(function(r){generatePDF({id:pid,name:projName},r[0],r[1],authorName,lang);});}
 
@@ -1091,7 +1129,7 @@ function renderUserProjs(projs){
       var info=document.createElement('div');info.style.flex='1';info.appendChild(nameEl);info.appendChild(dateEl);
       var btns=document.createElement('div');btns.className='proj-btns';
       var lb=document.createElement('button');lb.className='btn-b';lb.textContent='📂 '+t('ld');lb.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
-      var eb=document.createElement('button');eb.className='btn-b';eb.textContent='✏️ '+(isAr()?'تعديل':'Modifier');eb.onclick=function(){openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:t('projName'),value:p.name}],onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();showToast('✅ '+t('renamed'));});}});};
+      var eb=document.createElement('button');eb.className='btn-b';eb.textContent='✏️ '+(isAr()?'تعديل':'Modifier');eb.onclick=function(){var ar=isAr();openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:t('projName'),value:p.name},{key:'from_name',label:ar?'من السيد':'De (from)',value:p.from_name||''},{key:'to_name',label:ar?'إلى السيد':'À (to)',value:p.to_name||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),from_name:(v.from_name||'').trim(),to_name:(v.to_name||'').trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();p.from_name=(v.from_name||'').trim();p.to_name=(v.to_name||'').trim();showToast('✅ '+t('renamed'));});}});};
       var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 '+t('pd');pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name);};
       var db=document.createElement('button');db.className='btn-r';db.textContent='🗑 '+(isAr()?'حذف':'Supprimer');db.onclick=function(){confirmModal(t('del'),'"'+p.name+'" ?',function(){sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('✅ '+t('deleted'));});},t('del'));};
       btns.appendChild(lb);btns.appendChild(eb);btns.appendChild(db);btns.appendChild(pb);
@@ -1835,9 +1873,9 @@ function addAdj(){sb.from('adjustments').insert({project_id:CP.id,description:''
 function refreshAdjs(){var adjs=CACHE.adjs;var list=G('adj-list');if(!list)return;list.innerHTML='';adjs.forEach(function(a){var div=document.createElement('div');div.className='adj-item';var row=document.createElement('div');row.className='adj-row';var sg=document.createElement('button');sg.className='adj-sign';sg.style.background=a.type==='+'?'#e8f5ee':'#ffeaea';sg.style.color=a.type==='+'?'#1a7a4a':'#d63031';sg.textContent=a.type;sg.onclick=function(){var nt=a.type==='+'?'-':'+';sb.from('adjustments').update({type:nt}).eq('id',a.id).then(function(){a.type=nt;loadAdjs().then(refreshAdjs);});};var inp=document.createElement('input');inp.type='text';inp.className='inp';inp.placeholder=t('desc');inp.value=a.description||'';inp.style.cssText='flex:1;margin-bottom:0';inp.onchange=function(){sb.from('adjustments').update({description:this.value}).eq('id',a.id).then(function(){});};var db=document.createElement('button');db.style.cssText='width:34px;height:34px;background:transparent;border:none;color:#d63031;font-size:18px;flex-shrink:0;cursor:pointer';db.textContent='✕';db.onclick=function(){sb.from('adjustments').delete().eq('id',a.id).then(function(){loadAdjs().then(refreshAdjs);});};row.appendChild(sg);row.appendChild(inp);row.appendChild(db);var nf=document.createElement('div');nf.className='num-field';var nl=document.createElement('span');nl.className='nf-label';nl.textContent=t('amount');var nv=document.createElement('span');var am=parseFloat(a.amount)||0;nv.className=am>0?'nf-val':'nf-ph';nv.textContent=am>0?am.toFixed(2)+' DH':t('tap');nf.appendChild(nl);nf.appendChild(nv);nf.onclick=function(){openNP('adj_'+a.id,t('amount'),true);};div.appendChild(row);div.appendChild(nf);list.appendChild(div);});}
 // ===== RECAP =====
 function refreshRecap(){var items=CACHE.items,adjs=CACHE.adjs;var tP=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);var tA=adjs.reduce(function(s,a){return s+(a.type==='+'?1:-1)*(parseFloat(a.amount)||0);},0);var grand=tP+tA;var pb=G('recap-ptbody');if(pb){pb.innerHTML='';items.forEach(function(p,i){var pr=parseFloat(p.price)||0,q=parseFloat(p.quantity)||0;var tr=document.createElement('tr');tr.innerHTML='<td style="text-align:center;color:#888;font-size:11px">'+(i+1)+'</td><td>'+esc(p.name||'—')+'</td><td style="text-align:right">'+pr.toFixed(2)+'</td><td style="text-align:center">'+q+'</td><td style="text-align:right;font-weight:600">'+fmt(pr*q)+'</td>';pb.appendChild(tr);});}setText('recap-totalp',fmt(tP));var ac=G('recap-acard');if(adjs.length>0){if(ac)ac.classList.remove('hidden');var ab=G('recap-atbody');if(ab){ab.innerHTML='';adjs.forEach(function(a){var ap=parseFloat(a.amount)||0,col=a.type==='+'?'#1a7a4a':'#d63031';var tr=document.createElement('tr');tr.innerHTML='<td>'+esc(a.description||'—')+'</td><td style="text-align:center;color:'+col+';font-weight:700">'+a.type+'</td><td style="text-align:right;color:'+col+';font-weight:700">'+(a.type==='+'?'+':'-')+ap.toFixed(2)+' DH</td>';ab.appendChild(tr);});}setText('recap-totala',(tA>=0?'+':'')+fmt(tA));show('summ-arow');var av=G('summ-a');if(av){av.textContent=(tA>=0?'+':'')+fmt(tA);av.style.color=tA>=0?'#1a7a4a':'#d63031';}}else{if(ac)ac.classList.add('hidden');hide('summ-arow');}setText('summ-p',fmt(tP));setText('grand-val',fmt(grand));}
-function genPDF(){generatePDF(CP,CACHE.items,CACHE.adjs,CU.fullname||CU.username,LANG);}
+function genPDF(){genCaissePDF();}
 function newInv(){confirmModal(t('nInv'),t('nInvQ'),function(){clearCurrentProject();location.href='inventory.html';},t('ok'));}
-function genPDF(){generatePDF(CP,CACHE.items,CACHE.adjs,CU.fullname||CU.username,LANG);}
+function genPDF(){genCaissePDF();}
 function newInv(){confirmModal(t('nInv'),t('nInvQ'),function(){CP=null;clearCurrentProject();CACHE.items=[];CACHE.adjs=[];czReset();showSection('inventory');},t('ok'));}
 // ===== PROFILE =====
 function L(k){ // labels: admin in English, user via t()
@@ -2685,7 +2723,7 @@ function genCaissePDF(){
   sigLabel(P('Signature contrôleur','توقيع المراقب'),M+sw+10+sw/2);
   doc.setFontSize(8);doc.setTextColor(180,180,180);try{doc.setFont('helvetica','normal');}catch(e){}
   doc.text('L7ssab.ma © '+new Date().getFullYear(),W/2,292,{align:'center'});
-  doc.save('recap-'+(CP?CP.name.replace(/[^a-z0-9]/gi,'_'):'caisse')+'-'+new Date().toISOString().substring(0,10)+'.pdf');showToast('✅ '+L('PDF téléchargé','تم تحميل PDF'));
+  var _cn=(CP&&CP.name?CP.name:'recap').replace(/[^a-zA-Z0-9\u0600-\u06FF_-]/g,'_');doc.save(_cn+'-'+new Date().toISOString().substring(0,10)+'.pdf');showToast('✅ '+L('PDF téléchargé','تم تحميل PDF'));
 }
 function escJs2(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 // Generate the SAME recap PDF (cover + all caisse tables) for any project id.
