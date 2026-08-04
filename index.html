@@ -881,23 +881,29 @@ html.dark .mode-txt b{color:#e8f0ec}
         <span class="badge" id="prof-badge">—</span>
       </div>
     </div>
-    <div class="card"><div class="card-title" id="t-chguname">Changer le nom d'utilisateur</div>
-      <input class="inp" type="text" id="prof-newuname" autocomplete="off"/>
-      <button class="btn-p" onclick="updateProf('username')" id="t-update0">Mettre à jour</button>
+    <div class="card"><div class="card-title" id="t-chguname">Nom d'utilisateur</div>
+      <input class="inp" type="text" id="prof-newuname" placeholder="Username" autocomplete="off"/>
+      <button class="btn-p" onclick="updateProf('username')" id="t-update0" data-fr="Enregistrer" data-ar="حفظ">Enregistrer</button>
     </div>
-    <div class="card"><div class="card-title" id="t-chgname">Changer le nom complet</div>
-      <input class="inp" type="text" id="prof-newname"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button class="btn-p" onclick="updateProf('name')" id="t-update1">Mettre à jour</button>
+    <div class="card">
+      <div class="card-title" data-fr="Fullname en français" data-ar="الاسم الكامل بالفرنسية">Fullname en français</div>
+      <input class="inp" type="text" id="prof-newname" placeholder="Fullname" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="btn-p" onclick="updateProf('name')" id="t-update1" data-fr="Enregistrer" data-ar="حفظ">Enregistrer</button>
     </div>
-    <div class="card"><div class="card-title">الاسم بالعربية والهاتف / Nom arabe & téléphone</div>
-      <input class="inp" type="text" id="prof-namear" placeholder="الاسم بالعربية" dir="rtl"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <input class="inp" type="tel" id="prof-phone" placeholder="Téléphone / الهاتف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button class="btn-p" onclick="updateProf('arphone')">Mettre à jour</button>
+    <div class="card">
+      <div class="card-title" data-fr="Fullname Arabic" data-ar="الاسم الكامل بالعربية">Fullname Arabic</div>
+      <input class="inp" type="text" id="prof-namear" placeholder="الاسم بالعربية" dir="rtl" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="btn-p" onclick="updateProf('namear')" data-fr="Enregistrer" data-ar="حفظ">Enregistrer</button>
+    </div>
+    <div class="card">
+      <div class="card-title" data-fr="Téléphone" data-ar="الهاتف">Téléphone</div>
+      <input class="inp" type="tel" id="prof-phone" placeholder="0600000000" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="btn-p" onclick="updateProf('phone')" data-fr="Enregistrer" data-ar="حفظ">Enregistrer</button>
     </div>
     <div class="card"><div class="card-title" id="t-chgpin">Changer le PIN</div>
       <input class="inp" type="password" id="prof-newpin" placeholder="Nouveau PIN (6 chiffres)" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <input class="inp" type="password" id="prof-confpin" placeholder="Confirmer le PIN" maxlength="6"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button class="btn-p" onclick="updateProf('pin')" id="t-update2">Mettre à jour</button>
+      <button class="btn-p" onclick="updateProf('pin')" id="t-update2"data-fr="Enregistrer" data-ar="حفظ">Enregistrer</button>
     </div>
     <div class="card hidden" id="back-to-app-card">
       <button class="btn-g" style="width:100%" onclick="backToApp()" id="t-backapp" data-fr="← Retour" data-ar="→ رجوع">← Retour</button>
@@ -921,15 +927,17 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="content">
   <div class="card"><div class="card-title">Statistics</div>
     <div class="db-stats">
-      <div class="db-stat"><div class="db-val" id="st-prod">…</div><div class="db-lbl">Products</div></div>
-      <div class="db-stat"><div class="db-val" id="st-proj">…</div><div class="db-lbl">Projects</div></div>
-      <div class="db-stat"><div class="db-val" id="st-users">…</div><div class="db-lbl">Users</div></div>
+      <div class="db-stat"><div class="db-val" id="st-prod">…</div><div class="db-lbl">Produits</div></div>
+      <div class="db-stat"><div class="db-val" id="st-cig">…</div><div class="db-lbl">Cigarettes</div></div>
+      <div class="db-stat"><div class="db-val" id="st-proj">…</div><div class="db-lbl">Projets</div></div>
+      <div class="db-stat"><div class="db-val" id="st-users">…</div><div class="db-lbl">Utilisateurs</div></div>
     </div>
   </div>
   <div class="card"><div class="card-title">Details</div>
-    <div class="srow"><span style="color:#888">Total products in database</span><strong id="st-prod2">…</strong></div>
-    <div class="srow"><span style="color:#888">Total projects (all users)</span><strong id="st-proj2">…</strong></div>
-    <div class="srow"><span style="color:#888">Total registered users</span><strong id="st-users2">…</strong></div>
+    <div class="srow"><span style="color:#888">Total produits dans la base</span><strong id="st-prod2">…</strong></div>
+    <div class="srow"><span style="color:#888">Total cigarettes dans la base</span><strong id="st-cig2">…</strong></div>
+    <div class="srow"><span style="color:#888">Total projets (tous utilisateurs)</span><strong id="st-proj2">…</strong></div>
+    <div class="srow"><span style="color:#888">Total utilisateurs enregistrés</span><strong id="st-users2">…</strong></div>
   </div>
 </div></div>
 </div>
