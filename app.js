@@ -427,16 +427,18 @@ function buildHeader(opts){
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
       langBtn+
-      (opts.role==='admin'?'':'<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
-      '<div class="av-menu" id="av-menu">'+
-        '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
-        '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
-        '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
-        '<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>'+
-        '<button onclick="toggleAvMenu();openSettingsPopup()">⚙️ '+(isAr()?'الإعدادات':'Paramètres')+'</button>'+
-        '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
-        '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
-      '</div>')+
+      (opts.role==='admin'?'':
+        '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
+        '<div class="av-menu" id="av-menu">'+
+          '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
+          '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
+          '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
+          '<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>'+
+          '<button onclick="toggleAvMenu();openSettingsPopup()">⚙️ '+(isAr()?'الإعدادات':'Paramètres')+'</button>'+
+          '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
+          '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
+        '</div>'
+      )+
     '</div>'+
   '</div>';
   var holder=G('app-header');if(holder)holder.innerHTML=html;
@@ -570,7 +572,7 @@ function calcEquals(chain){
   else{_calcExpr=String(r)+' '+op+' ';}
   _calc=String(r);_calcFresh=true;calcUpd();
 }
-function toggleAvMenu(){var m=G('av-menu');if(m)m.classList.toggle('show');}
+function toggleAvMenu(){var m=G('av-menu');if(!m){showToast('❌ Menu introuvable');return;}m.classList.toggle('show');if(m.classList.contains('show')){m.style.display='block';m.style.zIndex='9999';}}
 function openSettingsPopup(){
   var ar=isAr();
   var html=
