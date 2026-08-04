@@ -433,7 +433,6 @@ function buildHeader(opts){
           '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
           '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
           '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
-          '<button onclick="toggleAvMenu();showSection(\'profile\')">👤 '+t('myProfile')+'</button>'+
           '<button onclick="toggleAvMenu();openSettingsPopup()">⚙️ '+(isAr()?'الإعدادات':'Paramètres')+'</button>'+
           '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
           '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
@@ -575,54 +574,76 @@ function calcEquals(chain){
 function toggleAvMenu(){var m=G('av-menu');if(!m){showToast('❌ Menu introuvable');return;}m.classList.toggle('show');if(m.classList.contains('show')){m.style.display='block';m.style.zIndex='9999';}}
 function openSettingsPopup(){
   var ar=isAr();
-  function settingsMenu(){
-    var html=
-      '<div style="display:flex;flex-direction:column;gap:12px">'+
-      '<button class="btn-p" onclick="settingsScan()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
-        '<span style="font-size:20px">📡</span><span>'+(ar?'الماسح الضوئي':'Scanner')+'</span>'+
-      '</button>'+
-      '<button class="btn-p" onclick="settingsMode()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
-        '<span style="font-size:20px">⌨️</span><span>'+(ar?'وضع الإدخال':'Mode de saisie')+'</span>'+
-      '</button>'+
-      '<button class="btn-p" onclick="settingsProfile()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
-        '<span style="font-size:20px">👤</span><span>'+(ar?'الملف الشخصي':'Profil')+'</span>'+
-      '</button>'+
-      '</div>';
-    // update modal body without closing
-    var body=G('modal-body-inner');if(body)body.innerHTML=html;
-    var title=document.querySelector('#app-modal .modal-head');if(title)title.textContent=ar?'الإعدادات':'Paramètres';
+  var lbl={
+    title:ar?'الإعدادات':'Paramètres',
+    scan:ar?'الماسح الضوئي':'Scanner',
+    mode:ar?'وضع الإدخال':'Mode de saisie',
+    prof:ar?'الملف الشخصي':'Profil',
+    back:ar?'← رجوع':'← Retour',
+    close:ar?'إغلاق':'Fermer'
+  };
+  function backBtnHtml(){
+    return '<button onclick="openSettingsPopup()" style="background:none;border:none;color:#1a7a4a;font-size:14px;font-weight:600;cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;margin-bottom:12px">'+lbl.back+'</button>';
   }
-  function backBtn(){return '<button onclick="settingsBack()" style="background:none;border:none;color:#1a7a4a;font-size:13px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span>←</span><span>'+(ar?'رجوع':'Retour')+'</span></button>';}
-  window.settingsBack=function(){settingsMenu();};
-  window.settingsScan=function(){
-    var sc=openScanPopup&&openScanPopup();
-    if(!sc){
-      var body=G('modal-body-inner');if(body)body.innerHTML=backBtn()+'<div id="scan-result-area"></div>';
-      var title=document.querySelector('#app-modal .modal-head');if(title)title.textContent=ar?'الماسح':'Scanner';
-      openScanPopup();
-    }
-  };
-  window.settingsMode=function(){
-    var body=G('modal-body-inner');if(body)body.innerHTML=backBtn();
-    var title=document.querySelector('#app-modal .modal-head');if(title)title.textContent=ar?'وضع الإدخال':'Mode de saisie';
-    openModePopup();
-  };
-  window.settingsProfile=function(){
-    closeModal();showSection('profile');
-  };
-  var initHtml=
-    '<div id="modal-body-inner" style="display:flex;flex-direction:column;gap:12px">'+
-    '<button class="btn-p" onclick="window.settingsScan()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
-      '<span style="font-size:20px">📡</span><span>'+(ar?'الماسح الضوئي':'Scanner')+'</span>'+
-    '</button>'+
-    '<button class="btn-p" onclick="window.settingsMode()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
-      '<span style="font-size:20px">⌨️</span><span>'+(ar?'وضع الإدخال':'Mode de saisie')+'</span>'+
-    '</button>'+
-    '<button class="btn-p" onclick="window.settingsProfile()" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
-      '<span style="font-size:20px">👤</span><span>'+(ar?'الملف الشخصي':'Profil')+'</span>'+
-    '</button>'+
+  function menuHtml(){
+    return '<div style="display:flex;flex-direction:column;gap:12px">'+
+      '<button class="btn-p" onclick="openSettingsScan()" style="display:flex;align-items:center;gap:10px;justify-content:center"><span style="font-size:20px">📡</span><span>'+lbl.scan+'</span></button>'+
+      '<button class="btn-p" onclick="openSettingsMode()" style="display:flex;align-items:center;gap:10px;justify-content:center"><span style="font-size:20px">⌨️</span><span>'+lbl.mode+'</span></button>'+
+      '<button class="btn-p" onclick="openSettingsProf()" style="display:flex;align-items:center;gap:10px;justify-content:center"><span style="font-size:20px">👤</span><span>'+lbl.prof+'</span></button>'+
     '</div>';
-  openModalHTML(ar?'الإعدادات':'Paramètres',initHtml,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+  }
+  openModalHTML(lbl.title,menuHtml(),function(){closeModal();},(lbl.close));
+}
+function openSettingsScan(){
+  var ar=isAr();
+  // Close current modal and open scan popup with a back button
+  closeModal();
+  // Open scan popup directly (it has its own UI)
+  openScanPopup();
+  // Add back button to scan popup after it opens
+  setTimeout(function(){
+    var ov=G('np-ov')||G('app-modal');
+    // Instead: open our own modal with back + scan content
+  },0);
+  // Simpler: show scan inside a new modal with back
+  var html='<div>'+
+    '<button onclick="closeModal();openSettingsPopup()" style="background:none;border:none;color:#1a7a4a;font-size:14px;font-weight:600;cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;margin-bottom:12px">'+(ar?'← رجوع':'← Retour')+'</button>'+
+    '<div id="settings-scan-body"></div>'+
+  '</div>';
+  openModalHTML(ar?'الماسح الضوئي':'Scanner',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+  // mount scan popup content inside our modal
+  setTimeout(function(){var b=G('settings-scan-body');if(b&&typeof buildScanUI==='function')buildScanUI(b);else if(b){b.innerHTML='<p style="color:#888;text-align:center;padding:20px">'+(ar?'استخدم الماسح الضوئي USB':'Utilisez le scanner USB')+'</p>';}},50);
+}
+function openSettingsMode(){
+  var ar=isAr();
+  closeModal();
+  var html='<button onclick="closeModal();openSettingsPopup()" style="background:none;border:none;color:#1a7a4a;font-size:14px;font-weight:600;cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;margin-bottom:12px">'+(ar?'← رجوع':'← Retour')+'</button>'+
+    '<div id="settings-mode-body"></div>';
+  openModalHTML(ar?'وضع الإدخال':'Mode de saisie',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+  setTimeout(function(){openModePopup();},50);
+}
+function openSettingsProf(){
+  var ar=isAr();
+  // Build profile fields inline in a popup
+  var s=getSession();
+  var html='<button onclick="closeModal();openSettingsPopup()" style="background:none;border:none;color:#1a7a4a;font-size:14px;font-weight:600;cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;margin-bottom:12px">'+(ar?'← رجوع':'← Retour')+'</button>'+
+    '<div style="display:flex;flex-direction:column;gap:10px">'+
+    '<div><div style="font-size:12px;color:#888;margin-bottom:4px">Username</div><input class="inp" id="sp-uname" value="'+esc(CU&&CU.username||'')+'" autocomplete="off"/><button class="btn-p" style="margin-top:6px" onclick="spSave(\'username\')">'+( ar?'حفظ':'Enregistrer')+'</button></div>'+
+    '<div><div style="font-size:12px;color:#888;margin-bottom:4px">Fullname</div><input class="inp" id="sp-fname" value="'+esc(CU&&CU.fullname||'')+'" autocomplete="off"/><button class="btn-p" style="margin-top:6px" onclick="spSave(\'name\')">'+( ar?'حفظ':'Enregistrer')+'</button></div>'+
+    '<div><div style="font-size:12px;color:#888;margin-bottom:4px">Fullname Arabic</div><input class="inp" id="sp-aname" dir="rtl" value="'+esc(CU&&CU.name_ar||'')+'" autocomplete="off"/><button class="btn-p" style="margin-top:6px" onclick="spSave(\'namear\')">'+( ar?'حفظ':'Enregistrer')+'</button></div>'+
+    '<div><div style="font-size:12px;color:#888;margin-bottom:4px">'+(ar?'الهاتف':'Téléphone')+'</div><input class="inp" id="sp-phone" type="tel" value="'+esc(CU&&CU.phone||'')+'" autocomplete="off"/><button class="btn-p" style="margin-top:6px" onclick="spSave(\'phone\')">'+( ar?'حفظ':'Enregistrer')+'</button></div>'+
+    '<div><div style="font-size:12px;color:#888;margin-bottom:4px">'+(ar?'PIN الجديد':'Nouveau PIN')+'</div><input class="inp" id="sp-pin" type="password" maxlength="6" placeholder="6 chiffres" autocomplete="off"/><button class="btn-p" style="margin-top:6px" onclick="spSave(\'pin\')">'+( ar?'حفظ':'Enregistrer')+'</button></div>'+
+    '</div>';
+  openModalHTML(ar?'الملف الشخصي':'Profil',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+}
+// save from inline settings profile popup
+function spSave(type){
+  var ar=isAr();
+  if(type==='username'){var v=(G('sp-uname')&&G('sp-uname').value||'').trim();if(!v)return;dbGetUserByUsername(v).then(function(ex){if(ex&&ex.id!==CU.id){showToast('❌ '+( ar?'اسم مستخدم موجود':'Username pris'));return;}sb.from('app_users').update({username:v}).eq('id',CU.id).then(function(){CU.username=v;setSession(CU);showToast('✅ '+( ar?'تم الحفظ':'Enregistré'));});});}
+  else if(type==='name'){var v2=(G('sp-fname')&&G('sp-fname').value||'').trim();if(!v2)return;sb.from('app_users').update({fullname:v2}).eq('id',CU.id).then(function(){CU.fullname=v2;setSession(CU);showToast('✅ '+(ar?'تم الحفظ':'Enregistré'));});}
+  else if(type==='namear'){var v3=(G('sp-aname')&&G('sp-aname').value||'').trim();sb.from('app_users').update({name_ar:v3}).eq('id',CU.id).then(function(){CU.name_ar=v3;setSession(CU);showToast('✅ '+(ar?'تم الحفظ':'Enregistré'));});}
+  else if(type==='phone'){var v4=(G('sp-phone')&&G('sp-phone').value||'').trim();sb.from('app_users').update({phone:v4}).eq('id',CU.id).then(function(){CU.phone=v4;setSession(CU);showToast('✅ '+(ar?'تم الحفظ':'Enregistré'));});}
+  else if(type==='pin'){var v5=(G('sp-pin')&&G('sp-pin').value||'').trim();if(v5.length!==6){showToast('❌ '+(ar?'الرمز يجب أن يكون 6 أرقام':'PIN = 6 chiffres'));return;}hashPIN(v5).then(function(h){sb.from('app_users').update({pin_hash:h}).eq('id',CU.id).then(function(){if(G('sp-pin'))G('sp-pin').value='';showToast('✅ '+(ar?'تم الحفظ':'Enregistré'));});});}
 }
 document.addEventListener('click',function(e){var m=G('av-menu');if(m&&m.classList.contains('show')){if(!e.target.closest('#av-menu')&&!e.target.closest('#hdr-av'))m.classList.remove('show');}});
 
@@ -2684,21 +2705,20 @@ function genCaissePDF(){
   if(CZ.pris.length){var pRows=CZ.pris.map(function(p){return {name:p.name,qty:null,price:null,total:parseFloat(p.montant)||0};});itemsTable(P('🤝 Argent pris','🤝 المال المأخوذ'),pRows,P('Total argent pris','مجموع المال المأخوذ'),czPris());}
   // FINAL RECAP TABLE on a new page
   doc.addPage();y=18;chapterTitle(P('📄 Récapitulatif','📄 الملخص'));
-  var recapRows=[
-    [P('Produits','المنتجات'),czProd()],
-    [P('Cigarettes','السجائر')+' ('+P('net','صافي')+' −'+nf2(CZ.cigRem)+'%)',czCigNet()],
-    [P('Recharge','التعبئة')+' ('+P('net','صافي')+' −'+nf2(CZ.rechRem)+'%)',czRechNet()],
-    [P('Crédit','الكريدي'),parseFloat(CZ.credit)||0],
-    [P('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0],
-    [P('PREMIER TOTAL','المجموع الأول'),czVentes(),1],
-    [P('Cash','الكاش'),parseFloat(CZ.cash)||0],
-    [P('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),1],
-    [P('Dépenses','المصاريف'),czMoins()],
-    [P('Argent pris','المال المأخوذ'),czPris()],
-    [P('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),1],
-    [P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)],
-    [P('BÉNÉFICE','الربح'),czBenefice(),2]
-  ];
+  var recapRows=[];
+  recapRows.push([P('Produits','المنتجات'),czProd()]);
+  if(czCigNet()!==0)recapRows.push([P('Cigarettes','السجائر'),czCigNet()]);
+  if(czRechNet()!==0)recapRows.push([P('Recharge','التعبئة'),czRechNet()]);
+  if(parseFloat(CZ.credit)||0)recapRows.push([P('Crédit','الكريدي'),parseFloat(CZ.credit)||0]);
+  if(parseFloat(CZ.change)||0)recapRows.push([P('Argent de caisse','مال الصندوق'),parseFloat(CZ.change)||0]);
+  recapRows.push([P('PREMIER TOTAL','المجموع الأول'),czVentes(),1]);
+  if(parseFloat(CZ.cash)||0)recapRows.push([P('Cash','الكاش'),parseFloat(CZ.cash)||0]);
+  recapRows.push([P('DEUXIÈME TOTAL','المجموع الثاني'),czPremier(),1]);
+  if(czMoins()!==0)recapRows.push([P('Dépenses','المصاريف'),czMoins()]);
+  if(czPris()!==0)recapRows.push([P('Argent pris','المال المأخوذ'),czPris()]);
+  recapRows.push([P('TROISIÈME TOTAL','المجموع الثالث'),czPremier()+czMoins()+czPris(),1]);
+  if(parseFloat(CZ.capital)||0)recapRows.push([P('Capital','رأس المال'),-(parseFloat(CZ.capital)||0)]);
+  recapRows.push([P('BÉNÉFICE','الربح'),czBenefice(),2]);
   twoColBox(P('Montant (DH)','المبلغ'),P('Élément','البند'),recapRows);
   if(CZ.partners.length){
     var part=czBenefice()/CZ.partners.length;
