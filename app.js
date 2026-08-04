@@ -588,13 +588,7 @@ function generatePDF(project,items,adjs,authorName,lang){
   var grand=tP+tA,now=new Date().toLocaleDateString('fr-MA');
   var doc=new jsPDFLib({orientation:'portrait',unit:'mm',format:'a4'});var W=210,M=15,y=36;
   function R(x){
-    x=String(x==null?'':x);
-    if(!/[؀-ۿ]/.test(x))return x;
-    // jsPDF renders LTR - reverse Arabic word order so text reads correctly right-to-left
-    // Keep mixed tokens (numbers, latin) in place, only reverse the word sequence
-    var tokens=x.split(/(\s+)/);
-    tokens.reverse();
-    return tokens.join('');
+    return String(x==null?'':x); // raw text - viewer handles RTL
   }
   function hasAr(x){return /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(String(x==null?'':x));}
   var FONT=(lang==='ar')?'Amiri':'helvetica';
@@ -611,7 +605,7 @@ function generatePDF(project,items,adjs,authorName,lang){
     if(hasAr(s)&&amiriOK){try{doc.setFont('Amiri','normal');}catch(e){}doc.text(s,x,y,opt);F(_curStyle);}
     else{doc.text(s,x,y,opt);}
   }
-  doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);F('bold');doc.text('L7ssab.ma',M,12);
+  doc.setFillColor(26,122,74);doc.rect(0,0,W,28,'F');doc.setTextColor(255,255,255);doc.setFontSize(18);F('bold');doc.text('L7ssab.ma',M,12);doc.setFontSize(7);F('normal');doc.text('v120',W-M,12,{align:'right'});
   doc.setFontSize(11);F('normal');T(R(project?project.name:'Rapport'),M,20);
   doc.setFontSize(9);F('normal');doc.text('par '+(authorName||'-')+'  |  Généré le '+now,M,26);
   doc.setTextColor(26,122,74);doc.setFontSize(11);F('bold');doc.text(R(L.prod)+' ('+items.length+')',rtl?(W-M):M,y,rtl?{align:'right'}:undefined);y+=6;
@@ -2488,18 +2482,14 @@ function genCaissePDF(){
   function P(fr,arr){var s=ar?arr:fr;return s;}
   // For autoTable cells: connect Arabic glyphs then reverse CHARACTERS (not words) for RTL.
   function shape(s){
-    s=String(s==null?'':s);
-    if(!/[؀-ۿ]/.test(s))return s;
-    // jsPDF renders LTR - reverse Arabic word order for correct RTL display in tables
-    var tokens=s.split(/(\s+)/);
-    tokens.reverse();
-    return tokens.join('');
+    return String(s==null?'':s); // raw text - viewer handles RTL
   }
   // font for autotable cells: Amiri if Arabic content present
   var TFONT=(ar&&amiriOK)?'Amiri':'helvetica';
   function header(){}
   var y=20;
   var GREEN=[26,122,74],LIGHT=[232,245,238];
+  var _pdfV='v122-RAW-'+new Date().toISOString().slice(11,19);
   function chapterTitle(txt){
     if(y>266){doc.addPage();y=18;}
     y+=3;
