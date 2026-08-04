@@ -570,6 +570,7 @@ function calcEquals(chain){
   else{_calcExpr=String(r)+' '+op+' ';}
   _calc=String(r);_calcFresh=true;calcUpd();
 }
+function toggleAvMenu(){var m=G('av-menu');if(m)m.classList.toggle('show');}
 function openSettingsPopup(){
   var ar=isAr();
   var html=
