@@ -75,7 +75,9 @@ html.dark .nav-row{background:#15613b;border-color:#0f5132}
 .nav-row .btn-p{background:#fff;color:#1a7a4a;font-weight:700}
 .nav-row .btn-p[style*="d63031"]{background:rgba(255,255,255,.15)!important;color:#fff!important;border:1px solid rgba(255,255,255,.4)!important}
 .appsec.active .content{padding-bottom:84px}
-#login-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 20px 20px;background:#f0faf5;position:relative}
+#login-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0 20px 20px;background:#f0faf5;position:relative;background-image:url('bg-login.jpg');background-size:cover;background-position:center;background-repeat:no-repeat}
+#login-page::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:0}
+#login-page>*{position:relative;z-index:1}
 .logo-box{width:72px;height:72px;border-radius:20px;background:#1a7a4a;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:36px;box-shadow:0 4px 16px rgba(26,122,74,.35)}
 .login-card{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:400px;box-shadow:0 4px 32px rgba(0,0,0,.1)}
 .user-circles{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end}

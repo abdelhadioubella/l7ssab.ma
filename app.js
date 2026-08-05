@@ -421,7 +421,7 @@ function buildHeader(opts){
   var html=''+
   '<div class="hdr" dir="'+(isAr()?'rtl':'ltr')+'">'+
     (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
-    '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
+    '<span class="hdr-title" id="hdr-title" onclick="openNavPopup()" style="cursor:pointer;user-select:none">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
@@ -434,6 +434,8 @@ function buildHeader(opts){
           '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
           '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
           '<button onclick="toggleAvMenu();openSettingsPopup()">⚙️ '+(isAr()?'الإعدادات':'Paramètres')+'</button>'+
+          '<button onclick="toggleAvMenu();openBinPopup()">🗑️ '+(isAr()?'سلة المحذوفات':'Corbeille')+'</button>'+
+          '<button onclick="toggleAvMenu();openAboutPopup()">ℹ️ '+(isAr()?'حول التطبيق':'À propos')+'</button>'+
           '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
           '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
         '</div>'
@@ -458,6 +460,7 @@ function buildAdminMenu(active){
     '<div class="am-head"><span>L7ssab.ma</span><button class="am-x" onclick="closeAdminMenu()">×</button></div>'+
     '<div class="am-nav">'+nav+'</div>'+
     '<div class="am-foot"><button class="am-item" onclick="closeAdminMenu();showSection(\'profile\')">👤 <span>My profile</span></button>'+
+        '<button class="am-item" onclick="checkForUpdates()" style="color:#2563eb">🔄 <span>Mettre à jour</span></button>'+
     '<button class="am-item" onclick="logout()">🚪 <span>Logout</span></button></div>'+
   '</div>';
 }
@@ -577,15 +580,140 @@ function toggleAvMenu(){
   m.style.display=''; // remove inline style so CSS class controls display
   m.classList.toggle('show',!showing);
 }
+function openNavPopup(){
+  if(isAdmin)return;
+  var ar=isAr();
+  var secs=[
+    ['inventory',ar?'🏠 المشاريع':'🏠 Projets'],
+    ['products',ar?'📦 المنتجات':'📦 Produits'],
+    ['cigarettes',ar?'🚬 السجائر':'🚬 Cigarettes'],
+    ['recharge',ar?'📱 التعبئة':'📱 Recharge'],
+    ['credit',ar?'📖 الكريدي':'📖 Crédit'],
+    ['change',ar?'🧾 مال الصندوق':'🧾 Argent de caisse'],
+    ['cash',ar?'💵 كاش':'💵 Cash'],
+    ['moins',ar?'➖ المصاريف':'➖ Dépenses'],
+    ['pris',ar?'🤝 المال المأخوذ':'🤝 Argent pris'],
+    ['capital',ar?'🏦 رأس المال':'🏦 Capital'],
+    ['bilan',ar?'📊 الحصيلة':'📊 Bilan'],
+    ['partage',ar?'🤝 تقسيم الأرباح':'🤝 Division'],
+    ['adjustment',ar?'⚖️ التسوية':'⚖️ Ajustement'],
+    ['recap2',ar?'📄 الملخص':'📄 Récapitulatif']
+  ];
+  var html='<div style="margin:-14px;border-radius:12px;overflow:hidden">';
+  secs.forEach(function(sec){
+    var cur=(CURSEC===sec[0]);
+    var btn=document.createElement('button');
+    btn.textContent=sec[1];
+    btn.style.cssText='display:block;width:100%;padding:11px 14px;text-align:'+(ar?'right':'left')+';background:'+(cur?'#e8f5ee':'transparent')+';border:none;border-bottom:1px solid #f0f0f0;font-size:14px;cursor:pointer;'+(cur?'font-weight:700;color:#1a7a4a;':'color:#222;');
+    btn.setAttribute('data-sec',sec[0]);
+    btn.onclick=function(){closeModal();showSection(this.getAttribute('data-sec'));};
+    html+='__BTN_'+sec[0]+'__';
+  });
+  html+='</div>';
+  openModalHTML(ar?'التنقل':'Navigation',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+  // Replace placeholders with real buttons (to avoid quote issues)
+  setTimeout(function(){
+    var body=document.querySelector('#app-modal .modal-body');
+    if(!body)return;
+    secs.forEach(function(sec){
+      var cur=(CURSEC===sec[0]);
+      var ph=body.querySelector && body.innerHTML;
+      var btn=document.createElement('button');
+      btn.textContent=sec[1];
+      btn.style.cssText='display:block;width:100%;padding:11px 14px;text-align:'+(ar?'right':'left')+';background:'+(cur?'#e8f5ee':'transparent')+';border:none;border-bottom:1px solid #f0f0f0;font-size:14px;cursor:pointer;'+(cur?'font-weight:700;color:#1a7a4a;':'color:#222;');
+      btn.onclick=function(){closeModal();showSection(sec[0]);};
+      body.querySelector('div').appendChild(btn);
+    });
+    body.querySelector('div').innerHTML='';
+    secs.forEach(function(sec){
+      var cur=(CURSEC===sec[0]);
+      var btn=document.createElement('button');
+      btn.textContent=sec[1];
+      btn.style.cssText='display:block;width:100%;padding:11px 14px;text-align:'+(ar?'right':'left')+';background:'+(cur?'#e8f5ee':'transparent')+';border:none;border-bottom:1px solid #f0f0f0;font-size:14px;cursor:pointer;'+(cur?'font-weight:700;color:#1a7a4a;':'color:#222;');
+      btn.onclick=function(){closeModal();showSection(sec[0]);};
+      body.querySelector('div').appendChild(btn);
+    });
+  },0);
+}
+
 function openSettingsPopup(){
   var ar=isAr();
   var html='<div style="display:flex;flex-direction:column;gap:12px;padding-bottom:8px">'+
+    '<button class="btn-p" onclick="closeModal();openProfilePopup()" style="display:flex;align-items:center;gap:12px;font-size:16px"><span>👤</span><span>'+(ar?'الملف الشخصي':'Profil')+'</span></button>'+
     '<button class="btn-p" onclick="closeModal();openScanSettingsPopup()" style="display:flex;align-items:center;gap:12px;font-size:16px"><span>📡</span><span>'+(ar?'الماسح الضوئي':'Scanner')+'</span></button>'+
     '<button class="btn-p" onclick="closeModal();openModeSettingsPopup()" style="display:flex;align-items:center;gap:12px;font-size:16px"><span>⌨️</span><span>'+(ar?'وضع الإدخال':'Mode de saisie')+'</span></button>'+
-    '<button class="btn-p" onclick="closeModal();openProfilePopup()" style="display:flex;align-items:center;gap:12px;font-size:16px"><span>👤</span><span>'+(ar?'الملف الشخصي':'Profil')+'</span></button>'+
     '<button class="btn-p" onclick="checkForUpdates()" style="display:flex;align-items:center;gap:12px;font-size:16px;background:#2563eb"><span>🔄</span><span>'+(ar?'تحديث التطبيق':'Mettre à jour l\'app')+'</span></button>'+
   '</div>';
   openModalHTML(ar?'⚙️ الإعدادات':'⚙️ Paramètres',html,function(){closeModal();},(ar?'✓ تم':'✓ Fermer'));
+}
+// ── Bin (trash / recover deleted items) ─────────────────────
+function openBinPopup(){
+  var ar=isAr();
+  var bin=JSON.parse(localStorage.getItem('l7ssab_bin')||'[]');
+  var html='';
+  if(!bin.length){
+    html='<p style="text-align:center;color:#aaa;padding:20px">'+(ar?'السلة فارغة':'Corbeille vide')+'</p>';
+  } else {
+    html='<div style="display:flex;flex-direction:column;gap:8px">';
+    bin.forEach(function(item,i){
+      html+='<div style="background:#f7f9f8;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+        '<div style="flex:1">'+
+          '<div style="font-weight:600;font-size:14px">'+esc(item.name||'—')+'</div>'+
+          '<div style="font-size:11px;color:#888">'+(item.qty||'')+(item.price?' · '+item.price+' DH':'')+'</div>'+
+          '<div style="font-size:10px;color:#bbb">'+(item.deletedAt?new Date(item.deletedAt).toLocaleDateString('fr-MA'):'')+'</div>'+
+        '</div>'+
+        '<button class="btn-p" style="margin:0;padding:6px 12px;font-size:12px" onclick="restoreFromBin('+i+')">'+(ar?'استعادة':'Restaurer')+'</button>'+
+      '</div>';
+    });
+    html+='</div><button onclick="clearBin()" style="margin-top:12px;width:100%;padding:10px;background:#ffeaea;color:#d63031;border:none;border-radius:10px;cursor:pointer;font-size:13px">'+(ar?'🗑️ تفريغ السلة':'🗑️ Vider la corbeille')+'</button>';
+  }
+  openModalHTML(ar?'🗑️ سلة المحذوفات':'🗑️ Corbeille',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+}
+function restoreFromBin(i){
+  var bin=JSON.parse(localStorage.getItem('l7ssab_bin')||'[]');
+  var item=bin[i];if(!item||!CP)return;
+  var ar=isAr();
+  bin.splice(i,1);localStorage.setItem('l7ssab_bin',JSON.stringify(bin));
+  // Re-add to project
+  sb.from('project_items').insert({project_id:CP.id,barcode:item.barcode||'',name:item.name||'',price:item.price||0,quantity:item.qty||0}).select().then(function(r){
+    if(r&&r.data&&r.data[0]){CACHE.items.push(r.data[0]);persistItemsCache();}
+    showToast('✅ '+(ar?'تمت الاستعادة':'Restauré'));
+    closeModal();refreshEdit();updateRT();
+  }).catch(function(){showToast('❌');});
+}
+function clearBin(){
+  localStorage.removeItem('l7ssab_bin');
+  showToast('✅');closeModal();
+}
+// Add to bin when item is deleted
+function addToBin(item){
+  if(!item)return;
+  var bin=JSON.parse(localStorage.getItem('l7ssab_bin')||'[]');
+  bin.unshift({id:item.id,name:item.name,barcode:item.barcode,price:item.price,qty:item.quantity,project_id:item.project_id,deletedAt:new Date().toISOString()});
+  if(bin.length>50)bin=bin.slice(0,50); // keep last 50
+  localStorage.setItem('l7ssab_bin',JSON.stringify(bin));
+}
+// ── About popup ──────────────────────────────────────────────
+function openAboutPopup(){
+  var ar=isAr();
+  var appVer='v131';
+  var html='<div style="text-align:center;padding:10px 0">'+
+    '<div style="font-size:48px;margin-bottom:8px">🏪</div>'+
+    '<div style="font-size:22px;font-weight:700;color:#1a7a4a;margin-bottom:4px">L7ssab.ma</div>'+
+    '<div style="font-size:12px;color:#aaa;margin-bottom:20px">'+appVer+'</div>'+
+    '<div style="background:#f0faf5;border-radius:12px;padding:16px;margin-bottom:12px;text-align:right;direction:rtl">'+
+      '<p style="font-size:15px;font-weight:700;color:#1a7a4a;margin:0 0 6px">تطوير: عبد الهادي عبيلة</p>'+
+      '<p style="font-size:13px;color:#555;margin:0 0 4px">بمساعدة: Claude IA — Anthropic</p>'+
+      '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #dde5e0">'+
+        '<p style="font-size:14px;color:#333;line-height:1.7;margin:0">'+
+          'هذا التطبيق هدية لوالدي العزيز 💚<br>'+
+          '<span style="font-size:12px;color:#888">Cette application est un cadeau pour mon cher père</span>'+
+        '</p>'+
+      '</div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:#bbb">© 2026 L7ssab.ma · All rights reserved</div>'+
+  '</div>';
+  openModalHTML(ar?'ℹ️ حول التطبيق':'ℹ️ À propos',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
 }
 function checkForUpdates(){
   var ar=isAr();
@@ -1924,7 +2052,7 @@ function translateVisibleNames(){
     });
   });
 }
-function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),'"'+(it.name||'')+'" ?',function(){CACHE.items.splice(i,1);persistItemsCache();refreshEdit();updateRT();sb.from('project_items').delete().eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','delete',{col:'id',val:it.id});}catch(e){}});},t('del'));}
+function delItemAt(i){var it=CACHE.items[i];if(!it)return;confirmModal(t('del'),'"'+(it.name||'')+'" ?',function(){addToBin(it);CACHE.items.splice(i,1);persistItemsCache();refreshEdit();updateRT();sb.from('project_items').delete().eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','delete',{col:'id',val:it.id});}catch(e){}});},t('del'));}
 // edit popup (form) for a project item
 var _editItemIdx=-1,_editCigIdx=-1;
 function openEditItem(i){
@@ -1947,7 +2075,7 @@ function openEditItem(i){
   });
 }
 function nextP(){}
-function delP(){var it=CACHE.items[eI];if(!it)return;CACHE.items.splice(eI,1);persistItemsCache();if(eI>0&&eI>=CACHE.items.length)eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅');sb.from('project_items').delete().eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','delete',{col:'id',val:it.id});}catch(e){}});}
+function delP(){var it=CACHE.items[eI];if(!it)return;addToBin(it);CACHE.items.splice(eI,1);persistItemsCache();if(eI>0&&eI>=CACHE.items.length)eI=CACHE.items.length-1;refreshEdit();updateRT();showToast('✅');sb.from('project_items').delete().eq('id',it.id).then(function(r){if(r&&r.error)throw r.error;}).catch(function(){try{queueWrite('project_items','delete',{col:'id',val:it.id});}catch(e){}});}
 function filterP(q){filterProdList(q);}
 function updateRT(){var items=CACHE.items;var tot=items.reduce(function(s,p){return s+(parseFloat(p.price)||0)*(parseFloat(p.quantity)||0);},0);var bar=G('run-total'),val=G('rtval');if(items.length>0){if(bar)bar.classList.remove('hidden');if(val)val.textContent=fmt(tot);}else if(bar)bar.classList.add('hidden');}
 // init
