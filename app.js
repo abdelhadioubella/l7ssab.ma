@@ -794,7 +794,7 @@ function openModalHTML(title,innerHTML,onOk,okLabel){
   var ov=document.createElement('div');ov.className='modal-ov';ov.id='app-modal';
   var ar=isAr();
   var dir=ar?' dir="rtl"':'';
-  ov.innerHTML='<div class="modal-box"'+dir+'><div class="modal-head">'+esc(title)+'</div><div class="modal-body">'+innerHTML+'</div><div class="modal-foot"><button class="btn-g" onclick="closeModal()">'+(ar?'إلغاء':'Annuler')+'</button><button class="btn-p" id="modal-ok" style="margin-top:0">'+(okLabel||(ar?'حفظ':'Enregistrer'))+'</button></div></div>';
+  ov.innerHTML='<div class="modal-box"'+dir+'><div class="modal-head"><span style="flex:1;'+(ar?'text-align:right':'text-align:left')+'">'+esc(title)+'</span></div><div class="modal-body">'+innerHTML+'</div><div class="modal-foot"><button class="btn-g" onclick="closeModal()">'+(ar?'إلغاء':'Annuler')+'</button><button class="btn-p" id="modal-ok" style="margin-top:0">'+(okLabel||(ar?'حفظ':'Enregistrer'))+'</button></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
   var ok=G('modal-ok');if(ok)ok.onclick=onOk;
@@ -1031,10 +1031,25 @@ function calMonthName(m){
   return (isAr()?ar:fr)[m];
 }
 function renderCalendar(){
+  var ar=isAr();
   var lbl=G('cal-month-label');if(lbl)lbl.textContent=calMonthName(_calMonth)+' '+_calYear+' ▾';
-  var wd=G('cal-weekdays');if(wd){var days=isAr()?['أحد','إثن','ثلا','أرب','خمي','جمع','سبت']:['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];wd.innerHTML='';days.forEach(function(d){var s=document.createElement('span');s.textContent=d;wd.appendChild(s);});}
+  // Full day names, starting Monday
+  var wd=G('cal-weekdays');if(wd){
+    var days=ar?
+      ['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد']:
+      ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+    wd.innerHTML='';days.forEach(function(d){var s=document.createElement('span');s.textContent=d;wd.appendChild(s);});
+  }
+  // Fix navigation arrows for RTL (swap › and ‹)
+  var prevBtn=document.querySelector('.cal-nav[onclick="calPrevMonth()"]');
+  var nextBtn=document.querySelector('.cal-nav[onclick="calNextMonth()"]');
+  if(prevBtn)prevBtn.textContent=ar?'›':'‹';
+  if(nextBtn)nextBtn.textContent=ar?'‹':'›';
+
   var grid=G('cal-grid');if(!grid)return;grid.innerHTML='';
-  var first=new Date(_calYear,_calMonth,1).getDay();
+  // Week starts Monday: getDay() returns 0=Sun..6=Sat, convert to Mon=0..Sun=6
+  var firstDayOfMonth=new Date(_calYear,_calMonth,1).getDay();
+  var first=(firstDayOfMonth+6)%7; // Monday=0
   var daysInMonth=new Date(_calYear,_calMonth+1,0).getDate();
   var today=new Date();var todayStr=fmtDate(today.getFullYear(),today.getMonth(),today.getDate());
   for(var i=0;i<first;i++){var e=document.createElement('div');e.className='cal-cell empty';grid.appendChild(e);}
@@ -1045,7 +1060,6 @@ function renderCalendar(){
       var cell=document.createElement('div');cell.className='cal-cell';
       if(ds===todayStr)cell.className+=' today';
       if(note)cell.className+=' has-note';
-      // short preview: first 3 words
       var preview='';
       if(note){var words=note.split(/\s+/).slice(0,3).join(' ');preview='<span class="cal-prev">'+esc(words)+(note.split(/\s+/).length>3?'…':'')+'</span>';}
       cell.innerHTML='<span class="cal-day">'+d+'</span>'+preview;
@@ -1073,7 +1087,7 @@ function renderYearMonthPicker(){
   h+='<button class="cal-py-nav" onclick="_pickYearBase++;renderYearMonthPicker()">&#8250;</button>'+
     '<button class="cal-py-nav" onclick="_pickYearBase+=5;renderYearMonthPicker()">&#8250;&#8250;</button>'+
     '</div><div class="cal-pick-months">';
-  for(var m=0;m<12;m++){h+='<button class="cal-pm'+(m===_calMonth?' sel':'')+'" onclick="pickMonth('+m+')">'+calMonthName(m).substring(0,3)+'</button>';}
+  for(var m=0;m<12;m++){h+='<button class="cal-pm'+(m===_calMonth?' sel':'')+'" onclick="pickMonth('+m+')">'+calMonthName(m)+'</button>';}
   h+='</div>';
   p.innerHTML=h;
 }
