@@ -640,7 +640,7 @@ function openBinPopup(){
   var dir=ar?' dir="rtl"':'';
   var items_html='';
   if(!bin.length){
-    items_html='<p style="text-align:center;color:#aaa;padding:30px 0">'+(ar?'السلة فارغة':'Corbeille vide')+'</p>';
+    items_html='<p style="text-align:right;color:#aaa;padding:30px 0">'+(ar?'السلة فارغة':'Corbeille vide')+'</p>';
   } else {
     bin.forEach(function(item,i){
       var isProj=item.type==='project';
@@ -661,7 +661,7 @@ function openBinPopup(){
   ov.innerHTML='<div class="modal-box"'+dir+' style="max-height:80vh;display:flex;flex-direction:column">'+
     '<div class="modal-head" style="display:flex;align-items:center;justify-content:space-between">'+
       '<button onclick="closeBinModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 6px 0 0">×</button>'+
-      '<span style="flex:1;text-align:center">'+(ar?'🗑️ سلة المحذوفات':'🗑️ Corbeille')+'</span>'+
+      '<span style="flex:1;text-align:right">'+(ar?'🗑️ سلة المحذوفات':'🗑️ Corbeille')+'</span>'+
     '</div>'+
     '<div class="modal-body" style="overflow-y:auto;max-height:55vh">'+items_html+'</div>'+
   '</div>';
@@ -735,7 +735,7 @@ function openAboutPopup(){
   '</div>';
   var ov2=document.createElement('div');ov2.className='modal-ov';ov2.id='about-modal';
   var dir2=ar?' dir="rtl"':'';
-  ov2.innerHTML='<div class="modal-box"'+dir2+'><div class="modal-head" style="display:flex;align-items:center;justify-content:space-between"><button onclick="document.getElementById(\'about-modal\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 6px 0 0">×</button><span style="flex:1;text-align:center">'+(ar?'ℹ️ حول التطبيق':'ℹ️ À propos')+'</span></div><div class="modal-body">'+html+'</div></div>';
+  ov2.innerHTML='<div class="modal-box"'+dir2+'><div class="modal-head" style="display:flex;align-items:center;justify-content:space-between"><button onclick="document.getElementById(\'about-modal\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 6px 0 0">×</button><span style="flex:1;text-align:right">'+(ar?'ℹ️ حول التطبيق':'ℹ️ À propos')+'</span></div><div class="modal-body">'+html+'</div></div>';
   document.body.appendChild(ov2);
   ov2.addEventListener('click',function(e){if(e.target===ov2)ov2.remove();});
 }
@@ -1361,63 +1361,48 @@ function renderUserProjs(projs){
   if(!projs.length){list.innerHTML='<p style="font-size:13px;color:#888">'+t('noProj')+'</p>';return;}
   projs.forEach(function(p){
     var ar=isAr();
-    // ── project name + date ──────────────────────────────
     var nameEl=document.createElement('p');nameEl.style.cssText='font-size:14px;font-weight:600;margin:0 0 2px';nameEl.textContent=p.name;
     var dateEl=document.createElement('p');dateEl.style.cssText='font-size:11px;color:#888;margin:0';dateEl.textContent=new Date(p.updated_at).toLocaleDateString();
     var info=document.createElement('div');info.style.flex='1';info.appendChild(nameEl);info.appendChild(dateEl);
-    // ── action buttons (original) ────────────────────────
+    // original load button
     var btns=document.createElement('div');btns.className='proj-btns';
     var lb=document.createElement('button');lb.className='btn-b';lb.textContent='\uD83D\uDCC2 '+t('ld');
     lb.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
-    var eb=document.createElement('button');eb.className='btn-b';eb.textContent='\u270F\uFE0F '+(ar?'\u062a\u0639\u062f\u064a\u0644':'Modifier');
-    eb.onclick=function(){openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:t('projName'),value:p.name},{key:'from_name',label:ar?'\u0645\u0646':'De',value:p.from_name||''},{key:'to_name',label:ar?'\u0625\u0644\u0649':'\u00c0',value:p.to_name||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),from_name:(v.from_name||'').trim(),to_name:(v.to_name||'').trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();p.from_name=(v.from_name||'').trim();p.to_name=(v.to_name||'').trim();showToast('\u2705 '+t('renamed'));});}});};
-    var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='\uD83D\uDCC4 '+t('pd');
-    pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name,p.user_id);};
-    var db=document.createElement('button');db.className='btn-r';db.textContent='\uD83D\uDDD1 '+(ar?'\u062d\u0630\u0641':'Supprimer');
-    db.onclick=function(){confirmModal(t('del'),'"'+p.name+'" ?',function(){addProjectToBin(p);sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('\u2705 '+t('deleted'));});},t('del'));};
-    btns.appendChild(lb);btns.appendChild(eb);btns.appendChild(db);btns.appendChild(pb);
-    // ── ☰ navigation button ──────────────────────────────
+    btns.appendChild(lb);
+    // ☰ button → Edit + PDF + Delete dropdown
     var navBtn=document.createElement('button');
-    navBtn.style.cssText='background:#f0faf5;border:1px solid #1a7a4a;border-radius:8px;font-size:16px;cursor:pointer;color:#1a7a4a;padding:4px 8px;flex-shrink:0;line-height:1;margin-'+(ar?'right':'left')+':auto';
+    navBtn.style.cssText='background:#f0faf5;border:1px solid #1a7a4a;border-radius:8px;font-size:16px;cursor:pointer;color:#1a7a4a;padding:4px 10px;flex-shrink:0;line-height:1';
     navBtn.textContent='\u2630';
-    navBtn.title=ar?'\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649':'Navigation';
-    // ── navigation dropdown ──────────────────────────────
     var drop=document.createElement('div');
     drop.setAttribute('data-projdrop','1');
-    drop.style.cssText='position:absolute;'+(ar?'left':'right')+':0;top:100%;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.2);overflow:hidden;z-index:400;min-width:200px;display:none;border:1px solid #e8eee9;margin-top:4px';
-    var navSecs=[
-      ['\uD83D\uDCE6',ar?'\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a':'Produits','products'],
-      ['\uD83D\uDEAC',ar?'\u0627\u0644\u0633\u062c\u0627\u0626\u0631':'Cigarettes','cigarettes'],
-      ['\uD83D\uDCF1',ar?'\u0627\u0644\u062a\u0639\u0628\u0626\u0629':'Recharge','recharge'],
-      ['\uD83D\uDCD6',ar?'\u0627\u0644\u0643\u0631\u064a\u062f\u064a':'Cr\u00e9dit','credit'],
-      ['\uD83E\uDDFE',ar?'\u0645\u0627\u0644 \u0627\u0644\u0635\u0646\u062f\u0648\u0642':'Argent de caisse','change'],
-      ['\uD83D\uDCB5',ar?'\u0643\u0627\u0634':'Cash','cash'],
-      ['\u2796',ar?'\u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641':'D\u00e9penses','moins'],
-      ['\uD83E\uDD1D',ar?'\u0627\u0644\u0645\u0627\u0644 \u0627\u0644\u0645\u0623\u062e\u0648\u0630':'Argent pris','pris'],
-      ['\uD83C\uDFE6',ar?'\u0631\u0623\u0633 \u0627\u0644\u0645\u0627\u0644':'Capital','capital'],
-      ['\uD83D\uDCCA',ar?'\u0627\u0644\u062d\u0635\u064a\u0644\u0629':'Bilan','bilan'],
-      ['\uD83D\uDCC4',ar?'\u0627\u0644\u0645\u0644\u062e\u0635':'R\u00e9capitulatif','recap2']
-    ];
-    navSecs.forEach(function(sec){
+    drop.style.cssText='position:absolute;'+(ar?'left':'right')+':0;top:100%;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.2);overflow:hidden;z-index:400;min-width:190px;display:none;border:1px solid #e8eee9;margin-top:4px';
+    function mkBtn(icon,lbl,fn,red){
       var b=document.createElement('button');
-      b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:none;border:none;border-bottom:.5px solid #f0f0f0;font-size:14px;cursor:pointer;color:#222;text-align:'+(ar?'right':'left')+';direction:'+(ar?'rtl':'ltr');
-      b.innerHTML='<span>'+sec[0]+'</span><span>'+sec[1]+'</span>';
-      b.onclick=function(){
-        drop.style.display='none';
-        CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;
-        loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection(sec[2]);});});
-      };
-      drop.appendChild(b);
-    });
+      b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:none;border:none;border-bottom:.5px solid #f0f0f0;font-size:14px;cursor:pointer;color:'+(red?'#d63031':'#222')+';text-align:'+(ar?'right':'left')+';direction:'+(ar?'rtl':'ltr');
+      b.innerHTML='<span style="font-size:18px">'+icon+'</span><span>'+lbl+'</span>';
+      b.onclick=fn;return b;
+    }
+    drop.appendChild(mkBtn('\u270F\uFE0F',ar?'\u062a\u0639\u062f\u064a\u0644':'Modifier',function(){
+      drop.style.display='none';
+      openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),
+        fields:[{key:'name',label:t('projName'),value:p.name},{key:'from_name',label:ar?'\u0645\u0646':'De',value:p.from_name||''},{key:'to_name',label:ar?'\u0625\u0644\u0649':'\u00c0',value:p.to_name||''}],
+        onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),from_name:(v.from_name||'').trim(),to_name:(v.to_name||'').trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();p.from_name=(v.from_name||'').trim();p.to_name=(v.to_name||'').trim();showToast('\u2705 '+t('renamed'));});}}
+      );
+    }));
+    drop.appendChild(mkBtn('\uD83D\uDCC4','PDF',function(){drop.style.display='none';caissePDFForProject(p.id,p.name,p.from_name,p.to_name,p.user_id);}));
+    drop.appendChild(mkBtn('\uD83D\uDDD1',ar?'\u062d\u0630\u0641':'Supprimer',function(){
+      drop.style.display='none';
+      confirmModal(t('del'),'"'+p.name+'" ?',function(){addProjectToBin(p);sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('\u2705 '+t('deleted'));});},t('del'));
+    },true));
     navBtn.onclick=function(e){
       e.stopPropagation();
       var isOpen=drop.style.display==='block';
       document.querySelectorAll('[data-projdrop]').forEach(function(d){d.style.display='none';});
       drop.style.display=isOpen?'none':'block';
     };
-    // ── assemble row ─────────────────────────────────────
-    var left=document.createElement('div');left.style.cssText='flex:1;position:relative';
-    left.appendChild(info);left.appendChild(btns);left.appendChild(navBtn);left.appendChild(drop);
+    var left=document.createElement('div');left.style.cssText='flex:1;position:relative;display:flex;align-items:center;gap:8px';
+    var leftInfo=document.createElement('div');leftInfo.style.flex='1';leftInfo.appendChild(info);leftInfo.appendChild(btns);
+    left.appendChild(leftInfo);left.appendChild(navBtn);left.appendChild(drop);
     var row=document.createElement('div');row.className='proj-row';row.appendChild(left);
     list.appendChild(row);
   });
