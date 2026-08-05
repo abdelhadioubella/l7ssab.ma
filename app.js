@@ -1361,39 +1361,30 @@ function renderUserProjs(projs){
   if(!projs.length){list.innerHTML='<p style="font-size:13px;color:#888">'+t('noProj')+'</p>';return;}
   projs.forEach(function(p){
     var ar=isAr();
-    var row=document.createElement('div');
-    row.className='proj-row';
-    row.style.cssText='position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;background:#fff;border:.5px solid #e0e0e0;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:10px';
-    var info=document.createElement('div');info.style.cssText='flex:1;cursor:pointer';
-    var nameEl=document.createElement('p');nameEl.style.cssText='font-size:15px;font-weight:700;margin:0 0 2px;color:#111';nameEl.textContent=p.name;
+    // ── project name + date ──────────────────────────────
+    var nameEl=document.createElement('p');nameEl.style.cssText='font-size:14px;font-weight:600;margin:0 0 2px';nameEl.textContent=p.name;
     var dateEl=document.createElement('p');dateEl.style.cssText='font-size:11px;color:#888;margin:0';dateEl.textContent=new Date(p.updated_at).toLocaleDateString();
-    info.appendChild(nameEl);info.appendChild(dateEl);
-    info.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
-    var menuBtn=document.createElement('button');
-    menuBtn.style.cssText='background:#f0faf5;border:1px solid #1a7a4a;border-radius:8px;font-size:18px;cursor:pointer;color:#1a7a4a;padding:4px 10px;flex-shrink:0;line-height:1';
-    menuBtn.textContent='\u2630';
+    var info=document.createElement('div');info.style.flex='1';info.appendChild(nameEl);info.appendChild(dateEl);
+    // ── action buttons (original) ────────────────────────
+    var btns=document.createElement('div');btns.className='proj-btns';
+    var lb=document.createElement('button');lb.className='btn-b';lb.textContent='\uD83D\uDCC2 '+t('ld');
+    lb.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
+    var eb=document.createElement('button');eb.className='btn-b';eb.textContent='\u270F\uFE0F '+(ar?'\u062a\u0639\u062f\u064a\u0644':'Modifier');
+    eb.onclick=function(){openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:t('projName'),value:p.name},{key:'from_name',label:ar?'\u0645\u0646':'De',value:p.from_name||''},{key:'to_name',label:ar?'\u0625\u0644\u0649':'\u00c0',value:p.to_name||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),from_name:(v.from_name||'').trim(),to_name:(v.to_name||'').trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();p.from_name=(v.from_name||'').trim();p.to_name=(v.to_name||'').trim();showToast('\u2705 '+t('renamed'));});}});};
+    var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='\uD83D\uDCC4 '+t('pd');
+    pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name,p.user_id);};
+    var db=document.createElement('button');db.className='btn-r';db.textContent='\uD83D\uDDD1 '+(ar?'\u062d\u0630\u0641':'Supprimer');
+    db.onclick=function(){confirmModal(t('del'),'"'+p.name+'" ?',function(){addProjectToBin(p);sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('\u2705 '+t('deleted'));});},t('del'));};
+    btns.appendChild(lb);btns.appendChild(eb);btns.appendChild(db);btns.appendChild(pb);
+    // ── ☰ navigation button ──────────────────────────────
+    var navBtn=document.createElement('button');
+    navBtn.style.cssText='background:#f0faf5;border:1px solid #1a7a4a;border-radius:8px;font-size:16px;cursor:pointer;color:#1a7a4a;padding:4px 8px;flex-shrink:0;line-height:1;margin-'+(ar?'right':'left')+':auto';
+    navBtn.textContent='\u2630';
+    navBtn.title=ar?'\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649':'Navigation';
+    // ── navigation dropdown ──────────────────────────────
     var drop=document.createElement('div');
     drop.setAttribute('data-projdrop','1');
-    drop.style.cssText='position:absolute;'+(ar?'left':'right')+':0;top:52px;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.18);overflow:hidden;z-index:400;min-width:220px;display:none;border:1px solid #e8eee9';
-    function mkBtn(icon,lbl,fn,red){
-      var b=document.createElement('button');
-      b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:none;border:none;border-bottom:.5px solid #f0f0f0;font-size:14px;cursor:pointer;color:'+(red?'#d63031':'#222')+';text-align:'+(ar?'right':'left')+';direction:'+(ar?'rtl':'ltr');
-      b.innerHTML='<span style="font-size:18px">'+icon+'</span><span>'+lbl+'</span>';
-      b.onclick=fn;return b;
-    }
-    function mkLbl(txt){
-      var d=document.createElement('div');
-      d.style.cssText='padding:8px 14px 4px;font-size:11px;color:#aaa;background:#f8fdf9;text-align:'+(ar?'right':'left');
-      d.textContent=txt;return d;
-    }
-    function goTo(sec){
-      return function(){
-        drop.style.display='none';
-        CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;
-        loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection(sec);});});
-      };
-    }
-    drop.appendChild(mkLbl(ar?'\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649':'Aller \u00e0 \u2192'));
+    drop.style.cssText='position:absolute;'+(ar?'left':'right')+':0;top:100%;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.2);overflow:hidden;z-index:400;min-width:200px;display:none;border:1px solid #e8eee9;margin-top:4px';
     var navSecs=[
       ['\uD83D\uDCE6',ar?'\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a':'Produits','products'],
       ['\uD83D\uDEAC',ar?'\u0627\u0644\u0633\u062c\u0627\u0626\u0631':'Cigarettes','cigarettes'],
@@ -1407,34 +1398,33 @@ function renderUserProjs(projs){
       ['\uD83D\uDCCA',ar?'\u0627\u0644\u062d\u0635\u064a\u0644\u0629':'Bilan','bilan'],
       ['\uD83D\uDCC4',ar?'\u0627\u0644\u0645\u0644\u062e\u0635':'R\u00e9capitulatif','recap2']
     ];
-    navSecs.forEach(function(it){drop.appendChild(mkBtn(it[0],it[1],goTo(it[2])));});
-    drop.appendChild(mkLbl(ar?'\u0625\u062c\u0631\u0627\u0621\u0627\u062a':'Actions'));
-    drop.appendChild(mkBtn('\u270F\uFE0F',ar?'\u062a\u0639\u062f\u064a\u0644':'Modifier',function(){
-      drop.style.display='none';
-      openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),
-        fields:[{key:'name',label:t('projName'),value:p.name},{key:'from_name',label:ar?'\u0645\u0646':' De',value:p.from_name||''},{key:'to_name',label:ar?'\u0625\u0644\u0649':'\u00c0',value:p.to_name||''}],
-        onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),from_name:(v.from_name||'').trim(),to_name:(v.to_name||'').trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();p.from_name=(v.from_name||'').trim();p.to_name=(v.to_name||'').trim();showToast('\u2705 '+t('renamed'));});}
-      });
-    }));
-    drop.appendChild(mkBtn('\uD83D\uDCC4','PDF',function(){drop.style.display='none';caissePDFForProject(p.id,p.name,p.from_name,p.to_name,p.user_id);}));
-    drop.appendChild(mkBtn('\uD83D\uDDD1',ar?'\u062d\u0630\u0641':'Supprimer',function(){
-      drop.style.display='none';
-      confirmModal(t('del'),'"'+p.name+'" ?',function(){addProjectToBin(p);sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('\u2705 '+t('deleted'));});},t('del'));
-    },true));
-    menuBtn.onclick=function(e){
+    navSecs.forEach(function(sec){
+      var b=document.createElement('button');
+      b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:none;border:none;border-bottom:.5px solid #f0f0f0;font-size:14px;cursor:pointer;color:#222;text-align:'+(ar?'right':'left')+';direction:'+(ar?'rtl':'ltr');
+      b.innerHTML='<span>'+sec[0]+'</span><span>'+sec[1]+'</span>';
+      b.onclick=function(){
+        drop.style.display='none';
+        CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;
+        loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection(sec[2]);});});
+      };
+      drop.appendChild(b);
+    });
+    navBtn.onclick=function(e){
       e.stopPropagation();
       var isOpen=drop.style.display==='block';
       document.querySelectorAll('[data-projdrop]').forEach(function(d){d.style.display='none';});
       drop.style.display=isOpen?'none':'block';
     };
-    row.appendChild(info);row.appendChild(menuBtn);row.appendChild(drop);
+    // ── assemble row ─────────────────────────────────────
+    var left=document.createElement('div');left.style.cssText='flex:1;position:relative';
+    left.appendChild(info);left.appendChild(btns);left.appendChild(navBtn);left.appendChild(drop);
+    var row=document.createElement('div');row.className='proj-row';row.appendChild(left);
     list.appendChild(row);
   });
   document.addEventListener('click',function(){
     document.querySelectorAll('[data-projdrop]').forEach(function(d){d.style.display='none';});
   });
 }
-
 
 function createProj(){
   var inp=G('proj-inp');var name=(inp?inp.value||'':'').trim();if(!name)return;
