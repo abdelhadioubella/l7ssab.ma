@@ -428,6 +428,7 @@ function buildHeader(opts){
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
       langBtn+
       (opts.role==='admin'?'':
+        (CP&&opts.activeTab&&opts.activeTab!=='inventory'?'<button class="hdr-btn" id="proj-nav-btn" onclick="openProjNavMenu()" style="font-size:18px">\u2630</button>':'')+
         '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
         '<div class="av-menu" id="av-menu">'+
           '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
@@ -574,6 +575,49 @@ function calcEquals(chain){
   else{_calcExpr=String(r)+' '+op+' ';}
   _calc=String(r);_calcFresh=true;calcUpd();
 }
+function openProjNavMenu(){
+  var existing=document.getElementById('proj-nav-drop');
+  if(existing){existing.remove();return;}
+  var ar=isAr();
+  var drop=document.createElement('div');
+  drop.id='proj-nav-drop';
+  drop.style.cssText='position:fixed;top:54px;'+(ar?'left:0':'right:0')+';background:#fff;border-radius:0 0 14px 14px;box-shadow:0 6px 24px rgba(0,0,0,.22);overflow:hidden;z-index:500;min-width:210px;border:1px solid #e8eee9;max-height:80vh;overflow-y:auto';
+  var secs=[
+    ['📦',ar?'المنتجات':'Produits','products'],
+    ['🚬',ar?'السجائر':'Cigarettes','cigarettes'],
+    ['📱',ar?'التعبئة':'Recharge','recharge'],
+    ['📖',ar?'الكريدي':'Crédit','credit'],
+    ['🧾',ar?'مال الصندوق':'Argent de caisse','change'],
+    ['💵',ar?'كاش':'Cash','cash'],
+    ['➖',ar?'المصاريف':'Dépenses','moins'],
+    ['🤝',ar?'المال المأخوذ':'Argent pris','pris'],
+    ['🏦',ar?'رأس المال':'Capital','capital'],
+    ['📊',ar?'الحصيلة':'Bilan','bilan'],
+    ['🤝',ar?'تقسيم الأرباح':'Division','partage'],
+    ['⚖️',ar?'التسوية':'Ajustement','adjustment'],
+    ['📄',ar?'الملخص':'Récapitulatif','recap2'],
+    ['🏠',ar?'المشاريع':'Projets','inventory']
+  ];
+  secs.forEach(function(sec){
+    var b=document.createElement('button');
+    var isCur=CURSEC===sec[2];
+    b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:'+(isCur?'#e8f5ee':'none')+';border:none;border-bottom:.5px solid #f0f0f0;font-size:14px;cursor:pointer;color:'+(isCur?'#1a7a4a':'#222')+';font-weight:'+(isCur?'700':'400')+';text-align:'+(ar?'right':'left')+';direction:'+(ar?'rtl':'ltr');
+    b.innerHTML='<span>'+sec[0]+'</span><span>'+sec[1]+'</span>';
+    b.onclick=function(){drop.remove();showSection(sec[2]);};
+    drop.appendChild(b);
+  });
+  document.body.appendChild(drop);
+  setTimeout(function(){
+    document.addEventListener('click',function h(e){
+      var nb=document.getElementById('proj-nav-btn');
+      if(!drop.contains(e.target)&&e.target!==nb&&!(nb&&nb.contains(e.target))){
+        if(drop.parentNode)drop.remove();
+      }
+      document.removeEventListener('click',h);
+    });
+  },10);
+}
+
 function toggleAvMenu(){
   var m=G('av-menu');if(!m)return;
   var showing=m.classList.contains('show');
@@ -727,7 +771,6 @@ function openAboutPopup(){
       '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #dde5e0">'+
         '<p style="font-size:14px;color:#333;line-height:1.7;margin:0">'+
           'هذا التطبيق هدية لوالدي العزيز 💚<br>'+
-          '<span style="font-size:12px;color:#888">Cette application est un cadeau pour mon cher père</span>'+
         '</p>'+
       '</div>'+
     '</div>'+
@@ -1363,12 +1406,10 @@ function renderUserProjs(projs){
     var ar=isAr();
     var nameEl=document.createElement('p');nameEl.style.cssText='font-size:14px;font-weight:600;margin:0 0 2px';nameEl.textContent=p.name;
     var dateEl=document.createElement('p');dateEl.style.cssText='font-size:11px;color:#888;margin:0';dateEl.textContent=new Date(p.updated_at).toLocaleDateString();
-    var info=document.createElement('div');info.style.flex='1';info.appendChild(nameEl);info.appendChild(dateEl);
+    var info=document.createElement('div');info.style.cssText='flex:1;cursor:pointer';info.appendChild(nameEl);info.appendChild(dateEl);
+    info.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
     // original load button
     var btns=document.createElement('div');btns.className='proj-btns';
-    var lb=document.createElement('button');lb.className='btn-b';lb.textContent='\uD83D\uDCC2 '+t('ld');
-    lb.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
-    btns.appendChild(lb);
     // ☰ button → Edit + PDF + Delete dropdown
     var navBtn=document.createElement('button');
     navBtn.style.cssText='background:#f0faf5;border:1px solid #1a7a4a;border-radius:8px;font-size:16px;cursor:pointer;color:#1a7a4a;padding:4px 10px;flex-shrink:0;line-height:1';
