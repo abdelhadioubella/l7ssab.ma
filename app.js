@@ -421,7 +421,8 @@ function buildHeader(opts){
   var html=''+
   '<div class="hdr" dir="'+(isAr()?'rtl':'ltr')+'">'+
     (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
-    '<span class="hdr-title" id="hdr-title" onclick="openNavPopup()" style="cursor:pointer;user-select:none">'+esc(opts.title||'L7ssab.ma')+'</span>'+
+    '<span class="hdr-title" id="hdr-title" onclick="toggleNavMenu()" style="cursor:pointer;user-select:none">'+esc(opts.title||'L7ssab.ma')+'</span>'+
+    '<div class="nav-menu" id="nav-menu"></div>'+
     '<div class="hdr-right">'+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
       '<button class="hdr-btn" onclick="toggleFS()" title="Plein écran">⛶</button>'+
@@ -580,8 +581,15 @@ function toggleAvMenu(){
   m.style.display=''; // remove inline style so CSS class controls display
   m.classList.toggle('show',!showing);
 }
-function openNavPopup(){
+function toggleNavMenu(){
   if(isAdmin)return;
+  var m=G('nav-menu');if(!m)return;
+  var showing=m.classList.contains('show');
+  m.classList.toggle('show',!showing);
+  if(!showing)buildNavMenu();
+}
+function buildNavMenu(){
+  var m=G('nav-menu');if(!m)return;
   var ar=isAr();
   var secs=[
     ['inventory',ar?'🏠 المشاريع':'🏠 Projets'],
@@ -599,42 +607,21 @@ function openNavPopup(){
     ['adjustment',ar?'⚖️ التسوية':'⚖️ Ajustement'],
     ['recap2',ar?'📄 الملخص':'📄 Récapitulatif']
   ];
-  var html='<div style="margin:-14px;border-radius:12px;overflow:hidden">';
+  m.innerHTML='';
   secs.forEach(function(sec){
-    var cur=(CURSEC===sec[0]);
     var btn=document.createElement('button');
     btn.textContent=sec[1];
-    btn.style.cssText='display:block;width:100%;padding:11px 14px;text-align:'+(ar?'right':'left')+';background:'+(cur?'#e8f5ee':'transparent')+';border:none;border-bottom:1px solid #f0f0f0;font-size:14px;cursor:pointer;'+(cur?'font-weight:700;color:#1a7a4a;':'color:#222;');
-    btn.setAttribute('data-sec',sec[0]);
-    btn.onclick=function(){closeModal();showSection(this.getAttribute('data-sec'));};
-    html+='__BTN_'+sec[0]+'__';
+    if(CURSEC===sec[0])btn.className='nav-cur';
+    btn.onclick=function(){m.classList.remove('show');showSection(sec[0]);};
+    m.appendChild(btn);
   });
-  html+='</div>';
-  openModalHTML(ar?'التنقل':'Navigation',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
-  // Replace placeholders with real buttons (to avoid quote issues)
-  setTimeout(function(){
-    var body=document.querySelector('#app-modal .modal-body');
-    if(!body)return;
-    secs.forEach(function(sec){
-      var cur=(CURSEC===sec[0]);
-      var ph=body.querySelector && body.innerHTML;
-      var btn=document.createElement('button');
-      btn.textContent=sec[1];
-      btn.style.cssText='display:block;width:100%;padding:11px 14px;text-align:'+(ar?'right':'left')+';background:'+(cur?'#e8f5ee':'transparent')+';border:none;border-bottom:1px solid #f0f0f0;font-size:14px;cursor:pointer;'+(cur?'font-weight:700;color:#1a7a4a;':'color:#222;');
-      btn.onclick=function(){closeModal();showSection(sec[0]);};
-      body.querySelector('div').appendChild(btn);
-    });
-    body.querySelector('div').innerHTML='';
-    secs.forEach(function(sec){
-      var cur=(CURSEC===sec[0]);
-      var btn=document.createElement('button');
-      btn.textContent=sec[1];
-      btn.style.cssText='display:block;width:100%;padding:11px 14px;text-align:'+(ar?'right':'left')+';background:'+(cur?'#e8f5ee':'transparent')+';border:none;border-bottom:1px solid #f0f0f0;font-size:14px;cursor:pointer;'+(cur?'font-weight:700;color:#1a7a4a;':'color:#222;');
-      btn.onclick=function(){closeModal();showSection(sec[0]);};
-      body.querySelector('div').appendChild(btn);
-    });
-  },0);
 }
+// close nav-menu when clicking outside
+document.addEventListener('click',function(e){
+  var m=G('nav-menu');
+  if(m&&m.classList.contains('show')&&!e.target.closest('#nav-menu')&&!e.target.closest('#hdr-title'))
+    m.classList.remove('show');
+});
 
 function openSettingsPopup(){
   var ar=isAr();
@@ -646,46 +633,80 @@ function openSettingsPopup(){
   '</div>';
   openModalHTML(ar?'⚙️ الإعدادات':'⚙️ Paramètres',html,function(){closeModal();},(ar?'✓ تم':'✓ Fermer'));
 }
-// ── Bin (trash / recover deleted items) ─────────────────────
+// ── Bin (trash / recover deleted items + projects) ──────────
 function openBinPopup(){
   var ar=isAr();
   var bin=JSON.parse(localStorage.getItem('l7ssab_bin')||'[]');
-  var html='';
+  var ov=document.createElement('div');ov.className='modal-ov';ov.id='bin-modal';
+  var dir=ar?' dir="rtl"':'';
+  var items_html='';
   if(!bin.length){
-    html='<p style="text-align:center;color:#aaa;padding:20px">'+(ar?'السلة فارغة':'Corbeille vide')+'</p>';
+    items_html='<p style="text-align:center;color:#aaa;padding:30px 0">'+(ar?'السلة فارغة':'Corbeille vide')+'</p>';
   } else {
-    html='<div style="display:flex;flex-direction:column;gap:8px">';
     bin.forEach(function(item,i){
-      html+='<div style="background:#f7f9f8;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+      var isProj=item.type==='project';
+      items_html+='<div style="background:#f7f9f8;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">'+
         '<div style="flex:1">'+
-          '<div style="font-weight:600;font-size:14px">'+esc(item.name||'—')+'</div>'+
-          '<div style="font-size:11px;color:#888">'+(item.qty||'')+(item.price?' · '+item.price+' DH':'')+'</div>'+
-          '<div style="font-size:10px;color:#bbb">'+(item.deletedAt?new Date(item.deletedAt).toLocaleDateString('fr-MA'):'')+'</div>'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            '<span style="font-size:16px">'+(isProj?'📁':'📦')+'</span>'+
+            '<span style="font-weight:600;font-size:14px">'+esc(item.name||'—')+'</span>'+
+          '</div>'+
+          (!isProj?'<div style="font-size:11px;color:#888;margin-top:2px">'+(item.qty||0)+' × '+(item.price||0)+' DH</div>':'')+
+          '<div style="font-size:10px;color:#bbb;margin-top:2px">'+(item.deletedAt?new Date(item.deletedAt).toLocaleDateString('fr-MA'):'')+'</div>'+
         '</div>'+
-        '<button class="btn-p" style="margin:0;padding:6px 12px;font-size:12px" onclick="restoreFromBin('+i+')">'+(ar?'استعادة':'Restaurer')+'</button>'+
+        '<button class="btn-p" data-idx="'+i+'" style="margin:0;padding:6px 12px;font-size:12px">'+(ar?'استعادة':'Restaurer')+'</button>'+
       '</div>';
     });
-    html+='</div><button onclick="clearBin()" style="margin-top:12px;width:100%;padding:10px;background:#ffeaea;color:#d63031;border:none;border-radius:10px;cursor:pointer;font-size:13px">'+(ar?'🗑️ تفريغ السلة':'🗑️ Vider la corbeille')+'</button>';
+    items_html+='<button id="bin-clear-btn" style="margin-top:4px;width:100%;padding:10px;background:#ffeaea;color:#d63031;border:none;border-radius:10px;cursor:pointer;font-size:13px">'+(ar?'🗑️ تفريغ السلة':'🗑️ Vider la corbeille')+'</button>';
   }
-  openModalHTML(ar?'🗑️ سلة المحذوفات':'🗑️ Corbeille',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+  ov.innerHTML='<div class="modal-box"'+dir+' style="max-height:80vh;display:flex;flex-direction:column">'+
+    '<div class="modal-head" style="display:flex;align-items:center;justify-content:space-between">'+
+      '<span style="flex:1;'+(ar?'text-align:right':'text-align:left')+'">'+(ar?'🗑️ سلة المحذوفات':'🗑️ Corbeille')+'</span>'+
+      '<button onclick="closeBinModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;margin-'+(ar?'right':'left')+':8px">×</button>'+
+    '</div>'+
+    '<div class="modal-body" style="overflow-y:auto;max-height:55vh">'+items_html+'</div>'+
+  '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  // restore buttons
+  var restoreBtns=ov.querySelectorAll('[data-idx]');
+  restoreBtns.forEach(function(btn){
+    btn.onclick=function(){var i=parseInt(this.getAttribute('data-idx'));ov.remove();restoreFromBin(i);};
+  });
+  var clearBtn=G('bin-clear-btn');
+  if(clearBtn)clearBtn.onclick=function(){clearBin();ov.remove();};
 }
 function restoreFromBin(i){
   var bin=JSON.parse(localStorage.getItem('l7ssab_bin')||'[]');
-  var item=bin[i];if(!item||!CP)return;
+  var item=bin[i];if(!item)return;
   var ar=isAr();
   bin.splice(i,1);localStorage.setItem('l7ssab_bin',JSON.stringify(bin));
-  // Re-add to project
-  sb.from('project_items').insert({project_id:CP.id,barcode:item.barcode||'',name:item.name||'',price:item.price||0,quantity:item.qty||0}).select().then(function(r){
-    if(r&&r.data&&r.data[0]){CACHE.items.push(r.data[0]);persistItemsCache();}
-    showToast('✅ '+(ar?'تمت الاستعادة':'Restauré'));
-    closeModal();refreshEdit();updateRT();
-  }).catch(function(){showToast('❌');});
+  if(item.type==='project'){
+    // Restore project
+    var data={name:item.name||'',from_name:item.from_name||'',to_name:item.to_name||'',user_id:item.user_id||CU.id,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+    sb.from('projects').insert(data).then(function(){showToast('✅ '+(ar?'تمت استعادة المشروع':'Projet restauré'));refreshProjs();}).catch(function(){showToast('❌');});
+  } else {
+    if(!CP){showToast('❌ '+(ar?'افتح مشروعاً أولاً':'Ouvrir un projet'));return;}
+    sb.from('project_items').insert({project_id:CP.id,barcode:item.barcode||'',name:item.name||'',price:item.price||0,quantity:item.qty||0}).select().then(function(r){
+      if(r&&r.data&&r.data[0]){CACHE.items.push(r.data[0]);persistItemsCache();}
+      showToast('✅ '+(ar?'تمت الاستعادة':'Restauré'));
+      refreshEdit();updateRT();
+    }).catch(function(){showToast('❌');});
+  }
 }
+function closeBinModal(){var m=document.getElementById('bin-modal');if(m)m.remove();}
 function clearBin(){
   localStorage.removeItem('l7ssab_bin');
   showToast('✅');closeModal();
 }
 // Add to bin when item is deleted
+function addProjectToBin(p){
+  if(!p)return;
+  var bin=JSON.parse(localStorage.getItem('l7ssab_bin')||'[]');
+  bin.unshift({type:'project',id:p.id,name:p.name,from_name:p.from_name,to_name:p.to_name,user_id:p.user_id,deletedAt:new Date().toISOString()});
+  if(bin.length>50)bin=bin.slice(0,50);
+  localStorage.setItem('l7ssab_bin',JSON.stringify(bin));
+}
 function addToBin(item){
   if(!item)return;
   var bin=JSON.parse(localStorage.getItem('l7ssab_bin')||'[]');
@@ -702,7 +723,7 @@ function openAboutPopup(){
     '<div style="font-size:22px;font-weight:700;color:#1a7a4a;margin-bottom:4px">L7ssab.ma</div>'+
     '<div style="font-size:12px;color:#aaa;margin-bottom:20px">'+appVer+'</div>'+
     '<div style="background:#f0faf5;border-radius:12px;padding:16px;margin-bottom:12px;text-align:right;direction:rtl">'+
-      '<p style="font-size:15px;font-weight:700;color:#1a7a4a;margin:0 0 6px">تطوير: عبد الهادي عبيلة</p>'+
+      '<p style="font-size:15px;font-weight:700;color:#1a7a4a;margin:0 0 6px">تطوير: عبد الهادي ابلا</p>'+
       '<p style="font-size:13px;color:#555;margin:0 0 4px">بمساعدة: Claude IA — Anthropic</p>'+
       '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #dde5e0">'+
         '<p style="font-size:14px;color:#333;line-height:1.7;margin:0">'+
@@ -713,7 +734,11 @@ function openAboutPopup(){
     '</div>'+
     '<div style="font-size:11px;color:#bbb">© 2026 L7ssab.ma · All rights reserved</div>'+
   '</div>';
-  openModalHTML(ar?'ℹ️ حول التطبيق':'ℹ️ À propos',html,function(){closeModal();},(ar?'إغلاق':'Fermer'));
+  var ov2=document.createElement('div');ov2.className='modal-ov';ov2.id='about-modal';
+  var dir2=ar?' dir="rtl"':'';
+  ov2.innerHTML='<div class="modal-box"'+dir2+'><div class="modal-head" style="display:flex;align-items:center;justify-content:space-between"><span style="flex:1;'+(ar?'text-align:right':'text-align:left')+'">'+(ar?'ℹ️ حول التطبيق':'ℹ️ À propos')+'</span><button onclick="document.getElementById(\'about-modal\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;margin-'+(ar?'right':'left')+':8px">×</button></div><div class="modal-body">'+html+'</div></div>';
+  document.body.appendChild(ov2);
+  ov2.addEventListener('click',function(e){if(e.target===ov2)ov2.remove();});
 }
 function checkForUpdates(){
   var ar=isAr();
@@ -1343,7 +1368,7 @@ function renderUserProjs(projs){
       var lb=document.createElement('button');lb.className='btn-b';lb.textContent='📂 '+t('ld');lb.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
       var eb=document.createElement('button');eb.className='btn-b';eb.textContent='✏️ '+(isAr()?'تعديل':'Modifier');eb.onclick=function(){var ar=isAr();openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:t('projName'),value:p.name},{key:'from_name',label:ar?'من السيد':'De (from)',value:p.from_name||''},{key:'to_name',label:ar?'إلى السيد':'À (to)',value:p.to_name||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),from_name:(v.from_name||'').trim(),to_name:(v.to_name||'').trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();p.from_name=(v.from_name||'').trim();p.to_name=(v.to_name||'').trim();showToast('✅ '+t('renamed'));});}});};
       var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 '+t('pd');pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name,p.user_id);};
-      var db=document.createElement('button');db.className='btn-r';db.textContent='🗑 '+(isAr()?'حذف':'Supprimer');db.onclick=function(){confirmModal(t('del'),'"'+p.name+'" ?',function(){sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('✅ '+t('deleted'));});},t('del'));};
+      var db=document.createElement('button');db.className='btn-r';db.textContent='🗑 '+(isAr()?'حذف':'Supprimer');db.onclick=function(){confirmModal(t('del'),'"'+p.name+'" ?',function(){addProjectToBin(p);sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('✅ '+t('deleted'));});},t('del'));};
       btns.appendChild(lb);btns.appendChild(eb);btns.appendChild(db);btns.appendChild(pb);
       var left=document.createElement('div');left.style.flex='1';left.appendChild(info);left.appendChild(btns);
       var row=document.createElement('div');row.className='proj-row';row.appendChild(left);list.appendChild(row);
