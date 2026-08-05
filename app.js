@@ -571,8 +571,12 @@ function calcEquals(chain){
   else{_calcExpr=String(r)+' '+op+' ';}
   _calc=String(r);_calcFresh=true;calcUpd();
 }
-function toggleAvMenu(){var m=G('av-menu');if(!m)return;var showing=m.classList.contains('show');// close first if open
-m.classList.remove('show');if(!showing){m.style.display='block';m.style.zIndex='9999';m.classList.add('show');}}
+function toggleAvMenu(){
+  var m=G('av-menu');if(!m)return;
+  var showing=m.classList.contains('show');
+  m.style.display=''; // remove inline style so CSS class controls display
+  m.classList.toggle('show',!showing);
+}
 function openSettingsPopup(){
   var ar=isAr();
   var html='<div style="display:flex;flex-direction:column;gap:12px;padding-bottom:8px">'+
@@ -1050,19 +1054,29 @@ function renderCalendar(){
     })(d);
   }
 }
-// month + year picker
+// month + year picker — unlimited years, navigation arrows
+var _pickYearBase;
 function openMonthYearPicker(){
   var p=G('cal-picker');if(!p)return;
   if(!p.classList.contains('hidden')){p.classList.add('hidden');return;}
-  var html='<div class="cal-pick-years" id="cal-pick-years">';
-  var cy=new Date().getFullYear();
-  for(var y=cy-3;y<=cy+3;y++){html+='<button class="cal-py'+(y===_calYear?' sel':'')+'" onclick="pickYear('+y+')">'+y+'</button>';}
-  html+='</div><div class="cal-pick-months">';
-  for(var m=0;m<12;m++){html+='<button class="cal-pm'+(m===_calMonth?' sel':'')+'" onclick="pickMonth('+m+')">'+calMonthName(m).substring(0,3)+'</button>';}
-  html+='</div>';
-  p.innerHTML=html;p.classList.remove('hidden');
+  _pickYearBase=_calYear;
+  renderYearMonthPicker();
+  p.classList.remove('hidden');
 }
-function pickYear(y){_calYear=y;openMonthYearPicker();openMonthYearPicker();renderCalendar();}
+function renderYearMonthPicker(){
+  var p=G('cal-picker');if(!p)return;
+  var y=_pickYearBase;
+  var h='<div class="cal-pick-years">'+
+    '<button class="cal-py-nav" onclick="_pickYearBase-=5;renderYearMonthPicker()">&#8249;&#8249;</button>'+
+    '<button class="cal-py-nav" onclick="_pickYearBase--;renderYearMonthPicker()">&#8249;</button>';
+  for(var i=y-3;i<=y+3;i++){h+='<button class="cal-py'+(i===_calYear?' sel':'')+'" onclick="_calYear='+i+';_pickYearBase='+i+';renderYearMonthPicker();renderCalendar()">'+i+'</button>';}
+  h+='<button class="cal-py-nav" onclick="_pickYearBase++;renderYearMonthPicker()">&#8250;</button>'+
+    '<button class="cal-py-nav" onclick="_pickYearBase+=5;renderYearMonthPicker()">&#8250;&#8250;</button>'+
+    '</div><div class="cal-pick-months">';
+  for(var m=0;m<12;m++){h+='<button class="cal-pm'+(m===_calMonth?' sel':'')+'" onclick="pickMonth('+m+')">'+calMonthName(m).substring(0,3)+'</button>';}
+  h+='</div>';
+  p.innerHTML=h;
+}
 function pickMonth(m){_calMonth=m;var p=G('cal-picker');if(p)p.classList.add('hidden');renderCalendar();}
 function fmtDate(y,m,d){var mm=(m+1)<10?'0'+(m+1):(m+1);var dd=d<10?'0'+d:d;return y+'-'+mm+'-'+dd;}
 function calPrevMonth(){_calMonth--;if(_calMonth<0){_calMonth=11;_calYear--;}renderCalendar();}
@@ -2744,7 +2758,7 @@ function genCaissePDF(){
   // FINAL RECAP TABLE on a new page
   doc.addPage();y=18;chapterTitle(P('📄 Récapitulatif','📄 الملخص'));
   var recapRows=[];
-  recapRows.push([P('Produits','المنتجات'),czProd()]);
+  if(czProd()!==0)recapRows.push([P('Produits','المنتجات'),czProd()]);
   if(czCigNet()!==0)recapRows.push([P('Cigarettes','السجائر'),czCigNet()]);
   if(czRechNet()!==0)recapRows.push([P('Recharge','التعبئة'),czRechNet()]);
   if(parseFloat(CZ.credit)||0)recapRows.push([P('Crédit','الكريدي'),parseFloat(CZ.credit)||0]);
@@ -2791,15 +2805,15 @@ function caissePDFForProject(pid,projName,fromName,toName,ownerId){
   var savedCP=CP,savedItems=CACHE.items,savedCZ=CZ,savedCU=CU;
   var proj={id:pid,name:projName||'',from_name:fromName||'',to_name:toName||''};
   // If admin is downloading, load the project owner's info for the PDF signature
+  var savedLANG=LANG;
+  LANG='ar'; // PDF always in Arabic
   function doGenerate(ownerUser){
-    var pdfCU=ownerUser||CU;
     Promise.all([dbGetItems(pid),loadCaisseDataFor(pid)]).then(function(res){
       CP=proj;CACHE.items=res[0]||[];CZ=res[1]||czBlank();
-      if(ownerUser)CU=ownerUser; // temporarily use owner for PDF
+      if(ownerUser)CU=ownerUser;
       try{genCaissePDF();}catch(e){showToast('❌ '+e.message);}
-      // restore
-      CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;CU=savedCU;
-    }).catch(function(e){showToast('❌ '+(e&&e.message||'PDF'));CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;CU=savedCU;});
+      CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;CU=savedCU;LANG=savedLANG;
+    }).catch(function(e){showToast('❌ '+(e&&e.message||'PDF'));CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;CU=savedCU;LANG=savedLANG;});
   }
   // If ownerId provided and different from current user, load owner data
   if(ownerId&&ownerId!==CU.id){

@@ -216,7 +216,7 @@ html.dark .b-user{background:#1f2a25;color:#9fb3a9;border-color:#33473e}
 .modal-foot{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px 18px}
 html.dark .modal-box{background:#18211d}
 html.dark .modal-body .ml{color:#9fb3a9}
-[dir=rtl] .modal-head{flex-direction:row-reverse}
+[dir=rtl] .modal-head{flex-direction:row-reverse;text-align:right}
 [dir=rtl] .modal-body{text-align:right}
 
 /* scrollable tabbar for many tabs */
@@ -362,7 +362,8 @@ html.dark .am-foot{border-top-color:#22302a}
 .cal-nav{width:42px;height:42px;border:none;background:#f0f7f3;color:#1a7a4a;font-size:24px;border-radius:10px;cursor:pointer}
 .cal-nav:hover{background:#e0efe7}
 .cal-picker{padding:0 18px 12px}
-.cal-pick-years{display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;padding-bottom:4px}
+.cal-pick-years{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px;padding-bottom:4px}
+.cal-py-nav{background:none!important;color:#1a7a4a!important;font-size:16px!important;font-weight:700!important;min-width:28px!important;border:none!important;cursor:pointer!important;padding:4px!important}
 .cal-py{flex-shrink:0;padding:8px 14px;border:none;background:#f0f7f3;border-radius:8px;cursor:pointer;font-weight:600;color:#333}
 .cal-py.sel{background:#1a7a4a;color:#fff}
 .cal-pick-months{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
