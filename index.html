@@ -732,12 +732,14 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-moins">
 <div class="content">
   <div class="card">
-    <div class="card-title" data-fr="➖ Dépenses" data-ar="➖ المصاريف">➖ Dépenses</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="card-title" style="margin:0" data-fr="➖ Dépenses" data-ar="➖ المصاريف">➖ Dépenses</div>
+      <button onclick="openManageExpenses()" style="background:none;border:none;color:#1a7a4a;font-size:12px;cursor:pointer;text-decoration:underline;padding:0" data-fr="⚙️ Gérer" data-ar="⚙️ إدارة">⚙️ Gérer</button>
+    </div>
     <select class="inp" id="moins-type">
       <option value="__new__" data-fr="+ Ajouter un type…" data-ar="+ إضافة نوع…">+ Ajouter un type…</option>
     </select>
     <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense" data-ph-fr="Nom de la dépense" data-ph-ar="اسم المصروف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <button onclick="openManageExpenses()" style="background:none;border:none;color:#1a7a4a;font-size:13px;cursor:pointer;padding:4px 0;text-decoration:underline" data-fr="Gérer mes types" data-ar="إدارة أنواعي">Gérer mes types</button>
     <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label" data-fr="Montant (DH)" data-ar="المبلغ (درهم)">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
     <div class="sign-field"><span data-fr="Signe" data-ar="الإشارة">Signe</span><button class="sign-btn" id="moins-sign" onclick="moinsToggleSign()">-</button></div>
     <button class="btn-p" onclick="moinsAdd()" data-fr="+ Ajouter" data-ar="+ إضافة">+ Ajouter</button>
