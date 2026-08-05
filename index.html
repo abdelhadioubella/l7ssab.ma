@@ -732,13 +732,13 @@ html.dark .mode-txt b{color:#e8f0ec}
 <div class="appsec" id="sec-moins">
 <div class="content">
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div class="card-title" style="margin:0" data-fr="➖ Dépenses" data-ar="➖ المصاريف">➖ Dépenses</div>
-      <button onclick="openManageExpenses()" style="background:none;border:none;color:#1a7a4a;font-size:12px;cursor:pointer;text-decoration:underline;padding:0" data-fr="⚙️ Gérer" data-ar="⚙️ إدارة">⚙️ Gérer</button>
+    <div class="card-title" data-fr="➖ Dépenses" data-ar="➖ المصاريف">➖ Dépenses</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <select class="inp" id="moins-type" style="flex:1;margin:0">
+        <option value="__new__" data-fr="+ Ajouter un type…" data-ar="+ إضافة نوع…">+ Ajouter un type…</option>
+      </select>
+      <button onclick="openManageExpenses()" style="flex-shrink:0;width:40px;height:40px;background:#f0f9f4;border:1px solid #1a7a4a;border-radius:10px;font-size:18px;cursor:pointer" title="Gérer mes types">⚙️</button>
     </div>
-    <select class="inp" id="moins-type">
-      <option value="__new__" data-fr="+ Ajouter un type…" data-ar="+ إضافة نوع…">+ Ajouter un type…</option>
-    </select>
     <input class="inp hidden" id="moins-new" placeholder="Nom de la dépense" data-ph-fr="Nom de la dépense" data-ph-ar="اسم المصروف"/ autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="num-field" onclick="openNP('moinsMont','Montant (DH)',true)"><span class="nf-label" data-fr="Montant (DH)" data-ar="المبلغ (درهم)">Montant (DH)</span><span class="nf-val" id="moins-mont-val">0.00</span></div>
     <div class="sign-field"><span data-fr="Signe" data-ar="الإشارة">Signe</span><button class="sign-btn" id="moins-sign" onclick="moinsToggleSign()">-</button></div>

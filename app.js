@@ -571,15 +571,40 @@ function calcEquals(chain){
   else{_calcExpr=String(r)+' '+op+' ';}
   _calc=String(r);_calcFresh=true;calcUpd();
 }
-function toggleAvMenu(){var m=G('av-menu');if(!m){showToast('❌ Menu introuvable');return;}m.classList.toggle('show');if(m.classList.contains('show')){m.style.display='block';m.style.zIndex='9999';}}
+function toggleAvMenu(){var m=G('av-menu');if(!m)return;var showing=m.classList.contains('show');// close first if open
+m.classList.remove('show');if(!showing){m.style.display='block';m.style.zIndex='9999';m.classList.add('show');}}
 function openSettingsPopup(){
   var ar=isAr();
   var html='<div style="display:flex;flex-direction:column;gap:12px;padding-bottom:8px">'+
     '<button class="btn-p" onclick="closeModal();openScanSettingsPopup()" style="display:flex;align-items:center;gap:12px;font-size:16px"><span>📡</span><span>'+(ar?'الماسح الضوئي':'Scanner')+'</span></button>'+
     '<button class="btn-p" onclick="closeModal();openModeSettingsPopup()" style="display:flex;align-items:center;gap:12px;font-size:16px"><span>⌨️</span><span>'+(ar?'وضع الإدخال':'Mode de saisie')+'</span></button>'+
     '<button class="btn-p" onclick="closeModal();openProfilePopup()" style="display:flex;align-items:center;gap:12px;font-size:16px"><span>👤</span><span>'+(ar?'الملف الشخصي':'Profil')+'</span></button>'+
+    '<button class="btn-p" onclick="checkForUpdates()" style="display:flex;align-items:center;gap:12px;font-size:16px;background:#2563eb"><span>🔄</span><span>'+(ar?'تحديث التطبيق':'Mettre à jour l\'app')+'</span></button>'+
   '</div>';
   openModalHTML(ar?'⚙️ الإعدادات':'⚙️ Paramètres',html,function(){closeModal();},(ar?'✓ تم':'✓ Fermer'));
+}
+function checkForUpdates(){
+  var ar=isAr();
+  showToast((ar?'🔄 التحقق من التحديثات…':'🔄 Vérification des mises à jour…'),2000);
+  closeModal();
+  // Unregister service worker and clear caches to force fresh reload
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      var ps=regs.map(function(r){return r.unregister();});
+      return Promise.all(ps);
+    }).then(function(){
+      return caches.keys();
+    }).then(function(keys){
+      return Promise.all(keys.map(function(k){return caches.delete(k);}));
+    }).then(function(){
+      showToast((ar?'✅ تم التحديث - جاري إعادة التشغيل':'✅ Mis à jour - redémarrage…'),1500);
+      setTimeout(function(){window.location.reload(true);},1500);
+    }).catch(function(){
+      window.location.reload(true);
+    });
+  } else {
+    window.location.reload(true);
+  }
 }
 function openScanSettingsPopup(){
   var ar=isAr();
@@ -1161,7 +1186,7 @@ function renderUserProjs(projs){
       var btns=document.createElement('div');btns.className='proj-btns';
       var lb=document.createElement('button');lb.className='btn-b';lb.textContent='📂 '+t('ld');lb.onclick=function(){CP=p;setCurrentProject(p);dP=0;dQ=0;eI=0;loadCaisseData();loadItems().then(function(){loadAdjs().then(function(){showSection('products');});});};
       var eb=document.createElement('button');eb.className='btn-b';eb.textContent='✏️ '+(isAr()?'تعديل':'Modifier');eb.onclick=function(){var ar=isAr();openModal({title:t('chn'),confirmText:t('upd'),cancelText:t('can'),fields:[{key:'name',label:t('projName'),value:p.name},{key:'from_name',label:ar?'من السيد':'De (from)',value:p.from_name||''},{key:'to_name',label:ar?'إلى السيد':'À (to)',value:p.to_name||''}],onConfirm:function(v){if(!v.name.trim())return;sb.from('projects').update({name:v.name.trim(),from_name:(v.from_name||'').trim(),to_name:(v.to_name||'').trim(),updated_at:new Date().toISOString()}).eq('id',p.id).then(function(){closeModal();nameEl.textContent=v.name.trim();p.from_name=(v.from_name||'').trim();p.to_name=(v.to_name||'').trim();showToast('✅ '+t('renamed'));});}});};
-      var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 '+t('pd');pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name);};
+      var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 '+t('pd');pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name,p.user_id);};
       var db=document.createElement('button');db.className='btn-r';db.textContent='🗑 '+(isAr()?'حذف':'Supprimer');db.onclick=function(){confirmModal(t('del'),'"'+p.name+'" ?',function(){sb.from('projects').delete().eq('id',p.id).then(function(){if(row.parentNode)row.parentNode.removeChild(row);showToast('✅ '+t('deleted'));});},t('del'));};
       btns.appendChild(lb);btns.appendChild(eb);btns.appendChild(db);btns.appendChild(pb);
       var left=document.createElement('div');left.style.flex='1';left.appendChild(info);left.appendChild(btns);
@@ -2043,7 +2068,7 @@ function renderAdminProjects(list){
     var info=document.createElement('div');info.style.flex='1';
     info.innerHTML='<p style="font-size:14px;font-weight:600;margin:0 0 2px">'+esc(p.name)+'</p><p style="font-size:11px;color:#888;margin:0">👤 '+esc(owner)+' · '+new Date(p.updated_at).toLocaleDateString()+'</p>';
     var pb=document.createElement('button');pb.className='btn-grn';pb.textContent='📄 PDF';pb.style.flexShrink='0';
-    pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name);};
+    pb.onclick=function(){caissePDFForProject(p.id,p.name,p.from_name,p.to_name,p.user_id);};
     row.appendChild(info);row.appendChild(pb);c.appendChild(row);
   });
 }
@@ -2202,6 +2227,7 @@ function loadCaisseData(){var k=caisseKey();if(!k){czReset();return;}
   if(CP&&CP.id&&navigator.onLine){sb.from('caisse_data').select('data').eq('project_id',CP.id).maybeSingle().then(function(r){if(r&&!r.error&&r.data&&r.data.data){applyCaisseData(r.data.data);try{localStorage.setItem(k,JSON.stringify(r.data.data));}catch(e){}if(typeof CURSEC==='string')showSection(CURSEC);}}).catch(function(){});}
 }
 function nf2(n){return (Math.round((parseFloat(n)||0)*100)/100).toFixed(2);}
+function nfDH(n){return nf2(n)+' DH';} // always: 100.00 DH
 function L(fr,ar){return (LANG==='ar')?ar:fr;} // inline bilingual string (Arabic written directly)
 function moinsLbl(t){if(t&&t.indexOf('custom:')===0)return t.slice(7);return t||'';}
 // sums
@@ -2760,16 +2786,29 @@ function genCaissePDF(){
 function escJs2(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 // Generate the SAME recap PDF (cover + all caisse tables) for any project id.
 // Loads that project's caisse data + items into the globals, generates, then restores.
-function caissePDFForProject(pid,projName,fromName,toName){
+function caissePDFForProject(pid,projName,fromName,toName,ownerId){
   showToast('⏳ '+L('Préparation du PDF…','تحضير PDF…'),1500);
-  var savedCP=CP,savedItems=CACHE.items,savedCZ=CZ;
+  var savedCP=CP,savedItems=CACHE.items,savedCZ=CZ,savedCU=CU;
   var proj={id:pid,name:projName||'',from_name:fromName||'',to_name:toName||''};
-  Promise.all([dbGetItems(pid),loadCaisseDataFor(pid)]).then(function(res){
-    CP=proj;CACHE.items=res[0]||[];CZ=res[1]||czBlank();
-    try{genCaissePDF();}catch(e){showToast('❌ '+e.message);}
-    // restore current context
-    CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;
-  }).catch(function(e){showToast('❌ '+(e&&e.message||'PDF'));CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;});
+  // If admin is downloading, load the project owner's info for the PDF signature
+  function doGenerate(ownerUser){
+    var pdfCU=ownerUser||CU;
+    Promise.all([dbGetItems(pid),loadCaisseDataFor(pid)]).then(function(res){
+      CP=proj;CACHE.items=res[0]||[];CZ=res[1]||czBlank();
+      if(ownerUser)CU=ownerUser; // temporarily use owner for PDF
+      try{genCaissePDF();}catch(e){showToast('❌ '+e.message);}
+      // restore
+      CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;CU=savedCU;
+    }).catch(function(e){showToast('❌ '+(e&&e.message||'PDF'));CP=savedCP;CACHE.items=savedItems;CZ=savedCZ;CU=savedCU;});
+  }
+  // If ownerId provided and different from current user, load owner data
+  if(ownerId&&ownerId!==CU.id){
+    sb.from('app_users').select('*').eq('id',ownerId).limit(1).then(function(r){
+      doGenerate((r&&r.data&&r.data[0])||null);
+    }).catch(function(){doGenerate(null);});
+  } else {
+    doGenerate(null);
+  }
 }
 // load a project's caisse data from Supabase (returns a CZ-shaped object)
 function loadCaisseDataFor(pid){
