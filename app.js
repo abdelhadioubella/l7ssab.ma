@@ -420,7 +420,7 @@ function buildHeader(opts){
   var langBtn=opts.showLang?'<button class="hdr-btn" onclick="toggleLangApp()" id="lang-app-btn">🇫🇷</button>':'';
   var html=''+
   '<div class="hdr" dir="'+(isAr()?'rtl':'ltr')+'">'+
-    (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':'')+
+    (opts.role==='admin'?'<button class="hdr-btn hamb" onclick="openAdminMenu()" title="Menu">☰</button>':(CP&&opts.activeTab&&opts.activeTab!=='inventory'?'<button id="proj-nav-btn" class="hdr-btn hamb" onclick="openProjNavMenu()" title="Navigation">☰</button>':''))+
     '<span class="hdr-title" id="hdr-title">'+esc(opts.title||'L7ssab.ma')+'</span>'+
     '<div class="hdr-right">'+
       '<button class="hdr-btn" onclick="refreshCurrent()" title="Rafraîchir">↻</button>'+
@@ -428,7 +428,6 @@ function buildHeader(opts){
       '<button class="hdr-btn theme-btn" onclick="toggleTheme()" title="Mode nuit">🌙</button>'+
       langBtn+
       (opts.role==='admin'?'':
-        (CP&&opts.activeTab&&opts.activeTab!=='inventory'?'<button class="hdr-btn" id="proj-nav-btn" onclick="openProjNavMenu()" style="font-size:18px">\u2630</button>':'')+
         '<div class="hdr-av" id="hdr-av" onclick="toggleAvMenu()">'+initial+'</div>'+
         '<div class="av-menu" id="av-menu">'+
           '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
@@ -2717,13 +2716,20 @@ function addCustomExpense(label){if(!label)return;CACHE.customExp=CACHE.customEx
 function delCustomExpense(label){CACHE.customExp=(CACHE.customExp||[]).filter(function(x){return x!==label;});saveCustomExpenses();rebuildExpenseOptions();}
 // popup to view/delete custom expense types
 function openManageExpenses(){
+  var ar=isAr();
   var list=CACHE.customExp||[];
   var html='';
-  if(!list.length){html='<p style="text-align:center;color:#aaa;padding:14px">'+L('Aucune dépense personnalisée','لا توجد مصاريف مخصصة')+'</p>';}
+  if(!list.length){html='<p style="text-align:center;color:#aaa;padding:14px">'+(ar?'لا توجد مصاريف مخصصة':'Aucune dépense personnalisée')+'</p>';}
   else{html='<div style="display:flex;flex-direction:column;gap:8px">';
     list.forEach(function(c){html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;background:#f5f5f5;border-radius:10px"><span dir="rtl">'+esc(c)+'</span><button onclick="delCustomExpense(\''+escJs2(c)+'\');openManageExpenses()" style="background:#d63031;color:#fff;border:none;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer">×</button></div>';});
     html+='</div>';}
-  openModalHTML(L('Gérer mes dépenses','إدارة مصاريفي'),html,function(){closeModal();},L('Fermer','إغلاق'));
+  // Custom popup with ONE button only
+  closeModal();
+  var ov=document.createElement('div');ov.className='modal-ov';ov.id='app-modal';
+  var dir=ar?' dir="rtl"':'';
+  ov.innerHTML='<div class="modal-box"'+dir+'><div class="modal-head"><span style="flex:1;text-align:'+(ar?'right':'left')+'">'+( ar?'إدارة مصاريفي':'Gérer mes dépenses')+'</span></div><div class="modal-body">'+html+'</div><div class="modal-foot" style="justify-content:center"><button class="btn-p" onclick="closeModal()" style="margin-top:0;min-width:120px">'+(ar?'✓ تم':'✓ Terminé')+'</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
 }
 // rebuild the <select> options to include custom ones (built-in first, then custom, then +new)
 function rebuildExpenseOptions(){
