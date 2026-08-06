@@ -603,7 +603,7 @@ function openProjNavMenu(){
   // open from LEFT (same side as ☰ button), same CSS as admin sidebar
   holder.innerHTML=
     '<div class="am-overlay" onclick="closeProjNavMenu()"></div>'+
-    '<div class="am-side" id="proj-nav-panel" style="left:0!important;right:auto!important">'+
+    '<div class="am-side'+(ar?' am-side-right':'')+'" id="proj-nav-panel">'+
       '<div class="am-head">'+
         '<span>'+(ar?CP&&CP.name||'التنقل':CP&&CP.name||'Navigation')+'</span>'+
         '<button class="am-x" onclick="closeProjNavMenu()">×</button>'+
