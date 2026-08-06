@@ -433,8 +433,8 @@ function buildHeader(opts){
           '<div class="av-head"><div class="n">'+esc(s?(s.fullname||s.username):'—')+'</div><div class="r">'+roleLabel+'</div></div>'+
           '<button onclick="toggleAvMenu();openCalendar()">📅 '+(isAr()?'التقويم':'Calendrier')+'</button>'+
           '<button onclick="toggleAvMenu();openCalc()">🧮 '+(isAr()?'آلة حاسبة':'Calculatrice')+'</button>'+
+          '<button onclick="toggleAvMenu();openBinPopup()">🗑️ '+(isAr()?'المحذوفات':'Corbeille')+'</button>'+
           '<button onclick="toggleAvMenu();openSettingsPopup()">⚙️ '+(isAr()?'الإعدادات':'Paramètres')+'</button>'+
-          '<button onclick="toggleAvMenu();openBinPopup()">🗑️ '+(isAr()?'سلة المحذوفات':'Corbeille')+'</button>'+
           '<button onclick="toggleAvMenu();openAboutPopup()">ℹ️ '+(isAr()?'حول التطبيق':'À propos')+'</button>'+
           '<button onclick="doInstall()" class="install-btn hidden" style="color:#1a7a4a">📲 '+t('installApp')+'</button>'+
           '<button onclick="logout()">🚪 '+t('logoutTxt')+'</button>'+
@@ -696,7 +696,7 @@ function openBinPopup(){
   var dir=ar?' dir="rtl"':'';
   var items_html='';
   if(!bin.length){
-    items_html='<p style="text-align:right;color:#aaa;padding:30px 0">'+(ar?'السلة فارغة':'Corbeille vide')+'</p>';
+    items_html='<p style="text-align:right;color:#aaa;padding:30px 0">'+(ar?'لا يوجد محذوفات':'Corbeille vide')+'</p>';
   } else {
     bin.forEach(function(item,i){
       var isProj=item.type==='project';
@@ -717,7 +717,7 @@ function openBinPopup(){
   ov.innerHTML='<div class="modal-box"'+dir+' style="max-height:80vh;display:flex;flex-direction:column">'+
     '<div class="modal-head" style="display:flex;align-items:center;justify-content:space-between">'+
       '<button onclick="closeBinModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0 6px 0 0">×</button>'+
-      '<span style="flex:1;text-align:right">'+(ar?'🗑️ سلة المحذوفات':'🗑️ Corbeille')+'</span>'+
+      '<span style="flex:1;text-align:right">'+(ar?'🗑️ المحذوفات':'🗑️ Corbeille')+'</span>'+
     '</div>'+
     '<div class="modal-body" style="overflow-y:auto;max-height:55vh">'+items_html+'</div>'+
   '</div>';
