@@ -135,6 +135,8 @@ html.dark .nav-row{background:#15613b;border-color:#0f5132}
 .utbl td{padding:10px 8px;font-size:13px;border-bottom:.5px solid #e0e0e0}
 .grand-box{background:#1a7a4a;border-radius:14px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .tbar{padding:12px 16px;background:#1a7a4a;border-radius:12px;display:flex;justify-content:space-between;color:#fff;font-size:15px;font-weight:600;margin-bottom:10px}
+.tbar span:last-child{direction:ltr;unicode-bidi:embed}
+[dir=rtl] .tbar{flex-direction:row-reverse}
 .proj-row{display:flex;align-items:flex-start;padding:10px 0;border-bottom:.5px solid #e0e0e0;gap:8px}
 .proj-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
 .smsg{padding:10px 12px;border-radius:12px;font-size:13px;margin-bottom:8px}
@@ -444,6 +446,7 @@ html.dark .filter-clear{background:#2c3a34;color:#9bb3a8}
 
 /* caisse-style sections (same theme as app) */
 .big-field{display:flex;flex-direction:column;align-items:center;gap:10px;background:#f9fdfb;border:2px solid #1a7a4a;border-radius:14px;padding:30px;cursor:pointer}
+.big-field b{direction:ltr;unicode-bidi:embed}
 .big-field span{font-size:14px;color:#666}
 .big-field b{font-size:34px;color:#0f5132}
 html.dark .big-field{background:#0f1714}
@@ -457,6 +460,8 @@ html.dark .denom-btn.sel{background:#1a7a4a;color:#fff;border-color:#37c87f;box-
 .sign-btn{width:46px;height:46px;border:none;border-radius:10px;background:#ffeaea;color:#d63031;font-size:22px;font-weight:700;cursor:pointer}
 html.dark .sign-field{background:#1f2a25}
 .cl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f7f9f8;border:1px solid #e8eeeb;border-radius:12px;padding:10px 12px;margin-bottom:6px}
+[dir=rtl] .cl-row{flex-direction:row-reverse}
+.cl-row b{direction:ltr;unicode-bidi:embed}
 .adj-card{background:#f7f9f8;border:1px solid #e8eeeb;border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .adj-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .adj-name{font-weight:700;font-size:14px}
@@ -476,6 +481,8 @@ html.dark .cl-info b{color:#e8f0ec}
 .cl-del{width:34px;height:34px;background:#ffeaea;color:#d63031;border:none;border-radius:8px;font-size:15px;cursor:pointer;flex-shrink:0}
 .cl-q{padding:7px 10px;border:none;border-radius:8px;background:#eef5f1;color:#0f5132;font-size:13px;font-weight:600;cursor:pointer;margin-right:5px}
 .brow{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #eee;font-size:14px;color:#444}
+.brow b{direction:ltr;unicode-bidi:embed}
+[dir=rtl] .brow{flex-direction:row-reverse}
 .brow b{font-size:15px}
 .brow.strong{background:#e8f5ee;font-weight:700;color:#0f5132;border-radius:10px;margin:6px 0;border:none}
 .brow.strong b{font-size:17px}
