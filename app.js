@@ -575,12 +575,9 @@ function calcEquals(chain){
   _calc=String(r);_calcFresh=true;calcUpd();
 }
 function openProjNavMenu(){
-  var existing=document.getElementById('proj-nav-drop');
-  if(existing){existing.remove();return;}
+  var existing=document.getElementById('proj-nav-holder');
+  if(existing){closeProjNavMenu();return;}
   var ar=isAr();
-  var drop=document.createElement('div');
-  drop.id='proj-nav-drop';
-  drop.style.cssText='position:fixed;top:54px;'+(ar?'left:0':'right:0')+';background:#fff;border-radius:0 0 14px 14px;box-shadow:0 6px 24px rgba(0,0,0,.22);overflow:hidden;z-index:500;min-width:210px;border:1px solid #e8eee9;max-height:80vh;overflow-y:auto';
   var secs=[
     ['📦',ar?'المنتجات':'Produits','products'],
     ['🚬',ar?'السجائر':'Cigarettes','cigarettes'],
@@ -597,24 +594,40 @@ function openProjNavMenu(){
     ['📄',ar?'الملخص':'Récapitulatif','recap2'],
     ['🏠',ar?'المشاريع':'Projets','inventory']
   ];
-  secs.forEach(function(sec){
-    var b=document.createElement('button');
-    var isCur=CURSEC===sec[2];
-    b.style.cssText='display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;background:'+(isCur?'#e8f5ee':'none')+';border:none;border-bottom:.5px solid #f0f0f0;font-size:14px;cursor:pointer;color:'+(isCur?'#1a7a4a':'#222')+';font-weight:'+(isCur?'700':'400')+';text-align:'+(ar?'right':'left')+';direction:'+(ar?'rtl':'ltr');
-    b.innerHTML='<span>'+sec[0]+'</span><span>'+sec[1]+'</span>';
-    b.onclick=function(){drop.remove();showSection(sec[2]);};
-    drop.appendChild(b);
+  var nav='';
+  secs.forEach(function(it){
+    nav+='<button class="am-item'+(CURSEC===it[2]?' active':'')+'" onclick="closeProjNavMenu();showSection(\''+it[2]+'\')">'+it[0]+' <span>'+it[1]+'</span></button>';
   });
-  document.body.appendChild(drop);
+  var holder=document.createElement('div');
+  holder.id='proj-nav-holder';
+  // open from LEFT (same side as ☰ button), same CSS as admin sidebar
+  holder.innerHTML=
+    '<div class="am-overlay" onclick="closeProjNavMenu()"></div>'+
+    '<div class="am-side" id="proj-nav-panel" style="left:0;right:auto">'+
+      '<div class="am-head">'+
+        '<span>'+(ar?CP&&CP.name||'التنقل':CP&&CP.name||'Navigation')+'</span>'+
+        '<button class="am-x" onclick="closeProjNavMenu()">×</button>'+
+      '</div>'+
+      '<div class="am-nav">'+nav+'</div>'+
+    '</div>';
+  document.body.appendChild(holder);
+  // trigger open animation
   setTimeout(function(){
-    document.addEventListener('click',function h(e){
-      var nb=document.getElementById('proj-nav-btn');
-      if(!drop.contains(e.target)&&e.target!==nb&&!(nb&&nb.contains(e.target))){
-        if(drop.parentNode)drop.remove();
-      }
-      document.removeEventListener('click',h);
-    });
+    var panel=document.getElementById('proj-nav-panel');
+    var ov=holder.querySelector('.am-overlay');
+    if(panel)panel.classList.add('open');
+    if(ov)ov.classList.add('show');
   },10);
+}
+function closeProjNavMenu(){
+  var panel=document.getElementById('proj-nav-panel');
+  var ov=document.querySelector('#proj-nav-holder .am-overlay');
+  if(panel)panel.classList.remove('open');
+  if(ov)ov.classList.remove('show');
+  setTimeout(function(){
+    var h=document.getElementById('proj-nav-holder');
+    if(h)h.remove();
+  },300);
 }
 
 function toggleAvMenu(){
